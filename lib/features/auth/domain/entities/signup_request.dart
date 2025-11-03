@@ -1,0 +1,120 @@
+import 'package:haticare/features/auth/domain/entities/user_role.dart';
+
+class SignupRequest {
+  const SignupRequest({
+    required this.role,
+    required this.email,
+    required this.password,
+    this.confirmPassword,
+    this.firstName,
+    this.lastName,
+    this.phoneNumber,
+    this.gender,
+    this.dateOfBirth,
+    this.companyName,
+    this.companyAddress,
+    this.licenseNumber,
+    this.licenseType,
+    this.yearsOfExperience,
+    this.specialization,
+    this.licenseIssuingAuthority,
+    this.licenseDocumentPath,
+    this.pharmacyName,
+    this.ownerName,
+    this.businessEmail,
+    this.businessPhone,
+    this.addressLine1,
+    this.addressLine2,
+    this.city,
+    this.state,
+    this.postalCode,
+    this.country,
+    this.pharmacyLicenseNumber,
+    this.taxIdentificationNumber,
+    this.pharmacyLicenseDocumentPath,
+  });
+
+  final UserRole role;
+  final String email;
+  final String password;
+  final String? confirmPassword;
+  final String? firstName;
+  final String? lastName;
+
+  // Doctor specific
+  final String? phoneNumber;
+  final String? gender;
+  final String? dateOfBirth;
+  final String? companyName;
+  final String? companyAddress;
+  final String? licenseNumber;
+  final String? licenseType;
+  final String? yearsOfExperience;
+  final String? specialization;
+  final String? licenseIssuingAuthority;
+  final String? licenseDocumentPath;
+
+  // Pharmacy specific
+  final String? pharmacyName;
+  final String? ownerName;
+  final String? businessEmail;
+  final String? businessPhone;
+  final String? addressLine1;
+  final String? addressLine2;
+  final String? city;
+  final String? state;
+  final String? postalCode;
+  final String? country;
+  final String? pharmacyLicenseNumber;
+  final String? pharmacyLicenseDocumentPath;
+  final String? taxIdentificationNumber;
+
+  Map<String, dynamic> toJson() {
+    switch (role) {
+      case UserRole.doctor:
+        return _clean({
+          'email': email,
+          'password': password,
+          'first_name': firstName,
+          'last_name': lastName,
+          'phone_number': phoneNumber,
+          'gender': gender,
+          'date_of_birth': dateOfBirth,
+          'company_name': companyName,
+          'company_address': companyAddress,
+          'license_number': licenseNumber,
+          'license_type': licenseType,
+          'years_of_experience': yearsOfExperience,
+          'specialization': specialization,
+          'license_issuing_authority': licenseIssuingAuthority,
+          'license_document': licenseDocumentPath,
+        });
+      case UserRole.pharmacy:
+        return _clean({
+          'pharmacy_name': pharmacyName,
+          'owner_name': ownerName,
+          'business_email': email,
+          'business_phone_number': businessPhone,
+          'address_line_1': addressLine1,
+          'address_line_2': addressLine2,
+          'city': city,
+          'state': state,
+          'postal_code': postalCode,
+          'country': country,
+          'pharmacy_license_number': pharmacyLicenseNumber,
+          'license_document': pharmacyLicenseDocumentPath,
+          'tax_identification_number': taxIdentificationNumber,
+          'password': password,
+          'confirm_password': confirmPassword,
+        });
+    }
+  }
+
+  Map<String, dynamic> _clean(Map<String, dynamic> map) {
+    map.removeWhere(
+      (key, value) =>
+          value == null || (value is String && value.trim().isEmpty),
+    );
+    return map;
+  }
+}
