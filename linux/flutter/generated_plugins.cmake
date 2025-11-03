@@ -3,11 +3,8 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-<<<<<<< HEAD
   smart_auth
   url_launcher_linux
-=======
->>>>>>> main
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
