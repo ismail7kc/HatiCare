@@ -34,3 +34,7 @@ flutter:
 
     - assets/setting_selected.svg
     - assets/setting_unselected.svg
+    
+    - assets/appointment-Request.svg
+    - assets/sticky-note.svg
+    - assets/user-square.svg
