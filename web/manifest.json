@@ -1,6 +1,6 @@
 {
-    "name": "heticare_screen",
-    "short_name": "heticare_screen",
+    "name": "haticare",
+    "short_name": "haticare",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
