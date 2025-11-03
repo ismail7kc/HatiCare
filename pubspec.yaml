@@ -42,6 +42,12 @@ dependencies:
   awesome_select: ^6.0.0
   chucker_flutter: ^1.5.1
 
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_svg: ^2.0.9
+  persistent_bottom_nav_bar: ^6.2.0
+  cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:
@@ -113,3 +119,20 @@ flutter_native_splash:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/history_selected.svg
+    - assets/history_unselected.svg
+
+    - assets/home_selected.svg
+    - assets/home_unselected.svg
+
+    - assets/notification.svg
+    - assets/waitingApproval.svg
+
+    - assets/setting_selected.svg
+    - assets/setting_unselected.svg
