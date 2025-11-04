@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/features/doctor/data/consultation_history.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
+import 'package:haticare/features/doctor/data/customNav_Bottom.dart';
 import 'model/appointment_model.dart';
 import 'appointment_detail/appointment_detail.dart';
 import 'package:haticare/features/doctor/data/theme_constant.dart';
@@ -14,131 +15,19 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  late PersistentTabController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = PersistentTabController(initialIndex: 0);
-    _controller.addListener(() => setState(() {}));
-  }
-
-  List<Widget> _buildScreens() {
-    return const [
-      HomeScreen(),
-      ConsultationHistoryScreen(),
-      Center(child: Text("Settings Screen")),
-    ];
-  }
-
-  List<PersistentBottomNavBarItem> _navBarsItems(double itemWidth) {
-    return [
-      _buildNavItem("Home", 'assets/home.svg', 0, itemWidth),
-      _buildNavItem("History", 'assets/history.svg', 1, itemWidth),
-      _buildNavItem("Settings", 'assets/setting.svg', 2, itemWidth),
-    ];
-  }
-
-  PersistentBottomNavBarItem _buildNavItem(
-    String title,
-    String iconPath,
-    int index,
-    double itemWidth,
-  ) {
-    final bool isSelected = _controller.index == index;
-
-    final String selectedIconPath = iconPath.replaceFirst(
-      '.svg',
-      '_selected.svg',
-    );
-    final String unselectedIconPath = iconPath.replaceFirst(
-      '.svg',
-      '_unselected.svg',
-    );
-
-    return PersistentBottomNavBarItem(
-      icon: SizedBox(
-        width: itemWidth,
-        height: 80,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: FittedBox(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? const Color(0x1A3861ED)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SvgPicture.asset(
-                        isSelected ? selectedIconPath : unselectedIconPath,
-                        height: 22,
-                      ),
-                      if (isSelected) ...[
-                        const SizedBox(width: 6),
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            color: Color(0xFF3861ED),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-      inactiveIcon: SizedBox(
-        width: itemWidth,
-        height: 80,
-        child: Center(child: SvgPicture.asset(unselectedIconPath, height: 35)),
-      ),
-      title: "",
-      activeColorPrimary: Colors.transparent,
-      inactiveColorPrimary: Colors.transparent,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final double itemWidth = screenWidth / 3;
-    return MediaQuery(
-      data: MediaQuery.of(
-        context,
-      ).copyWith(padding: MediaQuery.of(context).padding.copyWith(bottom: 4)),
-      child: PersistentTabView(
-        context,
-        controller: _controller,
-        screens: _buildScreens(),
-        items: _navBarsItems(itemWidth),
-        backgroundColor: Colors.white,
-        decoration: const NavBarDecoration(
-          borderRadius: BorderRadius.zero,
-          colorBehindNavBar: Colors.white,
-        ),
-        navBarHeight: 80,
-        margin: EdgeInsets.zero,
-        padding: EdgeInsets.zero,
-        confineToSafeArea: true,
-        navBarStyle: NavBarStyle.style6,
-      ),
+    return CustomBottomNav(
+      screens: const [
+        HomeScreen(),
+        ConsultationHistoryScreen(),
+        Center(child: Text("Settings Screen")),
+      ],
+      tabs: const [
+        TabItemData(title: "Home", iconPath: 'assets/home.svg'),
+        TabItemData(title: "History", iconPath: 'assets/history.svg'),
+        TabItemData(title: "Settings", iconPath: 'assets/setting.svg'),
+      ],
     );
   }
 }
@@ -534,11 +423,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: () {
                     PersistentNavBarNavigator.pushNewScreen(
                       context,
-                      screen: AppointmentDetail(appointment: appt,
-                      isCameFromAccept: true,
+                      screen: AppointmentDetail(
+                        appointment: appt,
+                        isCameFromAccept: true,
                       ),
                       withNavBar: false,
-                      pageTransitionAnimation: PageTransitionAnimation.cupertino,
+                      pageTransitionAnimation:
+                          PageTransitionAnimation.cupertino,
                     );
                   },
                   style: ElevatedButton.styleFrom(
