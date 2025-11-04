@@ -75,10 +75,11 @@ class SignupRequest {
         return _clean({
           'email': email,
           'password': password,
+          'confirm_password': confirmPassword,
           'first_name': firstName,
           'last_name': lastName,
           'phone_number': phoneNumber,
-          'gender': gender,
+          'gender': _normalizedGender,
           'date_of_birth': dateOfBirth,
           'company_name': companyName,
           'company_address': companyAddress,
@@ -116,5 +117,23 @@ class SignupRequest {
           value == null || (value is String && value.trim().isEmpty),
     );
     return map;
+  }
+
+  String? get _normalizedGender {
+    if (gender == null || gender!.isEmpty) return null;
+    final value = gender!.trim().toUpperCase();
+    switch (value) {
+      case 'MALE':
+      case 'M':
+        return 'M';
+      case 'FEMALE':
+      case 'F':
+        return 'F';
+      case 'OTHER':
+      case 'O':
+        return 'O';
+      default:
+        return value.length == 1 ? value : null;
+    }
   }
 }

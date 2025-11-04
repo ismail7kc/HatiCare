@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
-
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/core/widgets/app_primary_button.dart';
 import 'package:haticare/core/widgets/app_text_field.dart';
 import 'package:haticare/features/auth/domain/repositories/auth_repository.dart';
 import 'package:haticare/features/auth/presentation/viewmodels/forgot_password_view_model.dart';
+import 'package:haticare/features/auth/presentation/widgets/auth_top_bar.dart';
 
 class ForgotPasswordScreen extends StatelessWidget {
   const ForgotPasswordScreen({super.key, this.prefilledEmail});
@@ -35,39 +35,33 @@ class _ForgotPasswordView extends StatelessWidget {
     final textTheme = theme.textTheme;
 
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).maybePop(),
-          icon: SvgPicture.asset(
-            'assets/icons/back_left_arrow_icon.svg',
-            width: 22,
-            height: 22,
-            colorFilter: const ColorFilter.mode(
-              AppColors.textPrimary,
-              BlendMode.srcIn,
-            ),
-          ),
-        ),
-      ),
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Form(
-            key: viewModel.formKey,
-            autovalidateMode: AutovalidateMode.onUserInteraction,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+              child: AuthTopBar(
+                title: 'Forgot Password',
+                onBackPressed: () => Navigator.of(context).maybePop(),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: Form(
+                  key: viewModel.formKey,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                         Center(
                           child: SvgPicture.asset(
                             'assets/images/forgot_password_logo.svg',
@@ -92,6 +86,14 @@ class _ForgotPasswordView extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 24),
+                        Text(
+                          'Email',
+                          style: textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF6C7278),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                         AppTextField(
                           controller: viewModel.emailController,
                           label: 'Email',
@@ -141,15 +143,18 @@ class _ForgotPasswordView extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
-                AppPrimaryButton(
-                  label: 'Continue',
-                  onPressed: viewModel.isSubmitting ? null : viewModel.submit,
-                  isLoading: viewModel.isSubmitting,
+                      const SizedBox(height: 24),
+                      AppPrimaryButton(
+                        label: 'Continue',
+                        onPressed: viewModel.isSubmitting ? null : viewModel.submit,
+                        isLoading: viewModel.isSubmitting,
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

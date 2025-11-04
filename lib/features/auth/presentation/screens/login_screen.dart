@@ -65,7 +65,7 @@ class _LoginView extends StatelessWidget {
                       'Email',
                       style: textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: const Color(0xFF6C7278),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -77,12 +77,12 @@ class _LoginView extends StatelessWidget {
                       prefixIcon: const Icon(Icons.email_outlined),
                       validator: viewModel.validateEmail,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 2),
                     Text(
                       'Password',
                       style: textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: const Color(0xFF6C7278),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -95,7 +95,7 @@ class _LoginView extends StatelessWidget {
                       enableObscureToggle: true,
                       validator: viewModel.validatePassword,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
                         SizedBox(

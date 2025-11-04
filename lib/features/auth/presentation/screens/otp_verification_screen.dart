@@ -1,15 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
 import 'package:pinput/pinput.dart';
-
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/core/widgets/app_primary_button.dart';
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
+import 'package:haticare/features/auth/presentation/widgets/auth_top_bar.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   const OtpVerificationScreen({
@@ -47,24 +45,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   Timer? _timer;
 
   late final PinTheme defaultPinTheme = PinTheme(
-    width: 56,
-    height: 60,
+    width: 64,
+    height: 64,
     textStyle: const TextStyle(
-      fontSize: 20,
+      fontSize: 22,
       fontWeight: FontWeight.w600,
       color: AppColors.textPrimary,
     ),
     decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: const Color(0xFFE0E3EA)),
+      borderRadius: BorderRadius.circular(32),
+      border: Border.all(color: const Color(0xFFE2E5EE)),
       color: Colors.white,
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x11000000),
-          blurRadius: 10,
-          offset: Offset(0, 4),
-        ),
-      ],
     ),
   );
 
@@ -262,79 +253,79 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final viewInsets = MediaQuery.of(context).viewInsets;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: AppColors.textPrimary,
-        centerTitle: true,
-        title: Text(
-          widget.title,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-      ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 40,
-            bottom: 16 + MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SvgPicture.asset(
-                'assets/images/forgot_password_logo.svg',
-                height: 160,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+              child: AuthTopBar(
+                title: widget.title,
+                onBackPressed: () => Navigator.of(context).maybePop(),
               ),
-              const SizedBox(height: 32),
-              Text(
-                'Enter OTP',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Verification code',
+                      style: textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Please enter the 4-digit OTP sent to ${widget.email}.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
+                    const SizedBox(height: 12),
+                    Text(
+                      'Please enter the OTP sent to the email associated with this account for verification',
+                      textAlign: TextAlign.center,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                        height: 1.5,
+                      ),
                     ),
+                    const SizedBox(height: 32),
+                    Pinput(
+                      length: 4,
+                      controller: pinController,
+                      focusNode: focusNode,
+                      defaultPinTheme: defaultPinTheme,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(4),
+                      ],
+                      autofocus: true,
+                      separatorBuilder: (index) => const SizedBox(width: 16),
+                    ),
+                    const SizedBox(height: 28),
+                    if (widget.resendApiUrl != null)
+                      _ResendRow(
+                        canResend: canResend,
+                        onPressed: () => _resendOtp(),
+                        formattedTime: _formatRemaining(),
+                      ),
+                    const SizedBox(height: 48),
+                  ],
+                ),
               ),
-              const SizedBox(height: 32),
-              Pinput(
-                length: 4,
-                controller: pinController,
-                focusNode: focusNode,
-                defaultPinTheme: defaultPinTheme,
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(4),
-                ],
-                autofocus: true,
-              ),
-              const SizedBox(height: 32),
-              AppPrimaryButton(
-                label: 'Verify OTP',
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              child: AppPrimaryButton(
+                label: 'Continue',
                 onPressed: isLoading ? null : verifyOtp,
                 isLoading: isLoading,
               ),
-              const SizedBox(height: 16),
-              if (widget.resendApiUrl != null) _ResendRow(
-                canResend: canResend,
-                onPressed: () => _resendOtp(),
-                formattedTime: _formatRemaining(),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -354,21 +345,31 @@ class _ResendRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
       children: [
         Text(
-          canResend
-              ? 'You can resend the OTP now.'
-              : 'Resend available in $formattedTime',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+          "Didn't receive any code?",
+          style: textTheme.bodyMedium?.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(height: 4),
         TextButton(
           onPressed: canResend ? onPressed : null,
-          child: const Text('Resend OTP'),
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            foregroundColor: const Color(0xFF0E7CC0),
+          ),
+          child: Text(
+            canResend ? 'Resend code' : 'Resend code in $formattedTime',
+            style: textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ],
     );

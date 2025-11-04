@@ -142,7 +142,7 @@ class _AppTextFieldState extends State<AppTextField> {
         ),
         errorStyle: const TextStyle(height: 1.2),
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
   }

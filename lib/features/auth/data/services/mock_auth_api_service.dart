@@ -20,5 +20,29 @@ class MockAuthApiService implements AuthApiService {
     await Future<void>.delayed(const Duration(milliseconds: 600));
   }
 
+  @override
+  Future<Map<String, dynamic>> generateOtp({required String email}) async {
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    return {'status': 'success', 'message': 'OTP sent successfully'};
+  }
+
+  @override
+  Future<Map<String, dynamic>> doctorSignupWithOtp({
+    required SignupRequest request,
+    required String otp,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 800));
+    return {'status': 'success', 'message': 'Doctor registered successfully'};
+  }
+
+  @override
+  Future<Map<String, dynamic>> pharmacySignupWithOtp({
+    required SignupRequest request,
+    required String otp,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 800));
+    return {'status': 'success', 'message': 'Pharmacy registered successfully'};
+  }
+
   void dispose() {}
 }

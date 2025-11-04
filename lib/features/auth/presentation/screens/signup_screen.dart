@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/core/widgets/app_primary_button.dart';
 import 'package:haticare/core/widgets/app_text_field.dart';
 import 'package:haticare/features/auth/domain/entities/user_role.dart';
 import 'package:haticare/features/auth/domain/repositories/auth_repository.dart';
+import 'package:haticare/features/auth/presentation/screens/unified_otp_verification_screen.dart';
 import 'package:haticare/features/auth/presentation/viewmodels/signup_view_model.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:provider/provider.dart';
@@ -67,6 +70,38 @@ class _SignupViewState extends State<_SignupView>
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
 
+    if (viewModel.shouldNavigateToOtp) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          // Determine which signup request to use
+          final signupRequest = viewModel.isDoctor
+              ? viewModel.pendingDoctorSignupRequest
+              : viewModel.pendingPharmacySignupRequest;
+          
+          final email = viewModel.isDoctor
+              ? viewModel.doctorEmailController.text.trim()
+              : viewModel.pharmacyEmailController.text.trim();
+
+          if (signupRequest != null) {
+            viewModel.markOtpNavigationHandled();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => UnifiedOtpVerificationScreen(
+                  email: email,
+                  signupRequest: signupRequest,
+                ),
+              ),
+            ).then((_) {
+              viewModel.clearPendingRequest();
+            });
+          } else {
+            viewModel.markOtpNavigationHandled();
+          }
+        }
+      });
+    }
+
     final targetIndex = viewModel.isDoctor ? 0 : 1;
     if (_tabController.index != targetIndex) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -91,7 +126,9 @@ class _SignupViewState extends State<_SignupView>
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
               child: Form(
                 key: viewModel.formKey,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
+                autovalidateMode: viewModel.autovalidate 
+                    ? AutovalidateMode.onUserInteraction 
+                    : AutovalidateMode.disabled,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -256,6 +293,7 @@ InputDecoration _phoneFieldDecoration(BuildContext context, {String? hint}) {
           BorderSide(color: Theme.of(context).colorScheme.error, width: 1.4),
     ),
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    counterText: '',
   );
 }
 
@@ -301,13 +339,15 @@ class _DoctorSection extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 2),
         _LabeledField(
           label: 'Phone Number',
           child: IntlPhoneField(
             controller: viewModel.phoneNumberController,
             initialCountryCode: 'US',
-            disableLengthCheck: true,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+            ],
             dropdownIcon: const Icon(
               Icons.arrow_drop_down,
               color: AppColors.primary,
@@ -325,13 +365,15 @@ class _DoctorSection extends StatelessWidget {
               context,
               hint: '1234567890',
             ),
-            validator: (phone) =>
-                viewModel.validateDoctorPhone(phone?.completeNumber),
+            validator: viewModel.validateDoctorPhone,
             onChanged: viewModel.updateDoctorPhone,
+            onCountryChanged: (country) {
+              viewModel.updateDoctorCountryCode(country.dialCode);
+            },
             onSaved: viewModel.updateDoctorPhone,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 4),
         _LabeledField(
           label: 'Email',
           child: AppTextField(
@@ -343,18 +385,14 @@ class _DoctorSection extends StatelessWidget {
             validator: viewModel.validateDoctorEmail,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 4),
         Row(
           children: [
             Expanded(
               child: _LabeledField(
                 label: 'Date of Birth',
-                child: AppTextField(
+                child: _DatePickerField(
                   controller: viewModel.dateOfBirthController,
-                  label: 'Date of Birth',
-                  hint: 'YYYY/MM/DD',
-                  keyboardType: TextInputType.datetime,
-                  prefixIcon: const Icon(Icons.calendar_month_outlined),
                   validator: viewModel.validateDoctorDob,
                 ),
               ),
@@ -363,19 +401,22 @@ class _DoctorSection extends StatelessWidget {
             Expanded(
               child: _LabeledField(
                 label: 'Gender',
-                child: AppTextField(
-                  controller: viewModel.genderController,
-                  label: 'Gender',
-                  hint: 'Male',
-                  textCapitalization: TextCapitalization.words,
-                  prefixIcon: const Icon(Icons.person_2_outlined),
+                child: _GenderDropdown(
+                  value: viewModel.genderController.text.isEmpty 
+                      ? null 
+                      : viewModel.genderController.text,
+                  onChanged: (value) {
+                    if (value != null) {
+                      viewModel.setDoctorGender(value);
+                    }
+                  },
                   validator: viewModel.validateDoctorGender,
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 4),
         _LabeledField(
           label: 'Company Name',
           child: AppTextField(
@@ -386,7 +427,7 @@ class _DoctorSection extends StatelessWidget {
             validator: viewModel.validateDoctorCompanyName,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 2),
         _LabeledField(
           label: 'Company Address',
           child: AppTextField(
@@ -397,7 +438,7 @@ class _DoctorSection extends StatelessWidget {
             validator: viewModel.validateDoctorCompanyAddress,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 2),
         _LabeledField(
           label: 'License Number',
           child: AppTextField(
@@ -408,7 +449,7 @@ class _DoctorSection extends StatelessWidget {
             validator: viewModel.validateDoctorLicenseNumber,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 2),
         _LabeledField(
           label: 'License Type',
           child: AppTextField(
@@ -419,7 +460,7 @@ class _DoctorSection extends StatelessWidget {
             validator: viewModel.validateDoctorLicenseType,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 2),
         Row(
           children: [
             Expanded(
@@ -450,7 +491,7 @@ class _DoctorSection extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 2),
         _LabeledField(
           label: 'License Issuing Authority',
           child: AppTextField(
@@ -461,22 +502,30 @@ class _DoctorSection extends StatelessWidget {
             validator: viewModel.validateDoctorIssuingAuthority,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 2),
         _LabeledField(
           label: 'License Document',
           child: _DocumentPickerTile(
             title: 'License Document',
             fileName: viewModel.doctorLicenseDocumentName,
             onTap: () async {
-              // TODO: integrate real file picker
-              viewModel.setDoctorLicenseDocument(
-                path: '/mock/path/license.pdf',
-                name: 'license.pdf',
+              final result = await FilePicker.platform.pickFiles(
+                type: FileType.custom,
+                allowedExtensions: ['pdf'],
+                allowMultiple: false,
               );
+
+              if (result != null && result.files.isNotEmpty) {
+                final file = result.files.first;
+                viewModel.setDoctorLicenseDocument(
+                  path: file.path ?? '',
+                  name: file.name,
+                );
+              }
             },
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
         _LabeledField(
           label: 'Password',
           child: AppTextField(
@@ -489,7 +538,7 @@ class _DoctorSection extends StatelessWidget {
             validator: viewModel.validateDoctorPassword,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 2),
         _LabeledField(
           label: 'Confirm Password',
           child: AppTextField(
@@ -500,15 +549,21 @@ class _DoctorSection extends StatelessWidget {
             obscureText: true,
             enableObscureToggle: true,
             validator: viewModel.validateDoctorConfirmPassword,
+            onChanged: (_) {
+              // Trigger validation on confirm password field when typing
+              if (viewModel.autovalidate) {
+                viewModel.formKey.currentState?.validate();
+              }
+            },
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 10),
         AppPrimaryButton(
           label: 'Create Account',
           onPressed: viewModel.isSubmitting ? null : viewModel.submit,
           isLoading: viewModel.isSubmitting,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
@@ -562,7 +617,7 @@ class _PharmacySection extends StatelessWidget {
             validator: viewModel.validatePharmacyName,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 4),
         _LabeledField(
           label: 'Owner / Manager Name',
           child: AppTextField(
@@ -574,13 +629,15 @@ class _PharmacySection extends StatelessWidget {
             validator: viewModel.validateOwnerName,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 4),
         _LabeledField(
           label: 'Business Phone Number',
           child: IntlPhoneField(
             controller: viewModel.businessPhoneController,
             initialCountryCode: 'US',
-            disableLengthCheck: true,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+            ],
             dropdownIcon: const Icon(
               Icons.arrow_drop_down,
               color: AppColors.primary,
@@ -597,13 +654,15 @@ class _PharmacySection extends StatelessWidget {
               context,
               hint: '1234567890',
             ),
-            validator: (phone) =>
-                viewModel.validateBusinessPhone(phone?.completeNumber),
+            validator: viewModel.validateBusinessPhone,
             onChanged: viewModel.updateBusinessPhone,
+            onCountryChanged: (country) {
+              viewModel.updateBusinessCountryCode(country.dialCode);
+            },
             onSaved: viewModel.updateBusinessPhone,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 4),
         _LabeledField(
           label: 'Email',
           child: AppTextField(
@@ -615,7 +674,7 @@ class _PharmacySection extends StatelessWidget {
             validator: viewModel.validatePharmacyEmail,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 4),
         _LabeledField(
           label: 'Address Line 1',
           child: AppTextField(
@@ -626,7 +685,7 @@ class _PharmacySection extends StatelessWidget {
             validator: viewModel.validateAddressLine1,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 4),
         _LabeledField(
           label: 'Address Line 2 (Optional)',
           child: AppTextField(
@@ -636,7 +695,7 @@ class _PharmacySection extends StatelessWidget {
             prefixIcon: const Icon(Icons.location_on_outlined),
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 4),
         Row(
           children: [
             Expanded(
@@ -666,7 +725,7 @@ class _PharmacySection extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 4),
         Row(
           children: [
             Expanded(
@@ -697,7 +756,7 @@ class _PharmacySection extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 4),
         _LabeledField(
           label: 'Pharmacy License Number',
           child: AppTextField(
@@ -708,22 +767,30 @@ class _PharmacySection extends StatelessWidget {
             validator: viewModel.validatePharmacyLicenseNumber,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 4),
         _LabeledField(
           label: 'License Document',
           child: _DocumentPickerTile(
             title: 'License Document',
             fileName: viewModel.pharmacyLicenseDocumentName,
             onTap: () async {
-              // TODO: integrate real file picker
-              viewModel.setPharmacyLicenseDocument(
-                path: '/mock/path/pharmacy_license.pdf',
-                name: 'pharmacy_license.pdf',
+              final result = await FilePicker.platform.pickFiles(
+                type: FileType.custom,
+                allowedExtensions: ['pdf'],
+                allowMultiple: false,
               );
+
+              if (result != null && result.files.isNotEmpty) {
+                final file = result.files.first;
+                viewModel.setPharmacyLicenseDocument(
+                  path: file.path ?? '',
+                  name: file.name,
+                );
+              }
             },
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
         _LabeledField(
           label: 'Tax Identification Number (Optional)',
           child: AppTextField(
@@ -733,7 +800,7 @@ class _PharmacySection extends StatelessWidget {
             prefixIcon: const Icon(Icons.numbers_outlined),
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 4),
         _LabeledField(
           label: 'Password',
           child: AppTextField(
@@ -746,7 +813,7 @@ class _PharmacySection extends StatelessWidget {
             validator: viewModel.validatePharmacyPassword,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 4),
         _LabeledField(
           label: 'Confirm Password',
           child: AppTextField(
@@ -757,15 +824,20 @@ class _PharmacySection extends StatelessWidget {
             obscureText: true,
             enableObscureToggle: true,
             validator: viewModel.validatePharmacyConfirmPassword,
+            onChanged: (_) {
+              if (viewModel.autovalidate) {
+                viewModel.formKey.currentState?.validate();
+              }
+            },
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 10),
         AppPrimaryButton(
           label: 'Create Account',
           onPressed: viewModel.isSubmitting ? null : viewModel.submit,
           isLoading: viewModel.isSubmitting,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
@@ -802,7 +874,7 @@ class _LabeledField extends StatelessWidget {
   const _LabeledField({
     required this.label,
     required this.child,
-    this.spacing = 6,
+    this.spacing = 2,
   });
 
   final String label;
@@ -819,7 +891,7 @@ class _LabeledField extends StatelessWidget {
           label,
           style: textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: const Color(0xFF6C7278),
           ),
         ),
         SizedBox(height: spacing),
@@ -884,6 +956,152 @@ class _DocumentPickerTile extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _DatePickerField extends StatelessWidget {
+  const _DatePickerField({
+    required this.controller,
+    this.validator,
+  });
+
+  final TextEditingController controller;
+  final String? Function(String?)? validator;
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(2000),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      // Format date as YYYY-MM-DD
+      final formattedDate = 
+          '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      controller.text = formattedDate;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      readOnly: true,
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: AppColors.surface,
+        hintText: 'YYYY-MM-DD',
+        hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: AppColors.textSecondary,
+        ),
+        prefixIcon: const Icon(Icons.calendar_month_outlined, color: AppColors.primary),
+        suffixIcon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.error,
+            width: 1.4,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+      style: Theme.of(context).textTheme.bodyMedium,
+      validator: validator,
+      onTap: () => _selectDate(context),
+    );
+  }
+}
+
+class _GenderDropdown extends StatelessWidget {
+  const _GenderDropdown({
+    required this.value,
+    required this.onChanged,
+    this.validator,
+  });
+
+  final String? value;
+  final ValueChanged<String?> onChanged;
+  final String? Function(String?)? validator;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      isExpanded: true,
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: AppColors.surface,
+        prefixIcon: const Icon(Icons.person_2_outlined, color: AppColors.primary),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.error,
+            width: 1.4,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+      hint: Text(
+        'Select Gender',
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: AppColors.textSecondary,
+        ),
+      ),
+      icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
+      items: const [
+        DropdownMenuItem(value: 'Male', child: Text('Male')),
+        DropdownMenuItem(value: 'Female', child: Text('Female')),
+        DropdownMenuItem(value: 'Other', child: Text('Other')),
+      ],
+      onChanged: onChanged,
+      validator: validator,
     );
   }
 }

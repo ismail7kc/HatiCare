@@ -73,6 +73,119 @@ class RemoteAuthApiService implements AuthApiService {
     await Future<void>.delayed(const Duration(milliseconds: 500));
   }
 
+  @override
+  Future<Map<String, dynamic>> generateOtp({required String email}) async {
+    final uri = Uri.parse('${AppConfig.baseUrl}/users/generate-otp/');
+    final response = await _client.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({'email': email}),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw AuthApiException(
+        _extractErrorMessage(response.body) ?? 'Failed to generate OTP',
+        statusCode: response.statusCode,
+      );
+    }
+
+    final decoded = _decodeJson(response.body);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+
+    return {'status': 'success', 'message': 'OTP sent successfully'};
+  }
+
+  @override
+  Future<Map<String, dynamic>> doctorSignupWithOtp({
+    required SignupRequest request,
+    required String otp,
+  }) async {
+    final uri = Uri.parse('${AppConfig.baseUrl}/users/doctor/signup/');
+    final requestData = request.toJson();
+    requestData['otp'] = otp;
+
+    final multipartRequest = http.MultipartRequest('POST', uri)
+      ..headers['Accept'] = 'application/json';
+
+    final licensePath = request.licenseDocumentPath;
+    requestData.forEach((key, value) {
+      if (value == null) return;
+      if (key == 'license_document') return;
+      multipartRequest.fields[key] = value.toString();
+    });
+
+    if (licensePath != null && licensePath.isNotEmpty) {
+      multipartRequest.files.add(
+        await http.MultipartFile.fromPath('license_document', licensePath),
+      );
+    }
+
+    final streamedResponse = await _client.send(multipartRequest);
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw AuthApiException(
+        _extractErrorMessage(response.body) ?? 'Doctor signup failed',
+        statusCode: response.statusCode,
+      );
+    }
+
+    final decoded = _decodeJson(response.body);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+
+    return {'status': 'success', 'message': 'Doctor registered successfully'};
+  }
+
+  @override
+  Future<Map<String, dynamic>> pharmacySignupWithOtp({
+    required SignupRequest request,
+    required String otp,
+  }) async {
+    final uri = Uri.parse('${AppConfig.baseUrl}/users/pharmacy/signup/');
+    final requestData = request.toJson();
+    requestData['otp'] = otp;
+
+    final multipartRequest = http.MultipartRequest('POST', uri)
+      ..headers['Accept'] = 'application/json';
+
+    final documentPath = request.pharmacyLicenseDocumentPath;
+    requestData.forEach((key, value) {
+      if (value == null) return;
+      if (key == 'license_document') return;
+      multipartRequest.fields[key] = value.toString();
+    });
+
+    if (documentPath != null && documentPath.isNotEmpty) {
+      multipartRequest.files.add(
+        await http.MultipartFile.fromPath('license_document', documentPath),
+      );
+    }
+
+    final streamedResponse = await _client.send(multipartRequest);
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw AuthApiException(
+        _extractErrorMessage(response.body) ?? 'Pharmacy signup failed',
+        statusCode: response.statusCode,
+      );
+    }
+
+    final decoded = _decodeJson(response.body);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+
+    return {'status': 'success', 'message': 'Pharmacy registered successfully'};
+  }
+
   void dispose() {
     _client.close();
   }

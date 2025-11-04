@@ -21,6 +21,8 @@ class SignupViewModel extends ChangeNotifier {
   final pharmacyConfirmPasswordController = TextEditingController();
   final phoneNumberController = TextEditingController();
   String? _doctorPhoneNumber;
+  PhoneNumber? _doctorPhoneMeta;
+  String _doctorCountryCode = '+1';
   final genderController = TextEditingController();
   final dateOfBirthController = TextEditingController();
   final companyNameController = TextEditingController();
@@ -35,6 +37,8 @@ class SignupViewModel extends ChangeNotifier {
   final ownerNameController = TextEditingController();
   final businessPhoneController = TextEditingController();
   String? _businessPhoneNumber;
+  PhoneNumber? _businessPhoneMeta;
+  String _businessCountryCode = '+1';
   final addressLine1Controller = TextEditingController();
   final addressLine2Controller = TextEditingController();
   final cityController = TextEditingController();
@@ -46,8 +50,10 @@ class SignupViewModel extends ChangeNotifier {
 
   UserRole selectedRole = UserRole.doctor;
   bool isSubmitting = false;
+  bool autovalidate = false;
   String? errorMessage;
   String? successMessage;
+  bool _otpReadyForNavigation = false;
 
   String? doctorLicenseDocumentPath;
   String? doctorLicenseDocumentName;
@@ -55,19 +61,56 @@ class SignupViewModel extends ChangeNotifier {
   String? pharmacyLicenseDocumentPath;
   String? pharmacyLicenseDocumentName;
 
+  SignupRequest? _pendingDoctorSignupRequest;
+  SignupRequest? _pendingPharmacySignupRequest;
+
   void selectRole(UserRole role) {
     if (selectedRole == role) return;
     selectedRole = role;
     errorMessage = null;
     successMessage = null;
+    autovalidate = false;
+    _otpReadyForNavigation = false;
     _doctorPhoneNumber = null;
+    _doctorPhoneMeta = null;
     _businessPhoneNumber = null;
+    _businessPhoneMeta = null;
     formKey.currentState?.reset();
     notifyListeners();
   }
 
+  int? _expectedNationalLength(String? isoCode) {
+    if (isoCode == null) return null;
+    switch (isoCode.toUpperCase()) {
+      case 'PK':
+        return 10;
+      case 'US':
+      case 'CA':
+        return 10;
+      default:
+        return null;
+    }
+  }
+
+  String _normalizeCountryCodeString(String code) {
+    final trimmed = code.trim();
+    if (trimmed.isEmpty) return '';
+    return trimmed.startsWith('+') ? trimmed : '+$trimmed';
+  }
+
+  String? _normalizePhoneNumber(PhoneNumber? phone) {
+    if (phone == null) return null;
+    final sanitizedCountryCode = phone.countryCode.replaceAll(RegExp(r'[^0-9]'), '');
+    final sanitizedPhone = phone.number.replaceAll(RegExp(r'[^0-9]'), '');
+    if (sanitizedPhone.isEmpty) return null;
+    return sanitizedCountryCode.isEmpty
+        ? sanitizedPhone
+        : '+$sanitizedCountryCode$sanitizedPhone';
+  }
+
   bool get isDoctor => selectedRole == UserRole.doctor;
   bool get isPharmacy => selectedRole == UserRole.pharmacy;
+  bool get shouldNavigateToOtp => _otpReadyForNavigation;
 
   String? _requiredValidator(String? value, String fieldName) {
     if (value == null || value.trim().isEmpty) {
@@ -150,21 +193,44 @@ class SignupViewModel extends ChangeNotifier {
   }
 
   void updateDoctorPhone(PhoneNumber? phone) {
-    final raw = phone?.completeNumber ?? phoneNumberController.text;
-    final trimmed = raw.trim();
-    _doctorPhoneNumber = trimmed.isEmpty ? null : trimmed;
+    _doctorPhoneMeta = phone;
+    if (phone != null) {
+      _doctorCountryCode = phone.countryCode;
+      _doctorPhoneNumber = _normalizePhoneNumber(phone);
+    }
+  }
+
+  void updateDoctorCountryCode(String countryCode) {
+    _doctorCountryCode = _normalizeCountryCodeString(countryCode);
   }
 
   void updateBusinessPhone(PhoneNumber? phone) {
-    final raw = phone?.completeNumber ?? businessPhoneController.text;
-    final trimmed = raw.trim();
-    _businessPhoneNumber = trimmed.isEmpty ? null : trimmed;
+    _businessPhoneMeta = phone;
+    if (phone != null) {
+      _businessCountryCode = phone.countryCode;
+      _businessPhoneNumber = _normalizePhoneNumber(phone);
+    }
   }
 
-  String? validateDoctorPhone(String? value) {
+  void updateBusinessCountryCode(String countryCode) {
+    _businessCountryCode = _normalizeCountryCodeString(countryCode);
+  }
+
+  String? validateDoctorPhone(PhoneNumber? phone) {
     if (!isDoctor) return null;
-    final phone = _doctorPhoneNumber ?? value;
-    return _requiredValidator(phone, 'phone number');
+    final candidate = phone ?? _doctorPhoneMeta;
+    if (candidate == null || candidate.number.trim().isEmpty) {
+      return 'Enter phone number';
+    }
+
+    final expectedLength = _expectedNationalLength(candidate.countryISOCode);
+    final digits = candidate.number.replaceAll(RegExp(r'\D'), '');
+    if (expectedLength != null && digits.length != expectedLength) {
+      return 'Enter a valid phone number';
+    }
+
+    _doctorPhoneNumber = _normalizePhoneNumber(candidate);
+    return null;
   }
 
   String? validateDoctorGender(String? value) {
@@ -232,10 +298,21 @@ class SignupViewModel extends ChangeNotifier {
     return _requiredValidator(value, 'owner / manager name');
   }
 
-  String? validateBusinessPhone(String? value) {
+  String? validateBusinessPhone(PhoneNumber? phone) {
     if (!isPharmacy) return null;
-    final phone = _businessPhoneNumber ?? value;
-    return _requiredValidator(phone, 'business phone number');
+    final candidate = phone ?? _businessPhoneMeta;
+    if (candidate == null || candidate.number.trim().isEmpty) {
+      return 'Enter business phone number';
+    }
+
+    final expectedLength = _expectedNationalLength(candidate.countryISOCode);
+    final digits = candidate.number.replaceAll(RegExp(r'\D'), '');
+    if (expectedLength != null && digits.length != expectedLength) {
+      return 'Enter a valid business phone number';
+    }
+
+    _businessPhoneNumber = _normalizePhoneNumber(candidate);
+    return null;
   }
 
   String? validateAddressLine1(String? value) {
@@ -283,6 +360,28 @@ class SignupViewModel extends ChangeNotifier {
   }
 
   Future<void> submit() async {
+    // Enable autovalidation after first submit attempt
+    if (!autovalidate) {
+      autovalidate = true;
+      notifyListeners();
+    }
+
+    _otpReadyForNavigation = false;
+
+    // Manually validate phone numbers first since they might not be caught by form validation
+    String? phoneError;
+    if (isDoctor) {
+      phoneError = validateDoctorPhone(_doctorPhoneMeta);
+    } else if (isPharmacy) {
+      phoneError = validateBusinessPhone(_businessPhoneMeta);
+    }
+    
+    if (phoneError != null) {
+      errorMessage = phoneError;
+      notifyListeners();
+      return;
+    }
+    
     if (!formKey.currentState!.validate()) {
       return;
     }
@@ -349,10 +448,23 @@ class SignupViewModel extends ChangeNotifier {
         pharmacyLicenseDocumentPath:
             isPharmacy ? pharmacyLicenseDocumentPath : null,
       );
-      final response = await _repository.signup(request: request);
-      successMessage = _successMessageFromResponse(response) ??
-          'Signup submitted successfully.';
+      
+      // For both doctor and pharmacy, generate OTP first
+      Map<String, dynamic> otpResponse;
+      if (isDoctor) {
+        _pendingDoctorSignupRequest = request;
+        otpResponse = await _repository.generateOtp(email: request.email);
+      } else {
+        // For pharmacy, also use OTP flow
+        _pendingPharmacySignupRequest = request;
+        otpResponse = await _repository.generateOtp(email: request.email);
+      }
+
+      successMessage =
+          _successMessageFromResponse(otpResponse) ?? 'OTP sent successfully';
+      _otpReadyForNavigation = true;
     } catch (error) {
+      _otpReadyForNavigation = false;
       if (error is PasswordMismatchException) {
         errorMessage = 'Passwords do not match';
       } else if (error is AuthApiException) {
@@ -362,6 +474,22 @@ class SignupViewModel extends ChangeNotifier {
       }
     } finally {
       isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
+  SignupRequest? get pendingDoctorSignupRequest => _pendingDoctorSignupRequest;
+  SignupRequest? get pendingPharmacySignupRequest => _pendingPharmacySignupRequest;
+
+  void clearPendingRequest() {
+    _pendingDoctorSignupRequest = null;
+    _pendingPharmacySignupRequest = null;
+    _otpReadyForNavigation = false;
+  }
+
+  void markOtpNavigationHandled() {
+    if (_otpReadyForNavigation) {
+      _otpReadyForNavigation = false;
       notifyListeners();
     }
   }

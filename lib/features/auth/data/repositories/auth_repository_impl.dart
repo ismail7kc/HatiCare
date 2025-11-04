@@ -26,4 +26,33 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> sendPasswordReset({required String email}) {
     return _apiService.sendPasswordReset(email: email);
   }
+
+  @override
+  Future<Map<String, dynamic>> generateOtp({required String email}) {
+    return _apiService.generateOtp(email: email);
+  }
+
+  @override
+  Future<Map<String, dynamic>> doctorSignupWithOtp({
+    required SignupRequest request,
+    required String otp,
+  }) async {
+    if (request.confirmPassword != null &&
+        request.password != request.confirmPassword) {
+      throw const PasswordMismatchException();
+    }
+    return await _apiService.doctorSignupWithOtp(request: request, otp: otp);
+  }
+
+  @override
+  Future<Map<String, dynamic>> pharmacySignupWithOtp({
+    required SignupRequest request,
+    required String otp,
+  }) async {
+    if (request.confirmPassword != null &&
+        request.password != request.confirmPassword) {
+      throw const PasswordMismatchException();
+    }
+    return await _apiService.pharmacySignupWithOtp(request: request, otp: otp);
+  }
 }
