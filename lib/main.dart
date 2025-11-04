@@ -7,16 +7,19 @@ import 'package:haticare/features/auth/data/repositories/auth_repository_impl.da
 import 'package:haticare/features/auth/data/services/mock_auth_api_service.dart';
 import 'package:haticare/features/auth/domain/repositories/auth_repository.dart';
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
+import 'package:haticare/features/doctor/data/doctor_home_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.white,
-    statusBarIconBrightness: Brightness.dark,
-    statusBarBrightness: Brightness.light,
-    systemNavigationBarColor: Colors.white,
-    systemNavigationBarIconBrightness: Brightness.dark,
-  ));
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.white,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
   runApp(const MyApp());
 }
 
@@ -37,18 +40,18 @@ class MyApp extends StatelessWidget {
         title: 'HatiCare',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          colorScheme:
-          ColorScheme.fromSeed(seedColor: AppColors.primaryDark).copyWith(
-            primary: AppColors.primaryDark,
-            secondary: AppColors.primaryLight,
-            surface: AppColors.surface,
-          ),
+          colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primaryDark)
+              .copyWith(
+                primary: AppColors.primaryDark,
+                secondary: AppColors.primaryLight,
+                surface: AppColors.surface,
+              ),
           primaryColor: AppColors.primaryDark,
           scaffoldBackgroundColor: AppColors.surface,
           useMaterial3: true,
         ),
         navigatorObservers: [ChuckerFlutter.navigatorObserver],
-        home: LoginScreen(),
+        home: MainScreen(),
       ),
     );
   }

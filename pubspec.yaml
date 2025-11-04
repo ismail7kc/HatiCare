@@ -69,6 +69,22 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    
+    - assets/history_selected.svg
+    - assets/history_unselected.svg
+
+    - assets/home_selected.svg
+    - assets/home_unselected.svg
+
+    - assets/notification.svg
+    - assets/waitingApproval.svg
+
+    - assets/setting_selected.svg
+    - assets/setting_unselected.svg
+    
+    - assets/appointment-Request.svg
+    - assets/sticky-note.svg
+    - assets/user-square.svg
 
 flutter_launcher_icons:
   android: true
