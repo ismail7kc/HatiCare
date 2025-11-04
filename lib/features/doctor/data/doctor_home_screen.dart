@@ -181,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             if (hasAdminApproval) const SizedBox(height: 10),
 
-              isOnline
+            isOnline
                 ? handleAppointment(context, appointments)
                 : patientQueueView(),
           ],
@@ -318,7 +318,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       "Consultations Today",
                       style: TextStyle(
-                        color: hasAdminApproval ? Color(0xFF2443A9) : Colors.grey,
+                        color: hasAdminApproval
+                            ? Color(0xFF2443A9)
+                            : Colors.grey,
                       ),
                     ),
                   ],
@@ -348,7 +350,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white
+                        color: Colors.white,
                       ),
                     ),
                     Text(
@@ -529,7 +531,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    PersistentNavBarNavigator.pushNewScreen(
+                      context,
+                      screen: AppointmentDetail(appointment: appt,
+                      isCameFromAccept: true,
+                      ),
+                      withNavBar: false,
+                      pageTransitionAnimation: PageTransitionAnimation.cupertino,
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
