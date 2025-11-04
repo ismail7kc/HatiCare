@@ -1,13 +1,15 @@
 import 'package:chucker_flutter/chucker_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
+import 'package:haticare/features/doctor/data/doctor_home_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:haticare/features/auth/data/services/mock_auth_api_service.dart';
 import 'package:haticare/features/auth/domain/repositories/auth_repository.dart';
-import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
-import 'package:haticare/features/doctor/data/doctor_home_screen.dart';
+// import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
+// import 'package:haticare/features/doctor/data/doctor_home_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,7 +53,7 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
         ),
         navigatorObservers: [ChuckerFlutter.navigatorObserver],
-        home: MainScreen(),
+        home: LoginScreen(),
       ),
     );
   }
