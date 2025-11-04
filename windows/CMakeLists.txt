@@ -1,10 +1,18 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
+<<<<<<< HEAD
+project(haticare LANGUAGES CXX)
+
+# The name of the executable created for the application. Change this to change
+# the on-disk name of your application.
+set(BINARY_NAME "haticare")
+=======
 project(heticare_screen LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
 set(BINARY_NAME "heticare_screen")
+>>>>>>> main
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.

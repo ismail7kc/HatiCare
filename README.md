@@ -1,4 +1,4 @@
-# heticare_screen
+# haticare
 
 A new Flutter project.
 
