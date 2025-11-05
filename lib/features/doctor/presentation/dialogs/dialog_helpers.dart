@@ -95,7 +95,7 @@ class DialogHelper {
                     hintText:
                         "Prescription Details: e.g.,\n- Paracetamol 500mg (1 tab, 3 times a day for 3 days)",
                     hintStyle: const TextStyle(color: Colors.grey),
-                   enabledBorder: OutlineInputBorder(
+                    enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: const BorderSide(
                         color: Color(0xFFE0E0E0),
@@ -174,7 +174,7 @@ class DialogHelper {
                   decoration: InputDecoration(
                     hintText: description,
                     hintStyle: const TextStyle(color: Colors.grey),
-                   enabledBorder: OutlineInputBorder(
+                    enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: const BorderSide(
                         color: Color(0xFFE0E0E0),
@@ -236,20 +236,27 @@ class DialogHelper {
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: ElevatedButton(
-            onPressed: onAction,
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              backgroundColor: AppColors.primaryLight,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: AppColors.primaryGradient,
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Text(
-              actionText,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+            child: ElevatedButton(
+              onPressed: onAction,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: Colors.transparent, // make it transparent
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: Text(
+                actionText,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
