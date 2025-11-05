@@ -100,11 +100,17 @@ class LoginViewModel extends ChangeNotifier {
     if (response == null) return null;
     final data = response['data'];
     if (data is Map<String, dynamic>) {
-      final role = data['role'];
-      if (role is String) return role.toLowerCase();
+      final role = _normalizeRoleValue(
+        data['role'] ?? data['user_role'] ?? data['userRole'] ?? data['type'],
+      );
+      if (role != null) return role;
     }
-    final role = response['role'] ?? response['user_role'];
-    return role is String ? role.toLowerCase() : null;
+    return _normalizeRoleValue(
+      response['role'] ??
+          response['user_role'] ??
+          response['userRole'] ??
+          response['type'],
+    );
   }
 
   void clearDialogMessage() {
@@ -119,5 +125,12 @@ class LoginViewModel extends ChangeNotifier {
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
+  }
+
+  String? _normalizeRoleValue(dynamic value) {
+    if (value is String && value.trim().isNotEmpty) {
+      return value.trim().toLowerCase();
+    }
+    return null;
   }
 }

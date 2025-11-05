@@ -94,7 +94,7 @@ class _LoginView extends StatelessWidget {
             alignment: Alignment.topCenter,
             child: Form(
               key: viewModel.formKey,
-              autovalidateMode: AutovalidateMode.onUserInteraction,
+              autovalidateMode: AutovalidateMode.disabled,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: Column(
