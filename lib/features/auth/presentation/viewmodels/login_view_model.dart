@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:haticare/core/services/device_id_provider.dart';
+import 'package:haticare/features/auth/domain/exceptions/auth_exceptions.dart';
 import 'package:haticare/features/auth/domain/repositories/auth_repository.dart';
 
 class LoginViewModel extends ChangeNotifier {
@@ -14,6 +16,16 @@ class LoginViewModel extends ChangeNotifier {
   bool rememberMe = false;
   bool isSubmitting = false;
   String? errorMessage;
+  String? dialogMessage;
+  Map<String, dynamic>? _lastResponse;
+  bool _shouldNavigate = false;
+
+  void markNavigationHandled() {
+    if (_shouldNavigate) {
+      _shouldNavigate = false;
+      notifyListeners();
+    }
+  }
 
   void toggleRememberMe(bool? value) {
     rememberMe = value ?? false;
@@ -48,17 +60,56 @@ class LoginViewModel extends ChangeNotifier {
 
     isSubmitting = true;
     errorMessage = null;
+    dialogMessage = null;
+    _lastResponse = null;
+    _shouldNavigate = false;
     notifyListeners();
 
     try {
-      await _repository.login(
+      final deviceId = await DeviceIdProvider().getDeviceId();
+      _lastResponse = await _repository.login(
         email: emailController.text.trim(),
         password: passwordController.text,
+        deviceId: deviceId,
       );
-    } catch (error) {
+      _shouldNavigate = true;
+    } on AuthApiException catch (error) {
+      final message = error.message;
+      dialogMessage = message.isNotEmpty
+          ? message
+          : 'Login failed. Please try again.';
+      errorMessage = null;
+      _shouldNavigate = false;
+      _lastResponse = null;
+    } catch (_) {
       errorMessage = 'Login failed. Please try again.';
+      _shouldNavigate = false;
+      _lastResponse = null;
     } finally {
       isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
+  Map<String, dynamic>? get lastResponse => _lastResponse;
+
+  bool get shouldNavigate => _shouldNavigate;
+
+  String? get roleFromResponse {
+    final response = _lastResponse;
+    if (response == null) return null;
+    final data = response['data'];
+    if (data is Map<String, dynamic>) {
+      final role = data['role'];
+      if (role is String) return role.toLowerCase();
+    }
+    final role = response['role'] ?? response['user_role'];
+    return role is String ? role.toLowerCase() : null;
+  }
+
+  void clearDialogMessage() {
+    if (dialogMessage != null) {
+      dialogMessage = null;
       notifyListeners();
     }
   }

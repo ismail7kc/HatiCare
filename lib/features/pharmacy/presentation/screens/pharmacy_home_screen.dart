@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 
-class DoctorHomeScreen extends StatelessWidget {
-  const DoctorHomeScreen({super.key});
+class PharmacyHomeScreen extends StatelessWidget {
+  const PharmacyHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -11,7 +11,7 @@ class DoctorHomeScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Doctor Home'),
+        title: const Text('Pharmacy Home'),
         titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: AppColors.primaryDark,
               fontWeight: FontWeight.w600,
@@ -20,7 +20,7 @@ class DoctorHomeScreen extends StatelessWidget {
       ),
       body: Center(
         child: Text(
-          'Welcome, Doctor!',
+          'Welcome, Pharmacy!',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 color: AppColors.primaryDark,
                 fontWeight: FontWeight.w600,

@@ -16,7 +16,11 @@ class RemoteAuthApiService implements AuthApiService {
   final http.Client _client;
 
   @override
-  Future<void> login({required String email, required String password}) async {
+  Future<Map<String, dynamic>> login({
+    required String email,
+    required String password,
+    required String deviceId,
+  }) async {
     final uri = Uri.parse('${AppConfig.baseUrl}/users/login/');
     final response = await _client.post(
       uri,
@@ -27,6 +31,7 @@ class RemoteAuthApiService implements AuthApiService {
       body: jsonEncode({
         'email': email,
         'password': password,
+        'device_id': deviceId,
       }),
     );
 
@@ -36,6 +41,13 @@ class RemoteAuthApiService implements AuthApiService {
         statusCode: response.statusCode,
       );
     }
+
+    final decoded = _decodeJson(response.body);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+
+    return {'status': 'success'};
   }
 
   @override

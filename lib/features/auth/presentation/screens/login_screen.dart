@@ -8,6 +8,8 @@ import 'package:haticare/features/auth/domain/repositories/auth_repository.dart'
 import 'package:haticare/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:haticare/features/auth/presentation/screens/signup_screen.dart';
 import 'package:haticare/features/auth/presentation/viewmodels/login_view_model.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -29,6 +31,58 @@ class _LoginView extends StatelessWidget {
     final viewModel = context.watch<LoginViewModel>();
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
+
+    if (viewModel.shouldNavigate) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+
+        final role = viewModel.roleFromResponse;
+        if (role == 'doctor') {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const DoctorHomeScreen()),
+            (route) => false,
+          );
+        } else if (role == 'pharmacy') {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const PharmacyHomeScreen()),
+            (route) => false,
+          );
+        } else {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const DoctorHomeScreen()),
+            (route) => false,
+          );
+        }
+
+        viewModel.markNavigationHandled();
+      });
+    }
+
+    if (viewModel.dialogMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          showDialog<void>(
+            context: context,
+            barrierDismissible: false,
+            builder: (dialogContext) {
+              return AlertDialog(
+                title: const Text('Account Deactivated'),
+                content: Text(viewModel.dialogMessage!),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                      viewModel.clearDialogMessage();
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+      });
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,

@@ -9,8 +9,16 @@ class AuthRepositoryImpl implements AuthRepository {
   final AuthApiService _apiService;
 
   @override
-  Future<void> login({required String email, required String password}) {
-    return _apiService.login(email: email, password: password);
+  Future<Map<String, dynamic>> login({
+    required String email,
+    required String password,
+    required String deviceId,
+  }) {
+    return _apiService.login(
+      email: email,
+      password: password,
+      deviceId: deviceId,
+    );
   }
 
   @override
