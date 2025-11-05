@@ -25,9 +25,9 @@ class _MainScreenState extends State<MainScreen> {
         SettingsScreenWithAppBar(),
       ],
       tabs: const [
-        TabItemData(title: "Home", iconPath: 'assets/home.svg'),
-        TabItemData(title: "History", iconPath: 'assets/history.svg'),
-        TabItemData(title: "Settings", iconPath: 'assets/setting.svg'),
+        TabItemData(title: "Home", iconPath: 'assets/icons/home.svg'),
+        TabItemData(title: "History", iconPath: 'assets/icons/history.svg'),
+        TabItemData(title: "Settings", iconPath: 'assets/icons/setting.svg'),
       ],
     );
   }

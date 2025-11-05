@@ -110,7 +110,7 @@ class AppointmentDetail extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SvgPicture.asset('assets/sticky-note.svg', height: 24),
+                  SvgPicture.asset('assets/icons/sticky-note.svg', height: 24),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -149,7 +149,7 @@ class AppointmentDetail extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      SvgPicture.asset('assets/sticky-note.svg', height: 24),
+                      SvgPicture.asset('assets/icons/sticky-note.svg', height: 24),
                       const SizedBox(width: 10),
                       const Text(
                         "Reported Symptoms",
@@ -232,9 +232,9 @@ class AppointmentDetail extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildActionButton(context, 'assets/video_1.svg', "Issue RX"),
-                  _buildActionButton(context, 'assets/video_2.svg', "Referral"),
-                  _buildActionButton(context,'assets/video_3.svg',"Hospitalize",
+                  _buildActionButton(context, 'assets/icons/video_1.svg', "Issue RX"),
+                  _buildActionButton(context, 'assets/icons/video_2.svg', "Referral"),
+                  _buildActionButton(context,'assets/icons/video_3.svg',"Hospitalize",
                   ),
                 ],
               ),
