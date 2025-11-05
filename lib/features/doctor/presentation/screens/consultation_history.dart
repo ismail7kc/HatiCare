@@ -101,14 +101,14 @@ class ConsultationHistoryScreen extends StatelessWidget {
                                               ? Icons
                                                     .medical_information_outlined
                                               : Icons.chat_outlined,
-                                          color: AppColors.primaryLight,
+                                          color: AppColors.primaryDark,
                                           size: 18,
                                         ),
                                         const SizedBox(width: 6),
                                         Text(
                                           history.status,
                                           style: const TextStyle(
-                                            color: AppColors.primaryLight,
+                                            color: AppColors.primaryDark,
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),
