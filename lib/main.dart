@@ -2,8 +2,10 @@ import 'package:chucker_flutter/chucker_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:haticare/features/auth/data/services/remote_auth_api_service.dart';
+import 'package:haticare/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/auth/data/repositories/auth_repository_impl.dart';
@@ -53,7 +55,7 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
         ),
         navigatorObservers: [ChuckerFlutter.navigatorObserver],
-        home: LoginScreen(),
+        home: PharmacyHomeScreen(),
       ),
     );
   }

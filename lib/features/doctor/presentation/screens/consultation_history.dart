@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/doctor/presentation/screens/history_detail.dart';
-import '../../data/model/conslutation_hitory_model.dart';
+import '../../models/conslutation_hitory_model.dart';
 
 class ConsultationHistoryScreen extends StatelessWidget {
   const ConsultationHistoryScreen({super.key});

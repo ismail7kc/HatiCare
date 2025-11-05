@@ -5,7 +5,7 @@ import 'package:haticare/features/doctor/presentation/screens/consultation_histo
 import 'package:haticare/features/doctor/presentation/screens/setting_screen.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
-import '../../data/model/appointment_model.dart';
+import '../../models/appointment_model.dart';
 import 'appointment_detail.dart';
 
 class MainScreen extends StatefulWidget {
@@ -306,12 +306,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget patientAppointmentView(BuildContext context, AppointmentModel appt) {
+  Widget patientAppointmentView(BuildContext context, AppointmentModel appointment) {
     return GestureDetector(
       onTap: () {
         PersistentNavBarNavigator.pushNewScreen(
           context,
-          screen: AppointmentDetail(appointment: appt),
+          screen: AppointmentDetail(appointment: appointment),
           withNavBar: false,
           pageTransitionAnimation: PageTransitionAnimation.cupertino,
         );
@@ -331,12 +331,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        child: setupPatientCard(appt),
+        child: setupPatientCard(appointment),
       ),
     );
   }
 
-  Column setupPatientCard(AppointmentModel appt) {
+  Column setupPatientCard(AppointmentModel appointment) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -361,7 +361,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            circularProgressBar(appt.progressValue, appt.minutesLeft),
+            circularProgressBar(appointment.progressValue, appointment.minutesLeft),
           ],
         ),
         const SizedBox(height: 16),
@@ -378,7 +378,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const Text("Patient", style: TextStyle(color: Colors.grey)),
                   const SizedBox(height: 2),
                   Text(
-                    "${appt.patientName}, ${appt.patientAge}",
+                    "${appointment.patientName}, ${appointment.patientAge}",
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
@@ -406,7 +406,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    appt.reasonForVisit,
+                    appointment.reasonForVisit,
                     style: const TextStyle(
                       fontWeight: FontWeight.w500,
                       fontSize: 14,
@@ -420,7 +420,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 12),
 
         Text(
-          appt.appointmentTime,
+          appointment.appointmentTime,
           style: const TextStyle(color: Colors.grey, fontSize: 13),
         ),
         const SizedBox(height: 16),
@@ -453,7 +453,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     PersistentNavBarNavigator.pushNewScreen(
                       context,
                       screen: AppointmentDetail(
-                        appointment: appt,
+                        appointment: appointment,
                         isCameFromAccept: true,
                       ),
                       withNavBar: false,

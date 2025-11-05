@@ -3,7 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/doctor/presentation/screens/audio_call.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
-import 'package:haticare/features/doctor/data/model/appointment_model.dart';
+import 'package:haticare/features/doctor/models/appointment_model.dart';
 import 'package:haticare/features/doctor/presentation/dialogs/dialog_helpers.dart';
 
 class AppointmentDetail extends StatelessWidget {
