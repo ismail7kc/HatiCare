@@ -97,6 +97,7 @@ flutter:
 
     - assets/calendar.svg
     - assets/clock.svg
+    - assets/person_icon.svg
 
 flutter_launcher_icons:
   android: true

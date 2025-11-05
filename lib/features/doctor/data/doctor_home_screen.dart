@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/features/doctor/data/consultation_history.dart';
+import 'package:haticare/features/doctor/data/setting_screen.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/doctor/data/customNav_Bottom.dart';
 import 'model/appointment_model.dart';
@@ -21,13 +22,41 @@ class _MainScreenState extends State<MainScreen> {
       screens: const [
         HomeScreen(),
         ConsultationHistoryScreen(),
-        Center(child: Text("Settings Screen")),
+        SettingsScreenWithAppBar(),
       ],
       tabs: const [
         TabItemData(title: "Home", iconPath: 'assets/home.svg'),
         TabItemData(title: "History", iconPath: 'assets/history.svg'),
         TabItemData(title: "Settings", iconPath: 'assets/setting.svg'),
       ],
+    );
+  }
+}
+
+class SettingsScreenWithAppBar extends StatelessWidget {
+  const SettingsScreenWithAppBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Settings',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        surfaceTintColor: Colors.white,
+        shadowColor: Colors.transparent,
+      ),
+      body: const SafeArea(
+        child: SettingsContent(),
+      ),
     );
   }
 }
