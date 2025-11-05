@@ -42,6 +42,9 @@ dependencies:
   awesome_select: ^6.0.0
   chucker_flutter: ^1.5.1
   persistent_bottom_nav_bar: ^6.2.0
+  file_picker: ^8.1.2
+  device_info_plus: ^10.1.0
+  shared_preferences: ^2.2.3
 
 dev_dependencies:
   flutter_test:
@@ -69,35 +72,6 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
-    
-    - assets/history_selected.svg
-    - assets/history_unselected.svg
-
-    - assets/home_selected.svg
-    - assets/home_unselected.svg
-
-    - assets/notification.svg
-    - assets/waitingApproval.svg
-
-    - assets/setting_selected.svg
-    - assets/setting_unselected.svg
-    
-    - assets/appointment-Request.svg
-    - assets/sticky-note.svg
-    - assets/user-square.svg
-
-    - assets/video_1.svg
-    - assets/video_2.svg
-    - assets/video_3.svg
-    - assets/person_Img.svg
-
-    - assets/issue-Rx.svg
-    - assets/hospitalize.svg
-    - assets/referral.svg
-
-    - assets/calendar.svg
-    - assets/clock.svg
-    - assets/person_icon.svg
 
 flutter_launcher_icons:
   android: true

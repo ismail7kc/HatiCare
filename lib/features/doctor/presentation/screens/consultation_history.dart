@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:haticare/features/doctor/data/history_detail.dart';
-import 'package:haticare/features/doctor/data/theme_constant.dart';
-import 'model/conslutation_hitory_model.dart';
+import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/features/doctor/presentation/screens/history_detail.dart';
+import '../../data/model/conslutation_hitory_model.dart';
 
 class ConsultationHistoryScreen extends StatelessWidget {
   const ConsultationHistoryScreen({super.key});
@@ -63,7 +63,7 @@ class ConsultationHistoryScreen extends StatelessWidget {
                                 width: 45,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  gradient: AppTheme.primaryGradient,
+                                  gradient: AppColors.primaryGradient,
                                 ),
                                 child: const Icon(
                                   Icons.person_outline,
@@ -101,14 +101,14 @@ class ConsultationHistoryScreen extends StatelessWidget {
                                               ? Icons
                                                     .medical_information_outlined
                                               : Icons.chat_outlined,
-                                          color: AppTheme.primaryColor,
+                                          color: AppColors.primaryLight,
                                           size: 18,
                                         ),
                                         const SizedBox(width: 6),
                                         Text(
                                           history.status,
                                           style: const TextStyle(
-                                            color: AppTheme.primaryColor,
+                                            color: AppColors.primaryLight,
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),

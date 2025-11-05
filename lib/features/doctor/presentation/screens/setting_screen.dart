@@ -17,7 +17,7 @@ class SettingsContent extends StatelessWidget {
             children: [
               Center(
                 child: SvgPicture.asset(
-                  'assets/person_icon.svg',
+                  'assets/icons/person_icon.svg',
                   width: 80,
                   height: 80,
                 ),

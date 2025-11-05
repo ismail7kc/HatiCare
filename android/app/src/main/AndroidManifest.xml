@@ -5,7 +5,7 @@
 
 
     <application
-        android:label="haticare"
+        android:label="Hati cCare"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -9,8 +9,16 @@ class AuthRepositoryImpl implements AuthRepository {
   final AuthApiService _apiService;
 
   @override
-  Future<void> login({required String email, required String password}) {
-    return _apiService.login(email: email, password: password);
+  Future<Map<String, dynamic>> login({
+    required String email,
+    required String password,
+    required String deviceId,
+  }) {
+    return _apiService.login(
+      email: email,
+      password: password,
+      deviceId: deviceId,
+    );
   }
 
   @override
@@ -25,5 +33,34 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> sendPasswordReset({required String email}) {
     return _apiService.sendPasswordReset(email: email);
+  }
+
+  @override
+  Future<Map<String, dynamic>> generateOtp({required String email}) {
+    return _apiService.generateOtp(email: email);
+  }
+
+  @override
+  Future<Map<String, dynamic>> doctorSignupWithOtp({
+    required SignupRequest request,
+    required String otp,
+  }) async {
+    if (request.confirmPassword != null &&
+        request.password != request.confirmPassword) {
+      throw const PasswordMismatchException();
+    }
+    return await _apiService.doctorSignupWithOtp(request: request, otp: otp);
+  }
+
+  @override
+  Future<Map<String, dynamic>> pharmacySignupWithOtp({
+    required SignupRequest request,
+    required String otp,
+  }) async {
+    if (request.confirmPassword != null &&
+        request.password != request.confirmPassword) {
+      throw const PasswordMismatchException();
+    }
+    return await _apiService.pharmacySignupWithOtp(request: request, otp: otp);
   }
 }

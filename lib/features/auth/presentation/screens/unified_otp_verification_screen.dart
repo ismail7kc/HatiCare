@@ -1,39 +1,36 @@
 import 'dart:async';
-import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
 import 'package:pinput/pinput.dart';
+import 'package:provider/provider.dart';
+
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/core/widgets/app_primary_button.dart';
+import 'package:haticare/features/auth/domain/entities/signup_request.dart';
+import 'package:haticare/features/auth/domain/entities/user_role.dart';
+import 'package:haticare/features/auth/domain/exceptions/auth_exceptions.dart';
+import 'package:haticare/features/auth/domain/repositories/auth_repository.dart';
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
 import 'package:haticare/features/auth/presentation/widgets/auth_top_bar.dart';
 
-class OtpVerificationScreen extends StatefulWidget {
-  const OtpVerificationScreen({
+class UnifiedOtpVerificationScreen extends StatefulWidget {
+  const UnifiedOtpVerificationScreen({
     super.key,
     required this.email,
-    required this.apiUrl,
-    this.title = 'OTP Verification',
-    this.successMessage = 'OTP verified successfully!',
-    this.isForReset = true,
-    this.resendApiUrl,
-    this.userId,
+    required this.signupRequest,
   });
 
   final String email;
-  final Uri apiUrl;
-  final String title;
-  final String successMessage;
-  final bool isForReset;
-  final Uri? resendApiUrl;
-  final int? userId;
+  final SignupRequest signupRequest;
 
   @override
-  State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
+  State<UnifiedOtpVerificationScreen> createState() =>
+      _UnifiedOtpVerificationScreenState();
 }
 
-class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
+class _UnifiedOtpVerificationScreenState
+    extends State<UnifiedOtpVerificationScreen> {
   static const int _resendDelaySeconds = 300;
 
   final pinController = TextEditingController();
@@ -59,15 +56,15 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     ),
   );
 
+  bool get isDoctor => widget.signupRequest.role == UserRole.doctor;
+  bool get isPharmacy => widget.signupRequest.role == UserRole.pharmacy;
+
+  String get roleTitle => isDoctor ? 'Doctor' : 'Pharmacy';
+
   @override
   void initState() {
     super.initState();
-    if (widget.resendApiUrl != null) {
-      _startResendTimer();
-      if (!widget.isForReset) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _resendOtp(force: true));
-      }
-    }
+    _startResendTimer();
   }
 
   @override
@@ -78,127 +75,112 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     super.dispose();
   }
 
-  Future<void> verifyOtp() async {
-    if (pinController.text.length != 4) {
-      _showSnackBar('Please enter a 4-digit OTP');
+  Future<void> verifyOtpAndSignup() async {
+    if (pinController.text.length != 6) {
+      _showSnackBar('Please enter a 6-digit OTP', isError: true);
       return;
     }
 
     setState(() => isLoading = true);
 
     try {
-      final response = await http.post(
-        widget.apiUrl,
-        headers: const {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': widget.email,
-          'otp': pinController.text,
-        }),
+      final repository = context.read<AuthRepository>();
+      
+
+      Map<String, dynamic> response;
+      if (isDoctor) {
+        response = await repository.doctorSignupWithOtp(
+          request: widget.signupRequest,
+          otp: pinController.text,
+        );
+      } else {
+        response = await repository.pharmacySignupWithOtp(
+          request: widget.signupRequest,
+          otp: pinController.text,
+        );
+      }
+
+      if (!mounted) return;
+
+      setState(() => isLoading = false);
+
+      final successMessage = _successMessageFromResponse(response) ??
+          'Your account has been successfully registered. Wait for admin approval.';
+
+      final dialogConfirmed = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          final textTheme = Theme.of(dialogContext).textTheme;
+          return AlertDialog(
+            title: Text(
+              isDoctor ? 'Doctor Registration Submitted' : 'Pharmacy Registration Submitted',
+              style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            content: const Text(
+              'Your account has been successfully registered. Please wait for admin approval. This can take up to 24 hours.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        },
       );
 
-      setState(() => isLoading = false);
-
-      if (!mounted) return;
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        await _showSuccessDialog();
-      } else {
-        final message = _readErrorMessage(response.body) ?? 'OTP verification failed';
-        _showSnackBar(message);
+      if (dialogConfirmed != true || !mounted) {
+        return;
       }
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => isLoading = false);
-      _showSnackBar('Network error: $error');
-    }
-  }
 
-  Future<void> _showSuccessDialog() async {
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Success'),
-        content: Text(widget.successMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-
-    if (!mounted) return;
-
-    if (widget.isForReset) {
-      // TODO: Navigate to reset password screen when implemented
-      Navigator.pop(context);
-    } else {
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+        (route) => false,
       );
 
       await Future<void>.delayed(const Duration(milliseconds: 300));
       if (!mounted) return;
 
-      showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Account Activated'),
-          content: const Text('Your account has been successfully activated!'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
+      _showSnackBar(
+        successMessage,
+        isError: false,
       );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => isLoading = false);
+
+      String message = 'OTP verification failed';
+      if (error is AuthApiException) {
+        message = error.message;
+      }
+      _showSnackBar(message, isError: true);
     }
   }
 
-  Future<void> _resendOtp({bool force = false}) async {
-    if ((!canResend && !force) || widget.resendApiUrl == null) {
-      return;
-    }
+  Future<void> _resendOtp() async {
+    if (!canResend) return;
 
     setState(() => canResend = false);
 
     try {
-      final payload = <String, dynamic>{'email': widget.email};
-      if (widget.userId != null) {
-        payload['user_id'] = widget.userId;
-      }
-
-      final response = await http.post(
-        widget.resendApiUrl!,
-        headers: const {'Content-Type': 'application/json'},
-        body: jsonEncode(payload),
-      );
-
-      final ok = response.statusCode >= 200 && response.statusCode < 300;
-      final message = _readErrorMessage(response.body) ??
-          (ok ? 'OTP resent successfully' : 'Failed to resend OTP');
+      final repository = context.read<AuthRepository>();
+      await repository.generateOtp(email: widget.email);
 
       if (!mounted) return;
 
-      _showSnackBar(
-        message,
-        backgroundColor: ok ? const Color(0xFF29A671) : Colors.redAccent,
-      );
-
-      if (ok) {
-        _startResendTimer();
-      } else {
-        setState(() => canResend = true);
-      }
+      _showSnackBar('OTP resent successfully', isError: false);
+      _startResendTimer();
     } catch (error) {
       if (!mounted) return;
-      _showSnackBar('Network error: $error');
       setState(() => canResend = true);
+
+      String message = 'Failed to resend OTP';
+      if (error is AuthApiException) {
+        message = error.message;
+      }
+      _showSnackBar(message, isError: true);
     }
   }
 
@@ -223,26 +205,26 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     });
   }
 
-  String? _readErrorMessage(String body) {
-    if (body.isEmpty) return null;
-    try {
-      final decoded = jsonDecode(body);
-      if (decoded is Map<String, dynamic>) {
-        final value = decoded['message'] ?? decoded['detail'] ?? decoded['error'];
-        if (value is String && value.isNotEmpty) {
-          return value;
-        }
-      }
-      return null;
-    } catch (_) {
-      return null;
-    }
+  void _showSnackBar(String message, {required bool isError}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.redAccent : const Color(0xFF29A671),
+      ),
+    );
   }
 
-  void _showSnackBar(String message, {Color backgroundColor = AppColors.primary}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: backgroundColor),
-    );
+  String? _successMessageFromResponse(Map<String, dynamic> response) {
+    if (response['message'] is String) {
+      return response['message'] as String;
+    }
+    if (response['detail'] is String) {
+      return response['detail'] as String;
+    }
+    if (response['status'] is String) {
+      return response['status'] as String;
+    }
+    return null;
   }
 
   String _formatRemaining() {
@@ -254,7 +236,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final viewInsets = MediaQuery.of(context).viewInsets;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -264,7 +245,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
               child: AuthTopBar(
-                title: widget.title,
+                title: '$roleTitle OTP Verification',
                 onBackPressed: () => Navigator.of(context).maybePop(),
               ),
             ),
@@ -284,7 +265,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Please enter the OTP sent to the email associated with this account for verification',
+                      'Please enter the OTP sent to ${widget.email}',
                       textAlign: TextAlign.center,
                       style: textTheme.bodyMedium?.copyWith(
                         color: AppColors.textSecondary,
@@ -293,25 +274,24 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ),
                     const SizedBox(height: 32),
                     Pinput(
-                      length: 4,
+                      length: 6,
                       controller: pinController,
                       focusNode: focusNode,
                       defaultPinTheme: defaultPinTheme,
                       keyboardType: TextInputType.number,
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(4),
+                        LengthLimitingTextInputFormatter(6),
                       ],
                       autofocus: true,
-                      separatorBuilder: (index) => const SizedBox(width: 16),
+                      separatorBuilder: (index) => const SizedBox(width: 12),
                     ),
                     const SizedBox(height: 28),
-                    if (widget.resendApiUrl != null)
-                      _ResendRow(
-                        canResend: canResend,
-                        onPressed: () => _resendOtp(),
-                        formattedTime: _formatRemaining(),
-                      ),
+                    _ResendRow(
+                      canResend: canResend,
+                      onPressed: _resendOtp,
+                      formattedTime: _formatRemaining(),
+                    ),
                     const SizedBox(height: 48),
                   ],
                 ),
@@ -321,7 +301,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
               child: AppPrimaryButton(
                 label: 'Continue',
-                onPressed: isLoading ? null : verifyOtp,
+                onPressed: isLoading ? null : verifyOtpAndSignup,
                 isLoading: isLoading,
               ),
             ),

@@ -1,5 +1,5 @@
 class AppConfig {
   const AppConfig._();
 
-  static const String baseUrl = 'https://bc3c92c43db7.ngrok-free.app';
+  static const String baseUrl = 'https://3aadaf8bfae5.ngrok-free.app';
 }

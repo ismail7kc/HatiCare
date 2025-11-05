@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:haticare/features/doctor/data//theme_constant.dart';
-import 'package:haticare/features/doctor/data/audio_call.dart';
+import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/features/doctor/presentation/screens/audio_call.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/doctor/data/model/appointment_model.dart';
-import 'package:haticare/features/doctor/data/dialog_helpers.dart';
+import 'package:haticare/features/doctor/presentation/dialogs/dialog_helpers.dart';
 
 class AppointmentDetail extends StatelessWidget {
   final AppointmentModel appointment;
@@ -69,7 +69,7 @@ class AppointmentDetail extends StatelessWidget {
                     radius: 30,
                     backgroundColor: Colors.blue.shade50,
                     child: SvgPicture.asset(
-                      'assets/user-square.svg',
+                      'assets/icons/user-square.svg',
                       height: 36,
                       color: Colors.blueAccent,
                     ),
@@ -81,7 +81,7 @@ class AppointmentDetail extends StatelessWidget {
                 radius: 30,
                 backgroundColor: Colors.blue.shade50,
                 child: SvgPicture.asset(
-                  'assets/person_Img.svg',
+                  'assets/icons/person_Img.svg',
                   height: 100,
                   width: 100,
                 ),
@@ -200,7 +200,7 @@ class AppointmentDetail extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SvgPicture.asset(
-                      'assets/sticky-note.svg',
+                      'assets/icons//sticky-note.svg',
                       height: 22,
                       color: Colors.black,
                     ),
@@ -263,7 +263,7 @@ class AppointmentDetail extends StatelessWidget {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        gradient: AppTheme.primaryGradient,
+                        gradient: AppColors.primaryGradient,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: ElevatedButton(

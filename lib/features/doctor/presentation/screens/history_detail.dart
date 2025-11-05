@@ -93,7 +93,7 @@ class HistoryDetail extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _buildInfoChip(
-                      icon: 'assets/calendar.svg',
+                      icon: 'assets/icons/calendar.svg',
                       label: 'Date',
                       value: '30/10/2025',
                     ),
@@ -101,7 +101,7 @@ class HistoryDetail extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: _buildInfoChip(
-                      icon: 'assets/clock.svg',
+                      icon: 'assets/icons/clock.svg',
                       label: 'Duration',
                       value: '1 min',
                     ),

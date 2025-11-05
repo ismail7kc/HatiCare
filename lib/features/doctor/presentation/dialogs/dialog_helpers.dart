@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:haticare/theme_constant.dart';
+import 'package:haticare/core/theme/app_colors.dart';
 
 class DialogHelper {
   static void showDialogForLabel(BuildContext context, String label) {
@@ -10,7 +10,7 @@ class DialogHelper {
       showHospitalizationDialog(
         context,
         'Issue Referral',
-        'assets/issue-Rx.svg',
+        'assets/icons/issue-Rx.svg',
         'Enter referral details (e.g., Specialist, reason for referral)...',
         'Issue Referral',
       );
@@ -18,7 +18,7 @@ class DialogHelper {
       showHospitalizationDialog(
         context,
         'Recommend Hospitalization',
-        'assets/issue-Rx.svg',
+        'assets/icons/issue-Rx.svg',
         'Enter reason and notes for hospitalization...',
         'Recommend',
       );
@@ -51,7 +51,7 @@ class DialogHelper {
                 Row(
                   children: [
                     SvgPicture.asset(
-                      'assets/issue-Rx.svg',
+                      'assets/icons/issue-Rx.svg',
                       height: 24,
                       color: const Color(0xFF07498A),
                     ),
@@ -240,7 +240,7 @@ class DialogHelper {
             onPressed: onAction,
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
-              backgroundColor: AppTheme.primaryColor,
+              backgroundColor: AppColors.primaryLight,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),

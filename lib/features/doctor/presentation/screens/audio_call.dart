@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:haticare/features/doctor/data/theme_constant.dart';
+
+import '../../../../core/theme/app_colors.dart';
 
 class AudioCallScreen extends StatelessWidget {
   const AudioCallScreen({super.key});
@@ -24,7 +25,7 @@ class AudioCallScreen extends StatelessWidget {
       ),
       body: Container(
         decoration: const BoxDecoration(
-          gradient: AppTheme.primaryGradient,
+          gradient: AppColors.primaryGradient,
         ),
         width: double.infinity,
         height: double.infinity,
@@ -74,15 +75,15 @@ class AudioCallScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _ActionButton(
-                      icon: 'assets/issue-Rx.svg',
+                      icon: 'assets/icons/issue-Rx.svg',
                       label: "Issue Rx",
                     ),
                     _ActionButton(
-                      icon: 'assets/referral.svg',
+                      icon: 'assets/icons/referral.svg',
                       label: "Referral",
                     ),
                     _ActionButton(
-                      icon: 'assets/hospitalize.svg',
+                      icon: 'assets/icons/hospitalize.svg',
                       label: "Hospitalize",
                     ),
                   ],
