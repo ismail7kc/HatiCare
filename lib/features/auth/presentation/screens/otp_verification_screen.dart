@@ -132,7 +132,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     if (!mounted) return;
 
     if (widget.isForReset) {
-      // TODO: Navigate to reset password screen when implemented
       Navigator.pop(context);
     } else {
       Navigator.pushReplacement(
