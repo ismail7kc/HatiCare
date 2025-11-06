@@ -4,95 +4,57 @@ import 'package:haticare/features/common/customNav_Bottom.dart';
 import 'package:haticare/features/doctor/presentation/screens/consultation_history.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 
-class PharmacyHomeScreen extends StatelessWidget {
+class PharmacyHomeScreen extends StatefulWidget {
   const PharmacyHomeScreen({super.key});
 
+  @override
+  State<PharmacyHomeScreen> createState() => _PharmacyHomeScreenState();
+}
+
+class _PharmacyHomeScreenState extends State<PharmacyHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return CustomBottomNav(
       screens: const [
-        PharmacyDashboardScreen(),
+        PharmacyHomeTabScreen(), // Added pharmacy specific home tab
         ConsultationHistoryScreen(),
         SettingsScreenWithAppBar(),
       ],
       tabs: const [
-        TabItemData(title: 'Home', iconPath: 'assets/icons/home.svg'),
-        TabItemData(title: 'History', iconPath: 'assets/icons/history.svg'),
-        TabItemData(title: 'Settings', iconPath: 'assets/icons/setting.svg'),
+        TabItemData(title: "Home", iconPath: 'assets/home.svg'),
+        TabItemData(title: "History", iconPath: 'assets/history.svg'),
+        TabItemData(title: "Settings", iconPath: 'assets/setting.svg'),
       ],
     );
   }
 }
 
-class PharmacyDashboardScreen extends StatelessWidget {
-  const PharmacyDashboardScreen({super.key});
+class PharmacyHomeTabScreen extends StatelessWidget {
+  const PharmacyHomeTabScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          title: const Text('Pharmacy Home'),
-          titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: AppColors.primaryDark,
-                fontWeight: FontWeight.w600,
-              ),
-          centerTitle: true,
-          bottom: const TabBar(
-            indicatorColor: AppColors.primary,
-            labelColor: AppColors.primary,
-            unselectedLabelColor: AppColors.textSecondary,
-            tabs: [
-              Tab(text: 'Dashboard'),
-              Tab(text: 'Inventory'),
-            ],
+        elevation: 0,
+        title: const Text('Pharmacy Home'),
+        titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+          color: AppColors.primaryDark,
+          fontWeight: FontWeight.w600,
+        ),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: Text(
+          'Welcome, Pharmacy!',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            color: AppColors.primaryDark,
+            fontWeight: FontWeight.w600,
           ),
+          textAlign: TextAlign.center,
         ),
-        body: const TabBarView(
-          children: [
-            _PharmacyDashboardTab(),
-            _PharmacyInventoryTab(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PharmacyDashboardTab extends StatelessWidget {
-  const _PharmacyDashboardTab();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'Welcome, Pharmacy!',
-        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: AppColors.primaryDark,
-              fontWeight: FontWeight.w600,
-            ),
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-}
-
-class _PharmacyInventoryTab extends StatelessWidget {
-  const _PharmacyInventoryTab();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'Inventory coming soon',
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: AppColors.textSecondary,
-            ),
-        textAlign: TextAlign.center,
       ),
     );
   }
