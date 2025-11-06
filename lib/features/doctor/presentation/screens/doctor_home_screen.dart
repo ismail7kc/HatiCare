@@ -28,9 +28,7 @@ class _MainScreenState extends State<DoctorHomeScreen> {
         const ConsultationHistoryScreen(),
         MultiProvider(
           providers: [
-            Provider<ApiClient>(
-              create: (_) => ApiClient(),
-            ),
+            Provider<ApiClient>(create: (_) => ApiClient()),
             ProxyProvider<ApiClient, AuthDRepository>(
               update: (_, apiClient, __) => AuthDRepository(apiClient),
             ),
@@ -58,6 +56,7 @@ class SettingsScreenWithAppBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: const Color(0xFFF9FAFB),
         title: const Text(
           'Settings',
           style: TextStyle(
@@ -67,7 +66,6 @@ class SettingsScreenWithAppBar extends StatelessWidget {
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.white,
         shadowColor: Colors.transparent,
@@ -92,33 +90,36 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            headerView(),
-            const SizedBox(height: 20),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9FAFB),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              headerView(),
+              const SizedBox(height: 20),
 
-            toggleView(),
-            const SizedBox(height: 20),
+              toggleView(),
+              const SizedBox(height: 20),
 
-            statsView(),
-            const SizedBox(height: 25),
+              statsView(),
+              const SizedBox(height: 25),
 
-            if (hasAdminApproval)
-              const Text(
-                "Patient Queue",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
+              if (hasAdminApproval)
+                const Text(
+                  "Patient Queue",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
 
-            if (hasAdminApproval) const SizedBox(height: 10),
+              if (hasAdminApproval) const SizedBox(height: 10),
 
-            isOnline
-                ? handleAppointment(context, appointments)
-                : patientQueueView(),
-          ],
+              isOnline
+                  ? handleAppointment(context, appointments)
+                  : patientQueueView(),
+            ],
+          ),
         ),
       ),
     );
@@ -185,10 +186,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget toggleView() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade300),
+        // boxShadow: [ 
+        //   BoxShadow(
+        //     color: Colors.black12,
+        //   ),
+        // ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -197,8 +203,8 @@ class _HomeScreenState extends State<HomeScreen> {
             isOnline ? "Online & Available" : "Offline",
             style: TextStyle(
               fontSize: 16,
-              color: isOnline ? const Color(0xFF34C759) : Colors.grey,
-              fontWeight: isOnline ? FontWeight.bold : FontWeight.normal,
+              color: isOnline ? const Color(0xFF34C759) : Colors.black,
+              fontWeight:  FontWeight.bold,
             ),
           ),
           AbsorbPointer(
