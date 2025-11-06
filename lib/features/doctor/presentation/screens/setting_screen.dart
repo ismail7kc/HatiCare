@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
+import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel.dart';
+import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
 
 class SettingsContent extends StatelessWidget {
   const SettingsContent({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final viewModel = context.watch<AuthDViewModel>();
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(vertical: 20),
@@ -85,13 +90,60 @@ class SettingsContent extends StatelessWidget {
             const SizedBox(height: 24),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SettingItem(
-                icon: Icons.logout,
-                title: 'Logout',
-                titleColor: const Color(0xFFFF3B30),
-                showArrow: false,
-                hasShadow: false,
-                hasBorder: false,
+              child: GestureDetector(
+                onTap: () async {
+                  final shouldLogout = await showDialog<bool>(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: const Text('Confirm Logout'),
+                        content: const Text('Are you sure you want to logout?'),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: const Text(
+                              'Logout',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+
+                  if (shouldLogout == true) {
+                    final success = await viewModel.logout();
+
+                    if (success) {
+                      if (!context.mounted) return;
+                      Navigator.of(
+                        context,
+                        rootNavigator: true,
+                      ).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                        (route) => false,
+                      );
+                    }
+                  }
+                },
+                child: SettingItem(
+                  icon: Icons.logout,
+                  title: 'Logout',
+                  titleColor: const Color(0xFFFF3B30),
+                  showArrow: false,
+                  hasShadow: false,
+                  hasBorder: false,
+                ),
               ),
             ),
           ],

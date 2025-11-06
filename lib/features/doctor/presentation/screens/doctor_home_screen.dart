@@ -1,28 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/features/doctor/AuthRepository/authD_repository.dart';
 import 'package:haticare/features/doctor/presentation/screens/consultation_history.dart';
 import 'package:haticare/features/doctor/presentation/screens/setting_screen.dart';
+import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
 import '../../models/appointment_model.dart';
 import 'appointment_detail.dart';
+import 'package:provider/provider.dart';
+import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 
-class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+class DoctorHomeScreen extends StatefulWidget {
+  const DoctorHomeScreen({super.key});
 
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  State<DoctorHomeScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<DoctorHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return CustomBottomNav(
-      screens: const [
-        HomeScreen(),
-        ConsultationHistoryScreen(),
-        SettingsScreenWithAppBar(),
+      screens: [
+        const HomeScreen(),
+        const ConsultationHistoryScreen(),
+        MultiProvider(
+          providers: [
+            Provider<ApiClient>(
+              create: (_) => ApiClient(),
+            ),
+            ProxyProvider<ApiClient, AuthDRepository>(
+              update: (_, apiClient, __) => AuthDRepository(apiClient),
+            ),
+            ChangeNotifierProvider<AuthDViewModel>(
+              create: (context) =>
+                  AuthDViewModel(context.read<AuthDRepository>()),
+            ),
+          ],
+          child: const SettingsScreenWithAppBar(),
+        ),
       ],
       tabs: const [
         TabItemData(title: "Home", iconPath: 'assets/icons/home.svg'),
@@ -54,9 +72,7 @@ class SettingsScreenWithAppBar extends StatelessWidget {
         surfaceTintColor: Colors.white,
         shadowColor: Colors.transparent,
       ),
-      body: const SafeArea(
-        child: SettingsContent(),
-      ),
+      body: const SafeArea(child: SettingsContent()),
     );
   }
 }
@@ -306,7 +322,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget patientAppointmentView(BuildContext context, AppointmentModel appointment) {
+  Widget patientAppointmentView(
+    BuildContext context,
+    AppointmentModel appointment,
+  ) {
     return GestureDetector(
       onTap: () {
         PersistentNavBarNavigator.pushNewScreen(
@@ -361,7 +380,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            circularProgressBar(appointment.progressValue, appointment.minutesLeft),
+            circularProgressBar(
+              appointment.progressValue,
+              appointment.minutesLeft,
+            ),
           ],
         ),
         const SizedBox(height: 16),

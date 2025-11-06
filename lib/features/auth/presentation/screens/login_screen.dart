@@ -9,7 +9,7 @@ import 'package:haticare/features/auth/presentation/screens/forgot_password_scre
 import 'package:haticare/features/auth/presentation/screens/signup_screen.dart';
 import 'package:haticare/features/auth/presentation/viewmodels/login_view_model.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
-
+import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -39,9 +39,11 @@ class _LoginView extends StatelessWidget {
 
         final role = viewModel.roleFromResponse;
         if (role == 'doctor') {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const MainScreen()),
-            (route) => false,
+          PersistentNavBarNavigator.pushNewScreen(
+            context,
+            screen: DoctorHomeScreen(),
+            withNavBar: false,
+            pageTransitionAnimation: PageTransitionAnimation.cupertino,
           );
         } else if (role == 'pharmacy') {
           Navigator.of(context).pushAndRemoveUntil(
@@ -49,9 +51,11 @@ class _LoginView extends StatelessWidget {
             (route) => false,
           );
         } else {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const MainScreen()),
-            (route) => false,
+          PersistentNavBarNavigator.pushNewScreen(
+            context,
+            screen: DoctorHomeScreen(),
+            withNavBar: false,
+            pageTransitionAnimation: PageTransitionAnimation.cupertino,
           );
         }
 
@@ -158,8 +162,9 @@ class _LoginView extends StatelessWidget {
                           width: 24,
                           child: Checkbox(
                             value: viewModel.rememberMe,
-                            onChanged:
-                                viewModel.isSubmitting ? null : viewModel.toggleRememberMe,
+                            onChanged: viewModel.isSubmitting
+                                ? null
+                                : viewModel.toggleRememberMe,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -171,7 +176,8 @@ class _LoginView extends StatelessWidget {
                               : () {
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
-                                      builder: (_) => const ForgotPasswordScreen(),
+                                      builder: (_) =>
+                                          const ForgotPasswordScreen(),
                                     ),
                                   );
                                 },
@@ -196,7 +202,9 @@ class _LoginView extends StatelessWidget {
                     const SizedBox(height: 24),
                     AppPrimaryButton(
                       label: 'Log In',
-                      onPressed: viewModel.isSubmitting ? null : viewModel.submit,
+                      onPressed: viewModel.isSubmitting
+                          ? null
+                          : viewModel.submit,
                       isLoading: viewModel.isSubmitting,
                     ),
                     const SizedBox(height: 12),
@@ -211,8 +219,9 @@ class _LoginView extends StatelessWidget {
                             TextSpan(
                               text: 'Create an account',
                               style: TextStyle(
-                                color:
-                                    viewModel.isSubmitting ? Colors.grey : AppColors.primary,
+                                color: viewModel.isSubmitting
+                                    ? Colors.grey
+                                    : AppColors.primary,
                                 fontWeight: FontWeight.w600,
                               ),
                               recognizer: TapGestureRecognizer()
