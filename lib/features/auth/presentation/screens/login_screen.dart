@@ -8,9 +8,8 @@ import 'package:haticare/features/auth/domain/repositories/auth_repository.dart'
 import 'package:haticare/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:haticare/features/auth/presentation/screens/signup_screen.dart';
 import 'package:haticare/features/auth/presentation/viewmodels/login_view_model.dart';
-import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
-
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -40,7 +39,7 @@ class _LoginView extends StatelessWidget {
         final role = viewModel.roleFromResponse;
         if (role == 'doctor') {
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const MainScreen()),
+            MaterialPageRoute(builder: (_) => const DoctorHomeScreen()),
             (route) => false,
           );
         } else if (role == 'pharmacy') {
@@ -50,7 +49,7 @@ class _LoginView extends StatelessWidget {
           );
         } else {
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const MainScreen()),
+            MaterialPageRoute(builder: (_) => const DoctorHomeScreen()),
             (route) => false,
           );
         }
@@ -94,7 +93,9 @@ class _LoginView extends StatelessWidget {
             alignment: Alignment.topCenter,
             child: Form(
               key: viewModel.formKey,
-              autovalidateMode: AutovalidateMode.disabled,
+              autovalidateMode: viewModel.shouldAutovalidate
+                  ? AutovalidateMode.always
+                  : AutovalidateMode.disabled,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: Column(

@@ -19,6 +19,7 @@ class LoginViewModel extends ChangeNotifier {
   String? dialogMessage;
   Map<String, dynamic>? _lastResponse;
   bool _shouldNavigate = false;
+  bool _shouldAutovalidate = false;
 
   void markNavigationHandled() {
     if (_shouldNavigate) {
@@ -54,6 +55,9 @@ class LoginViewModel extends ChangeNotifier {
   }
 
   Future<void> submit() async {
+    _shouldAutovalidate = true;
+    notifyListeners();
+
     if (!formKey.currentState!.validate()) {
       return;
     }
@@ -94,23 +98,18 @@ class LoginViewModel extends ChangeNotifier {
   Map<String, dynamic>? get lastResponse => _lastResponse;
 
   bool get shouldNavigate => _shouldNavigate;
+  bool get shouldAutovalidate => _shouldAutovalidate;
 
   String? get roleFromResponse {
     final response = _lastResponse;
     if (response == null) return null;
     final data = response['data'];
     if (data is Map<String, dynamic>) {
-      final role = _normalizeRoleValue(
-        data['role'] ?? data['user_role'] ?? data['userRole'] ?? data['type'],
-      );
-      if (role != null) return role;
+      final role = data['role'] ?? data['type'];
+      if (role is String) return role.toLowerCase();
     }
-    return _normalizeRoleValue(
-      response['role'] ??
-          response['user_role'] ??
-          response['userRole'] ??
-          response['type'],
-    );
+    final role = response['role'] ?? response['user_role'] ?? response['type'];
+    return role is String ? role.toLowerCase() : null;
   }
 
   void clearDialogMessage() {
@@ -120,17 +119,17 @@ class LoginViewModel extends ChangeNotifier {
     }
   }
 
+  void resetAutovalidate() {
+    if (_shouldAutovalidate) {
+      _shouldAutovalidate = false;
+      notifyListeners();
+    }
+  }
+
   @override
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
-  }
-
-  String? _normalizeRoleValue(dynamic value) {
-    if (value is String && value.trim().isNotEmpty) {
-      return value.trim().toLowerCase();
-    }
-    return null;
   }
 }

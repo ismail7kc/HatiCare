@@ -5,17 +5,17 @@ import 'package:haticare/features/doctor/presentation/screens/consultation_histo
 import 'package:haticare/features/doctor/presentation/screens/setting_screen.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
-import '../../models/appointment_model.dart';
+import 'package:haticare/features/doctor/models/appointment_model.dart';
 import 'appointment_detail.dart';
 
-class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+class DoctorHomeScreen extends StatefulWidget {
+  const DoctorHomeScreen({super.key});
 
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  State<DoctorHomeScreen> createState() => _DoctorHomeScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return CustomBottomNav(
