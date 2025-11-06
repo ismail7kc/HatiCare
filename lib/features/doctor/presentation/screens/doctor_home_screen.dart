@@ -7,7 +7,7 @@ import 'package:haticare/features/doctor/presentation/screens/setting_screen.dar
 import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
-import '../../models/appointment_model.dart';
+import 'package:haticare/features/doctor/models/appointment_model.dart';
 import 'appointment_detail.dart';
 import 'package:provider/provider.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
