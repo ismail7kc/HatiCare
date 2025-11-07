@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:haticare/core/services/device_id_provider.dart';
 import 'package:haticare/features/auth/domain/exceptions/auth_exceptions.dart';
 import 'package:haticare/features/auth/domain/repositories/auth_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginViewModel extends ChangeNotifier {
   LoginViewModel(this._repository);
@@ -17,7 +18,7 @@ class LoginViewModel extends ChangeNotifier {
   bool isSubmitting = false;
   String? errorMessage;
   String? dialogMessage;
-  Map<String, dynamic>? _lastResponse;
+  Map<String, dynamic>? lastResponse;
   bool _shouldNavigate = false;
   bool _shouldAutovalidate = false;
 
@@ -65,43 +66,53 @@ class LoginViewModel extends ChangeNotifier {
     isSubmitting = true;
     errorMessage = null;
     dialogMessage = null;
-    _lastResponse = null;
+    lastResponse = null;
     _shouldNavigate = false;
     notifyListeners();
 
     try {
       final deviceId = await DeviceIdProvider().getDeviceId();
-      _lastResponse = await _repository.login(
+
+      final response = await _repository.login(
         email: emailController.text.trim(),
-        password: passwordController.text,
+        password: passwordController.text.trim(),
         deviceId: deviceId,
       );
+
+      lastResponse = response;
       _shouldNavigate = true;
+
+      final refreshToken = response['response']?['refresh_token'];
+      if (refreshToken != null && refreshToken is String && refreshToken.isNotEmpty) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('refresh_token', refreshToken);
+      } else {
+        debugPrint('No refresh token found in response');
+      }
     } on AuthApiException catch (error) {
-      final message = error.message;
-      dialogMessage = message.isNotEmpty
-          ? message
+      dialogMessage = error.message.isNotEmpty
+          ? error.message
           : 'Login failed. Please try again.';
       errorMessage = null;
       _shouldNavigate = false;
-      _lastResponse = null;
-    } catch (_) {
+      lastResponse = null;
+    } catch (e, stackTrace) {
+      debugPrint('Unexpected login error: $e');
+      debugPrint('Stack trace: $stackTrace');
       errorMessage = 'Login failed. Please try again.';
       _shouldNavigate = false;
-      _lastResponse = null;
+      lastResponse = null;
     } finally {
       isSubmitting = false;
       notifyListeners();
     }
   }
 
-  Map<String, dynamic>? get lastResponse => _lastResponse;
-
   bool get shouldNavigate => _shouldNavigate;
   bool get shouldAutovalidate => _shouldAutovalidate;
 
   String? get roleFromResponse {
-    final response = _lastResponse;
+    final response = lastResponse;
     if (response == null) return null;
     final data = response['data'];
     if (data is Map<String, dynamic>) {

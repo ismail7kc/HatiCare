@@ -11,7 +11,7 @@ import 'package:haticare/features/auth/domain/exceptions/auth_exceptions.dart';
 
 class RemoteAuthApiService implements AuthApiService {
   RemoteAuthApiService({http.Client? client})
-      : _client = client ?? ChuckerHttpClient(http.Client());
+    : _client = client ?? ChuckerHttpClient(http.Client());
 
   final http.Client _client;
 
