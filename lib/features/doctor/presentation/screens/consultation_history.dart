@@ -11,7 +11,7 @@ class ConsultationHistoryScreen extends StatelessWidget {
     final consultations = ConsultationHistoryModel.sampleData;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: Color(0xFFF9FAFB),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),

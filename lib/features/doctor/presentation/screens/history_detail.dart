@@ -25,10 +25,10 @@ class HistoryDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Color(0xFFF9FAFB),
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFFF9FAFB),
         centerTitle: true,
         title: const Text(
           'Consultation Details',
@@ -44,12 +44,19 @@ class HistoryDetail extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                padding: const EdgeInsets.only(top: 30, left: 16, right: 16),
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF7F7F8),
+                  color: const Color(0xFFFFFFFF),
                   borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12.withValues(alpha: 0.05),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
@@ -129,7 +136,7 @@ class HistoryDetail extends StatelessWidget {
                       horizontal: 16,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF7F7F8),
+                      color: const Color(0xFFF3F4F6),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Text(
@@ -157,8 +164,15 @@ class HistoryDetail extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F7F8),
+        color: Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12.withValues(alpha: 0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -182,7 +196,7 @@ class HistoryDetail extends StatelessWidget {
             ],
           ),
 
-          SvgPicture.asset(icon, height: 24,)
+          SvgPicture.asset(icon, height: 24),
         ],
       ),
     );

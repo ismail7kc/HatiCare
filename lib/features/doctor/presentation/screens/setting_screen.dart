@@ -9,85 +9,109 @@ class SettingsContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch<AuthDViewModel>();
+  final viewModel = context.watch<AuthDViewModel>();
 
-    return SafeArea(
+  return Scaffold(
+    backgroundColor: const Color(0xFFF9FAFB), // light gray screen background
+    body: SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            CircleAvatar(
-              radius: 40,
-              child: Stack(
-                alignment: Alignment.bottomRight,
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12.withOpacity(0.05),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Center(
-                    child: SvgPicture.asset(
-                      'assets/icons/person_icon.svg',
-                      width: 80,
-                      height: 80,
+                  CircleAvatar(
+                    radius: 40,
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        Center(
+                          child: SvgPicture.asset(
+                            'assets/icons/person_icon.svg',
+                            width: 80,
+                            height: 80,
+                          ),
+                        ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: const CircleAvatar(
+                              backgroundColor: Color(0xFF243E8A),
+                              child: Icon(
+                                Icons.edit,
+                                size: 14,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: const CircleAvatar(
-                        backgroundColor: Color(0xFF243E8A),
-                        child: Icon(Icons.edit, size: 14, color: Colors.white),
-                      ),
-                    ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Dr. John Doe',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                  ),
+                  const Text(
+                    'General Physician',
+                    style: TextStyle(fontSize: 15, color: Colors.grey),
+                  ),
+                  const Text(
+                    'License: GMC-12345',
+                    style: TextStyle(fontSize: 15, color: Colors.grey),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            const Text(
-              'Dr. John Doe',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-            ),
-            const Text(
-              'General Physician',
-              style: TextStyle(fontSize: 15, color: Colors.grey),
-            ),
-            const Text(
-              'License: GMC-12345',
-              style: TextStyle(fontSize: 15, color: Colors.grey),
-            ),
+
             const SizedBox(height: 32),
+
+            // Account Section
             _buildSection(
               title: 'Account',
               items: [
                 SettingItem(icon: Icons.person_outline, title: 'Edit Profile'),
-                SettingItem(
-                  icon: Icons.notifications_outlined,
-                  title: 'Notifications',
-                ),
-                SettingItem(
-                  icon: Icons.privacy_tip_outlined,
-                  title: 'Privacy Policy',
-                ),
+                SettingItem(icon: Icons.notifications_outlined, title: 'Notifications'),
+                SettingItem(icon: Icons.privacy_tip_outlined, title: 'Privacy Policy'),
               ],
             ),
             const SizedBox(height: 24),
+
+            // Support Section
             _buildSection(
               title: 'Support',
               items: [
                 SettingItem(icon: Icons.help_outline, title: 'Help Center'),
-                SettingItem(
-                  icon: Icons.phone_outlined,
-                  title: 'Contact Support',
-                ),
+                SettingItem(icon: Icons.phone_outlined, title: 'Contact Support'),
               ],
             ),
             const SizedBox(height: 24),
+
+            // Logout Button
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: GestureDetector(
@@ -123,13 +147,8 @@ class SettingsContent extends StatelessWidget {
 
                   if (shouldLogout == true) {
                     final success = await viewModel.logout();
-
-                    if (success) {
-                      if (!context.mounted) return;
-                      Navigator.of(
-                        context,
-                        rootNavigator: true,
-                      ).pushAndRemoveUntil(
+                    if (success && context.mounted) {
+                      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
                         MaterialPageRoute(builder: (_) => const LoginScreen()),
                         (route) => false,
                       );
@@ -149,8 +168,10 @@ class SettingsContent extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildSection({required String title, required List<Widget> items}) {
     return Column(
@@ -212,7 +233,7 @@ class SettingItem extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: Colors.grey[700]),
+          Icon(icon, size: 28, color: Colors.grey[700]),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
