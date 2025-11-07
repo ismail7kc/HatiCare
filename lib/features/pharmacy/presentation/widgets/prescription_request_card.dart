@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/pharmacy/domain/entities/prescription_request.dart';
 import 'package:intl/intl.dart';
@@ -15,119 +16,149 @@ class PrescriptionRequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 2,vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, 0),
+          ),
+        ],
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.receipt_long,
-                      color: Colors.white,
-                      size: 24,
-                    ),
+                  SvgPicture.asset(
+                    'assets/icons/new_prescription_icon.svg',
+                    width: 30,
+                    height: 30,
                   ),
+
                   const SizedBox(width: 12),
+
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ShaderMask(
-                          shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
-                          child: const Text(
-                            'New Prescription',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                    child: ShaderMask(
+                      shaderCallback: (bounds) =>
+                          AppColors.primaryGradient.createShader(bounds),
+                      child: const Text(
+                        'New Prescription',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          DateFormat('dd-MM-yyyy  h:mm a').format(request.dateIssued),
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    color: Colors.grey[400],
-                    size: 16,
+
+                  Text(
+                    DateFormat('dd-MM-yyyy  h:mm a').format(request.dateIssued),
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                    textAlign: TextAlign.right,
                   ),
                 ],
               ),
+
+
+              const SizedBox(height: 20),
+
+              /// 🔹 Patient Row
+              Row(
+                children: [
+                  SvgPicture.asset(
+                    'assets/icons/patient_icon.svg',
+                    width: 22,
+                    height: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Patient",
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 13,
+                        ),
+                      ),
+                      Text(
+                        "${request.patientName}, ${request.patientAge}",
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+
               const SizedBox(height: 16),
-              _buildInfoRow(
-                icon: Icons.person_outline,
-                label: 'Patient',
-                value: '${request.patientName}, ${request.patientAge}',
-              ),
-              const SizedBox(height: 8),
-              _buildInfoRow(
-                icon: Icons.medical_services_outlined,
-                label: 'Doctor',
-                value: request.doctorName,
-              ),
+
+              /// 🔹 Doctor Row
+              Row(
+                children: [
+                  SvgPicture.asset(
+                    'assets/icons/doctor_icon.svg',
+                    width: 22,
+                    height: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Doctor",
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 13,
+                        ),
+                      ),
+                      Text(
+                        request.doctorName,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+
+                  /// Right arrow
+                  SvgPicture.asset(
+                    'assets/icons/arrow_forward_line_icon.svg',
+                    width: 28,
+                    height: 28,
+                    colorFilter: const ColorFilter.mode(
+                      Colors.black,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                ],
+              )
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildInfoRow({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 18,
-          color: Colors.grey[600],
-        ),
-        const SizedBox(width: 8),
-        Text(
-          '$label:',
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 14,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              color: Colors.black87,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -74,7 +74,7 @@ class PrescriptionDetailsScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        request.status as String,
+                        request.statusText,
                         style: TextStyle(
                           color: AppColors.primaryDark,
                           fontSize: 12,

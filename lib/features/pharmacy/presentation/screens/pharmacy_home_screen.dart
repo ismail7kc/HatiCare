@@ -6,6 +6,7 @@ import 'package:haticare/features/doctor/presentation/screens/consultation_histo
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/pharmacy/domain/entities/prescription_request.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_history_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_settings_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/widgets/prescription_request_card.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/prescription_details_screen.dart';
 
@@ -25,7 +26,7 @@ class _PharmacyHomeScreenState extends State<PharmacyHomeScreen> {
       screens: const [
         PharmacyHomeTabScreen(), // Added pharmacy specific home tab
         PharmacyHistoryScreen(),
-        PharmacyHomeTabScreen(),
+        PharmacySettingsScreen(),
       ],
       tabs: const [
         TabItemData(title: "Home", iconPath: 'assets/icons/home.svg'),
@@ -119,7 +120,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen> {
                     children: [
               // Verify Prescription Section
               Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.symmetric(horizontal: 10,vertical: 16),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
@@ -136,7 +137,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
                           Expanded(
@@ -144,7 +145,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen> {
                               decoration: InputDecoration(
                                 hintText: 'Enter Rx Code (e.g., RX12345)',
                                 hintStyle: TextStyle(
-                                  color: Colors.grey[400],
+                                  color: Color(0xFF858585),
                                   fontSize: 14,
                                 ),
                                 border: OutlineInputBorder(
@@ -164,31 +165,42 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen> {
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 16,
-                                  vertical: 14,
+                                  vertical: 12,
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 4),
                           ElevatedButton(
                             onPressed: () {},
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryDark,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 14,
-                              ),
+                              padding: EdgeInsets.zero,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               elevation: 0,
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
                             ),
-                            child: const Text(
-                              'Verify',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
+                            child: Ink(
+                              decoration: BoxDecoration(
+                                gradient: AppColors.primaryGradient,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 26,
+                                  vertical: 12,
+                                ),
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  'Verify',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
