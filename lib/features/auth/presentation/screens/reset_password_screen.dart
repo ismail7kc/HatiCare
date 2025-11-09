@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/core/widgets/app_primary_button.dart';
 import 'package:haticare/core/widgets/app_text_field.dart';
+import 'package:haticare/features/auth/domain/exceptions/auth_exceptions.dart';
+import 'package:haticare/features/auth/domain/repositories/auth_repository.dart';
+import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
 import 'package:haticare/features/auth/presentation/widgets/auth_top_bar.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({
     super.key,
-    this.onSubmit,
+    required this.email,
     this.title = 'Reset Password',
     this.illustrationAsset = 'assets/images/reset_password_logo.svg',
   });
 
-  final Future<void> Function(String newPassword)? onSubmit;
+  final String email;
   final String title;
   final String illustrationAsset;
 
@@ -24,6 +28,7 @@ class ResetPasswordScreen extends StatefulWidget {
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final formKey = GlobalKey<FormState>();
+  final otpController = TextEditingController();
   final newPasswordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
 
@@ -32,6 +37,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   @override
   void dispose() {
+    otpController.dispose();
     newPasswordController.dispose();
     confirmPasswordController.dispose();
     super.dispose();
@@ -42,30 +48,192 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       return;
     }
 
-    if (widget.onSubmit == null) {
-      Navigator.of(context).maybePop();
-      return;
-    }
-
     setState(() {
       isSubmitting = true;
       errorMessage = null;
     });
 
     try {
-      await widget.onSubmit!(newPasswordController.text.trim());
+      final authRepository = context.read<AuthRepository>();
+      final response = await authRepository.resetPassword(
+        email: widget.email,
+        otp: otpController.text.trim(),
+        newPassword: newPasswordController.text.trim(),
+        confirmPassword: confirmPasswordController.text.trim(),
+      );
+
       if (!mounted) return;
-      Navigator.of(context).maybePop();
+      
+      setState(() => isSubmitting = false);
+
+      // Extract success message
+      String successMessage = 'Password reset successfully';
+      if (response['message'] is String) {
+        successMessage = response['message'] as String;
+      } else if (response['detail'] is String) {
+        successMessage = response['detail'] as String;
+      }
+
+      // Show success dialog
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 28,
+                ),
+                SizedBox(width: 12),
+                Text(
+                  'Success',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              successMessage,
+              style: const TextStyle(
+                fontSize: 16,
+                height: 1.5,
+              ),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'OK',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (!mounted) return;
+
+      // Navigate to login screen
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+
+      // Show success snackbar
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Password reset successfully'),
+            backgroundColor: Color(0xFF29A671),
+          ),
+        );
+      }
     } catch (error) {
       if (!mounted) return;
-      setState(() {
-        errorMessage = error.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() => isSubmitting = false);
+      
+      setState(() => isSubmitting = false);
+
+      String errorMsg = 'Password reset failed';
+      if (error is AuthApiException) {
+        errorMsg = error.message;
       }
+
+      // Show error dialog
+      await showDialog(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  color: Colors.red,
+                  size: 28,
+                ),
+                SizedBox(width: 12),
+                Text(
+                  'Failed',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              errorMsg,
+              style: const TextStyle(
+                fontSize: 16,
+                height: 1.5,
+              ),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'OK',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
     }
+  }
+
+  String? _validateOtp(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter OTP';
+    }
+    if (value.length != 6) {
+      return 'OTP must be 6 digits';
+    }
+    return null;
   }
 
   String? _validatePassword(String? value) {
@@ -127,7 +295,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                               ),
                       ),
                       Text(
-                        'Enter New Password',
+                        'Reset Your Password',
                         style: textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
@@ -135,13 +303,31 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Enter your new password and don\'t share with anyone.',
+                        'Enter the OTP sent to your email and your new password.',
                         style: textTheme.bodyMedium?.copyWith(
                           color: AppColors.textSecondary,
                           height: 1.4,
                         ),
                       ),
                       const SizedBox(height: 24),
+                      Text(
+                        'OTP*',
+                        style: textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF6C7278),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      AppTextField(
+                        controller: otpController,
+                        label: 'OTP*',
+                        hint: 'Enter 6-digit OTP',
+                        keyboardType: TextInputType.number,
+                        prefixIcon: const Icon(Icons.security),
+                        validator: _validateOtp,
+                        maxLength: 6,
+                      ),
+                      const SizedBox(height: 16),
                       Text(
                         'New Password*',
                         style: textTheme.bodyMedium?.copyWith(

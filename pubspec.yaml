@@ -79,12 +79,12 @@ flutter_launcher_icons:
   remove_alpha_ios: true
   image_path: assets/images/haticare_logo.png
 
-flutter_native_splash:
-  color: "#FFFFFF"
-  image: assets/images/haticare_logo.png
-  android_12:
-    icon_background_color: "#FFFFFF"
-    image: assets/images/haircare_logo.png
+# flutter_native_splash:
+#   color: "#FFFFFF"
+#   image: assets/images/haticare_logo.png
+#   android_12:
+#     icon_background_color: "#FFFFFF"
+#     image: assets/images/haticare_logo.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -25,9 +25,18 @@ class AuthDViewModel extends ChangeNotifier {
 
       logoutSuccess = true;
 
+      // Clear all login data
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('refresh_token');
+      await prefs.remove('access_token');
       await prefs.remove('device_id');
+      await prefs.remove('user_type');
+      await prefs.remove('user_email');
+      await prefs.setBool('is_logged_in', false);
+      
+      // Don't remove saved credentials if remember me was checked
+      // Only clear login state
+      
       return true;
     } catch (e) {
       debugPrint('Logout Error: $e');

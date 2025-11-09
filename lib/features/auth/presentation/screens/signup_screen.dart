@@ -339,7 +339,7 @@ class _DoctorSection extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4),
         _LabeledField(
           label: 'Phone Number',
           child: IntlPhoneField(
@@ -385,146 +385,6 @@ class _DoctorSection extends StatelessWidget {
             validator: viewModel.validateDoctorEmail,
           ),
         ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Expanded(
-              child: _LabeledField(
-                label: 'Date of Birth',
-                child: _DatePickerField(
-                  controller: viewModel.dateOfBirthController,
-                  validator: viewModel.validateDoctorDob,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _LabeledField(
-                label: 'Gender',
-                child: _GenderDropdown(
-                  value: viewModel.genderController.text.isEmpty 
-                      ? null 
-                      : viewModel.genderController.text,
-                  onChanged: (value) {
-                    if (value != null) {
-                      viewModel.setDoctorGender(value);
-                    }
-                  },
-                  validator: viewModel.validateDoctorGender,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        _LabeledField(
-          label: 'Company Name',
-          child: AppTextField(
-            controller: viewModel.companyNameController,
-            label: 'Company Name',
-            hint: 'ABC Corp',
-            prefixIcon: const Icon(Icons.apartment_outlined),
-            validator: viewModel.validateDoctorCompanyName,
-          ),
-        ),
-        const SizedBox(height: 2),
-        _LabeledField(
-          label: 'Company Address',
-          child: AppTextField(
-            controller: viewModel.companyAddressController,
-            label: 'Company Address',
-            hint: '123 Main St',
-            prefixIcon: const Icon(Icons.location_on_outlined),
-            validator: viewModel.validateDoctorCompanyAddress,
-          ),
-        ),
-        const SizedBox(height: 2),
-        _LabeledField(
-          label: 'License Number',
-          child: AppTextField(
-            controller: viewModel.licenseNumberController,
-            label: 'License Number',
-            hint: 'XXXXXX',
-            prefixIcon: const Icon(Icons.badge_outlined),
-            validator: viewModel.validateDoctorLicenseNumber,
-          ),
-        ),
-        const SizedBox(height: 2),
-        _LabeledField(
-          label: 'License Type',
-          child: AppTextField(
-            controller: viewModel.licenseTypeController,
-            label: 'License Type',
-            hint: 'Full License',
-            prefixIcon: const Icon(Icons.assignment_outlined),
-            validator: viewModel.validateDoctorLicenseType,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Row(
-          children: [
-            Expanded(
-              child: _LabeledField(
-                label: 'Years of Experience',
-                child: AppTextField(
-                  controller: viewModel.yearsOfExperienceController,
-                  label: 'Years of Experience',
-                  hint: '1',
-                  keyboardType: TextInputType.number,
-                  prefixIcon: const Icon(Icons.timeline_outlined),
-                  validator: viewModel.validateDoctorExperience,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _LabeledField(
-                label: 'Specialization',
-                child: AppTextField(
-                  controller: viewModel.specializationController,
-                  label: 'Specialization',
-                  hint: 'Cardiology',
-                  prefixIcon: const Icon(Icons.local_hospital_outlined),
-                  validator: viewModel.validateDoctorSpecialization,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 2),
-        _LabeledField(
-          label: 'License Issuing Authority',
-          child: AppTextField(
-            controller: viewModel.licenseIssuingAuthorityController,
-            label: 'License Issuing Authority',
-            hint: 'Medical Board',
-            prefixIcon: const Icon(Icons.account_balance_outlined),
-            validator: viewModel.validateDoctorIssuingAuthority,
-          ),
-        ),
-        const SizedBox(height: 2),
-        _LabeledField(
-          label: 'License Document',
-          child: _DocumentPickerTile(
-            title: 'License Document',
-            fileName: viewModel.doctorLicenseDocumentName,
-            onTap: () async {
-              final result = await FilePicker.platform.pickFiles(
-                type: FileType.custom,
-                allowedExtensions: ['pdf'],
-                allowMultiple: false,
-              );
-
-              if (result != null && result.files.isNotEmpty) {
-                final file = result.files.first;
-                viewModel.setDoctorLicenseDocument(
-                  path: file.path ?? '',
-                  name: file.name,
-                );
-              }
-            },
-          ),
-        ),
         const SizedBox(height: 6),
         _LabeledField(
           label: 'Password',
@@ -538,7 +398,7 @@ class _DoctorSection extends StatelessWidget {
             validator: viewModel.validateDoctorPassword,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4),
         _LabeledField(
           label: 'Confirm Password',
           child: AppTextField(
@@ -608,22 +468,11 @@ class _PharmacySection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _LabeledField(
-          label: 'Pharmacy Name',
-          child: AppTextField(
-            controller: viewModel.pharmacyNameController,
-            label: 'Pharmacy Name',
-            hint: 'HealthPlus Pharmacy',
-            prefixIcon: const Icon(Icons.local_pharmacy_outlined),
-            validator: viewModel.validatePharmacyName,
-          ),
-        ),
-        const SizedBox(height: 4),
-        _LabeledField(
-          label: 'Owner / Manager Name',
+          label: 'Contact Person',
           child: AppTextField(
             controller: viewModel.ownerNameController,
-            label: 'Owner / Manager Name',
-            hint: 'Jane Smith',
+            label: 'Contact Person',
+            hint: 'Dr. Ali Khan',
             textCapitalization: TextCapitalization.words,
             prefixIcon: const Icon(Icons.person_outline),
             validator: viewModel.validateOwnerName,
@@ -631,7 +480,7 @@ class _PharmacySection extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         _LabeledField(
-          label: 'Business Phone Number',
+          label: 'Phone Number',
           child: IntlPhoneField(
             controller: viewModel.businessPhoneController,
             initialCountryCode: 'US',
@@ -674,133 +523,7 @@ class _PharmacySection extends StatelessWidget {
             validator: viewModel.validatePharmacyEmail,
           ),
         ),
-        const SizedBox(height: 4),
-        _LabeledField(
-          label: 'Address Line 1',
-          child: AppTextField(
-            controller: viewModel.addressLine1Controller,
-            label: 'Address Line 1',
-            hint: '123 Main St',
-            prefixIcon: const Icon(Icons.location_on_outlined),
-            validator: viewModel.validateAddressLine1,
-          ),
-        ),
-        const SizedBox(height: 4),
-        _LabeledField(
-          label: 'Address Line 2 (Optional)',
-          child: AppTextField(
-            controller: viewModel.addressLine2Controller,
-            label: 'Address Line 2 (Optional)',
-            hint: 'Suite 200',
-            prefixIcon: const Icon(Icons.location_on_outlined),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Expanded(
-              child: _LabeledField(
-                label: 'City',
-                child: AppTextField(
-                  controller: viewModel.cityController,
-                  label: 'City',
-                  hint: 'Los Angeles',
-                  prefixIcon: const Icon(Icons.location_city_outlined),
-                  validator: viewModel.validateCity,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _LabeledField(
-                label: 'State / Province',
-                child: AppTextField(
-                  controller: viewModel.stateController,
-                  label: 'State / Province',
-                  hint: 'California',
-                  prefixIcon: const Icon(Icons.map_outlined),
-                  validator: viewModel.validateState,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Expanded(
-              child: _LabeledField(
-                label: 'ZIP / Postal Code',
-                child: AppTextField(
-                  controller: viewModel.postalCodeController,
-                  label: 'ZIP / Postal Code',
-                  hint: '90001',
-                  keyboardType: TextInputType.number,
-                  prefixIcon: const Icon(Icons.local_post_office_outlined),
-                  validator: viewModel.validatePostalCode,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _LabeledField(
-                label: 'Country',
-                child: AppTextField(
-                  controller: viewModel.countryController,
-                  label: 'Country',
-                  hint: 'United States',
-                  prefixIcon: const Icon(Icons.public_outlined),
-                  validator: viewModel.validateCountry,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        _LabeledField(
-          label: 'Pharmacy License Number',
-          child: AppTextField(
-            controller: viewModel.pharmacyLicenseNumberController,
-            label: 'Pharmacy License Number',
-            hint: 'LIC-123456',
-            prefixIcon: const Icon(Icons.badge_outlined),
-            validator: viewModel.validatePharmacyLicenseNumber,
-          ),
-        ),
-        const SizedBox(height: 4),
-        _LabeledField(
-          label: 'License Document',
-          child: _DocumentPickerTile(
-            title: 'License Document',
-            fileName: viewModel.pharmacyLicenseDocumentName,
-            onTap: () async {
-              final result = await FilePicker.platform.pickFiles(
-                type: FileType.custom,
-                allowedExtensions: ['pdf'],
-                allowMultiple: false,
-              );
-
-              if (result != null && result.files.isNotEmpty) {
-                final file = result.files.first;
-                viewModel.setPharmacyLicenseDocument(
-                  path: file.path ?? '',
-                  name: file.name,
-                );
-              }
-            },
-          ),
-        ),
         const SizedBox(height: 6),
-        _LabeledField(
-          label: 'Tax Identification Number (Optional)',
-          child: AppTextField(
-            controller: viewModel.taxIdentificationNumberController,
-            label: 'Tax Identification Number (Optional)',
-            hint: 'TIN-123456789',
-            prefixIcon: const Icon(Icons.numbers_outlined),
-          ),
-        ),
-        const SizedBox(height: 4),
         _LabeledField(
           label: 'Password',
           child: AppTextField(

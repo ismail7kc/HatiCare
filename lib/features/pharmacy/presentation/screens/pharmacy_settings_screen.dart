@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/core/services/device_id_provider.dart';
+import 'package:haticare/features/auth/domain/repositories/auth_repository.dart';
+import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_notifications_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_privacy_policy_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PharmacySettingsScreen extends StatelessWidget {
   const PharmacySettingsScreen({super.key});
@@ -404,51 +409,78 @@ class PharmacySettingsScreen extends StatelessWidget {
   }
 
   Future<void> _handleLogout(BuildContext context) async {
+    // Get repository before showing dialog
+    final authRepository = context.read<AuthRepository>();
+    
     // Show loading indicator
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return const Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(
+            color: Colors.white,
+          ),
         );
       },
     );
 
     try {
-      // TODO: Call logout API here
-      // Example:
-      // final authRepository = context.read<AuthRepository>();
-      // await authRepository.logout();
+      final prefs = await SharedPreferences.getInstance();
+      final deviceId = await DeviceIdProvider().getDeviceId();
+      final refreshToken = prefs.getString('refresh_token') ?? '';
       
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 1));
+      // Call logout API
+      await authRepository.logout(
+        deviceId: deviceId,
+        refreshToken: refreshToken,
+      );
+
+      // Clear all login data
+      await prefs.remove('refresh_token');
+      await prefs.remove('access_token');
+      await prefs.remove('device_id');
+      await prefs.remove('user_type');
+      await prefs.remove('user_email');
+      await prefs.setBool('is_logged_in', false);
 
       // Close loading dialog
       if (context.mounted) {
-        Navigator.pop(context);
+        Navigator.of(context, rootNavigator: true).pop();
+        
+        // Small delay to ensure dialog is closed
+        await Future.delayed(const Duration(milliseconds: 100));
+        
+        if (!context.mounted) return;
         
         // Navigate to login screen and clear all previous routes
-        // TODO: Replace with your actual login route
-        // Navigator.pushNamedAndRemoveUntil(
-        //   context,
-        //   '/login',
-        //   (route) => false,
-        // );
-        
-        // For now, show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Logged out successfully'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
         );
+        
+        // Show success message
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Logged out successfully'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
     } catch (e) {
       // Close loading dialog
       if (context.mounted) {
-        Navigator.pop(context);
+        Navigator.of(context, rootNavigator: true).pop();
+        
+        // Small delay to ensure dialog is closed
+        await Future.delayed(const Duration(milliseconds: 100));
+        
+        if (!context.mounted) return;
         
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(

@@ -386,18 +386,6 @@ class SignupViewModel extends ChangeNotifier {
       return;
     }
 
-    if (isDoctor && doctorLicenseDocumentPath == null) {
-      errorMessage = 'Please upload your license document';
-      notifyListeners();
-      return;
-    }
-
-    if (isPharmacy && pharmacyLicenseDocumentPath == null) {
-      errorMessage = 'Please upload your pharmacy license document';
-      notifyListeners();
-      return;
-    }
-
     isSubmitting = true;
     errorMessage = null;
     successMessage = null;
@@ -419,34 +407,10 @@ class SignupViewModel extends ChangeNotifier {
         phoneNumber: isDoctor
             ? (_doctorPhoneNumber ?? phoneNumberController.text.trim())
             : null,
-        gender: isDoctor ? genderController.text.trim() : null,
-        dateOfBirth: isDoctor ? dateOfBirthController.text.trim() : null,
-        companyName: isDoctor ? companyNameController.text.trim() : null,
-        companyAddress: isDoctor ? companyAddressController.text.trim() : null,
-        licenseNumber: isDoctor ? licenseNumberController.text.trim() : null,
-        licenseType: isDoctor ? licenseTypeController.text.trim() : null,
-        yearsOfExperience: isDoctor ? yearsOfExperienceController.text.trim() : null,
-        specialization: isDoctor ? specializationController.text.trim() : null,
-        licenseIssuingAuthority:
-            isDoctor ? licenseIssuingAuthorityController.text.trim() : null,
-        licenseDocumentPath: isDoctor ? doctorLicenseDocumentPath : null,
-        pharmacyName: isPharmacy ? pharmacyNameController.text.trim() : null,
         ownerName: isPharmacy ? ownerNameController.text.trim() : null,
         businessPhone: isPharmacy
             ? (_businessPhoneNumber ?? businessPhoneController.text.trim())
             : null,
-        addressLine1: isPharmacy ? addressLine1Controller.text.trim() : null,
-        addressLine2: isPharmacy ? addressLine2Controller.text.trim() : null,
-        city: isPharmacy ? cityController.text.trim() : null,
-        state: isPharmacy ? stateController.text.trim() : null,
-        postalCode: isPharmacy ? postalCodeController.text.trim() : null,
-        country: isPharmacy ? countryController.text.trim() : null,
-        pharmacyLicenseNumber:
-            isPharmacy ? pharmacyLicenseNumberController.text.trim() : null,
-        taxIdentificationNumber:
-            isPharmacy ? taxIdentificationNumberController.text.trim() : null,
-        pharmacyLicenseDocumentPath:
-            isPharmacy ? pharmacyLicenseDocumentPath : null,
       );
       
       // For both doctor and pharmacy, generate OTP first
