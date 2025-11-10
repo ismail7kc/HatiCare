@@ -7,7 +7,7 @@ import 'package:haticare/features/doctor/presentation/screens/setting_screen.dar
 import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
-import '../../models/appointment_model.dart';
+import 'package:haticare/features/doctor/models/appointment_model.dart';
 import 'appointment_detail.dart';
 import 'package:provider/provider.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
@@ -28,7 +28,9 @@ class _MainScreenState extends State<DoctorHomeScreen> {
         const ConsultationHistoryScreen(),
         MultiProvider(
           providers: [
-            Provider<ApiClient>(create: (_) => ApiClient()),
+            Provider<ApiClient>(
+              create: (_) => ApiClient(),
+            ),
             ProxyProvider<ApiClient, AuthDRepository>(
               update: (_, apiClient, __) => AuthDRepository(apiClient),
             ),
@@ -190,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade300),
-        // boxShadow: [ 
+        // boxShadow: [
         //   BoxShadow(
         //     color: Colors.black12,
         //   ),

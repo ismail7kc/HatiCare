@@ -6,7 +6,9 @@ import 'package:haticare/features/auth/domain/repositories/auth_repository.dart'
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginViewModel extends ChangeNotifier {
-  LoginViewModel(this._repository);
+  LoginViewModel(this._repository) {
+    _loadSavedCredentials();
+  }
 
   final AuthRepository _repository;
 
@@ -21,6 +23,41 @@ class LoginViewModel extends ChangeNotifier {
   Map<String, dynamic>? lastResponse;
   bool _shouldNavigate = false;
   bool _shouldAutovalidate = false;
+
+  Future<void> _loadSavedCredentials() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedEmail = prefs.getString('saved_email');
+      final savedPassword = prefs.getString('saved_password');
+      final savedRememberMe = prefs.getBool('remember_me') ?? false;
+
+      if (savedRememberMe && savedEmail != null && savedPassword != null) {
+        emailController.text = savedEmail;
+        passwordController.text = savedPassword;
+        rememberMe = true;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error loading saved credentials: $e');
+    }
+  }
+
+  Future<void> _saveCredentials() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (rememberMe) {
+        await prefs.setString('saved_email', emailController.text.trim());
+        await prefs.setString('saved_password', passwordController.text.trim());
+        await prefs.setBool('remember_me', true);
+      } else {
+        await prefs.remove('saved_email');
+        await prefs.remove('saved_password');
+        await prefs.setBool('remember_me', false);
+      }
+    } catch (e) {
+      debugPrint('Error saving credentials: $e');
+    }
+  }
 
   void markNavigationHandled() {
     if (_shouldNavigate) {
@@ -82,24 +119,82 @@ class LoginViewModel extends ChangeNotifier {
       lastResponse = response;
       _shouldNavigate = true;
 
-      final refreshToken = response['response']?['refresh_token'];
-      if (refreshToken != null && refreshToken is String && refreshToken.isNotEmpty) {
-        final prefs = await SharedPreferences.getInstance();
+      // Save credentials if remember me is checked
+      await _saveCredentials();
+
+      // Save tokens
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Try to get access token from different possible locations
+      String? accessToken;
+      String? refreshToken;
+      
+      // Check in response object
+      final responseObj = response['response'];
+      if (responseObj is Map<String, dynamic>) {
+        accessToken = responseObj['access_token'] ?? responseObj['access'];
+        refreshToken = responseObj['refresh_token'] ?? responseObj['refresh'];
+      }
+      
+      // Check at root level
+      accessToken ??= response['access_token'] ?? response['access'];
+      refreshToken ??= response['refresh_token'] ?? response['refresh'];
+      
+      // Check in data object
+      final data = response['data'];
+      if (data is Map<String, dynamic>) {
+        accessToken ??= data['access_token'] ?? data['access'];
+        refreshToken ??= data['refresh_token'] ?? data['refresh'];
+      }
+      
+      if (accessToken != null && accessToken.isNotEmpty) {
+        await prefs.setString('access_token', accessToken);
+        debugPrint('Access token saved');
+      } else {
+        debugPrint('No access token found in response');
+      }
+      
+      if (refreshToken != null && refreshToken.isNotEmpty) {
         await prefs.setString('refresh_token', refreshToken);
+        debugPrint('Refresh token saved');
       } else {
         debugPrint('No refresh token found in response');
       }
+      
+      // Save user type
+      final userType = roleFromResponse;
+      if (userType != null) {
+        await prefs.setString('user_type', userType);
+      }
+      
+      // Mark user as logged in
+      await prefs.setBool('is_logged_in', true);
+      await prefs.setString('user_email', emailController.text.trim());
     } on AuthApiException catch (error) {
-      dialogMessage = error.message.isNotEmpty
-          ? error.message
-          : 'Login failed. Please try again.';
+      // Show appropriate error message based on the error
+      final errorMsg = error.message.toLowerCase();
+      
+      if (errorMsg.contains('deactivated') || errorMsg.contains('inactive')) {
+        dialogMessage = error.message;
+      } else if (errorMsg.contains('not found') || errorMsg.contains('does not exist')) {
+        dialogMessage = 'Account not found. Please register your account.';
+      } else if (errorMsg.contains('password') || errorMsg.contains('incorrect') || errorMsg.contains('invalid')) {
+        dialogMessage = 'Incorrect password. Please try again.';
+      } else if (errorMsg.contains('email')) {
+        dialogMessage = 'Invalid email address.';
+      } else {
+        dialogMessage = error.message.isNotEmpty
+            ? error.message
+            : 'Login failed. Please try again.';
+      }
+      
       errorMessage = null;
       _shouldNavigate = false;
       lastResponse = null;
     } catch (e, stackTrace) {
       debugPrint('Unexpected login error: $e');
       debugPrint('Stack trace: $stackTrace');
-      errorMessage = 'Login failed. Please try again.';
+      dialogMessage = 'Login failed. Please try again.';
       _shouldNavigate = false;
       lastResponse = null;
     } finally {
@@ -114,11 +209,26 @@ class LoginViewModel extends ChangeNotifier {
   String? get roleFromResponse {
     final response = lastResponse;
     if (response == null) return null;
+    
+    // Check for user_type first (new API format)
+    final userType = response['user_type'];
+    if (userType is String) return userType.toLowerCase();
+    
+    // Check in response object
+    final responseObj = response['response'];
+    if (responseObj is Map<String, dynamic>) {
+      final type = responseObj['user_type'];
+      if (type is String) return type.toLowerCase();
+    }
+    
+    // Check in data object
     final data = response['data'];
     if (data is Map<String, dynamic>) {
-      final role = data['role'] ?? data['type'];
-      if (role is String) return role.toLowerCase();
+      final type = data['user_type'] ?? data['role'] ?? data['type'];
+      if (type is String) return type.toLowerCase();
     }
+    
+    // Fallback to other possible fields
     final role = response['role'] ?? response['user_role'] ?? response['type'];
     return role is String ? role.toLowerCase() : null;
   }

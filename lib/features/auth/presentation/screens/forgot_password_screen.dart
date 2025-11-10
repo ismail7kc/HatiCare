@@ -5,6 +5,7 @@ import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/core/widgets/app_primary_button.dart';
 import 'package:haticare/core/widgets/app_text_field.dart';
 import 'package:haticare/features/auth/domain/repositories/auth_repository.dart';
+import 'package:haticare/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:haticare/features/auth/presentation/viewmodels/forgot_password_view_model.dart';
 import 'package:haticare/features/auth/presentation/widgets/auth_top_bar.dart';
 
@@ -33,6 +34,154 @@ class _ForgotPasswordView extends StatelessWidget {
     final viewModel = context.watch<ForgotPasswordViewModel>();
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
+
+    // Show success dialog and navigate to reset password screen
+    if (viewModel.shouldNavigateToOtp) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (context.mounted) {
+          viewModel.markNavigationHandled();
+          
+          // Show success dialog
+          final shouldNavigate = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (dialogContext) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                title: const Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      color: Colors.green,
+                      size: 28,
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'OTP Sent',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                content: Text(
+                  viewModel.successMessage ?? 'OTP has been sent to your email',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    height: 1.5,
+                  ),
+                ),
+                actions: [
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(dialogContext, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Continue',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+
+          if (shouldNavigate == true && context.mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ResetPasswordScreen(
+                  email: viewModel.emailController.text.trim(),
+                ),
+              ),
+            );
+          }
+        }
+      });
+    }
+
+    // Show error dialog
+    if (viewModel.errorMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (context.mounted) {
+          await showDialog(
+            context: context,
+            builder: (dialogContext) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                title: const Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 28,
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'Failed',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                content: Text(
+                  viewModel.errorMessage!,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    height: 1.5,
+                  ),
+                ),
+                actions: [
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+          viewModel.clearError();
+        }
+      });
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,

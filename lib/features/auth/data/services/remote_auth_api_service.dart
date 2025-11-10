@@ -117,28 +117,18 @@ class RemoteAuthApiService implements AuthApiService {
     required SignupRequest request,
     required String otp,
   }) async {
-    final uri = Uri.parse('${AppConfig.baseUrl}/users/doctor/signup/');
+    final uri = Uri.parse('${AppConfig.baseUrl}/users/signup/');
     final requestData = request.toJson();
     requestData['otp'] = otp;
 
-    final multipartRequest = http.MultipartRequest('POST', uri)
-      ..headers['Accept'] = 'application/json';
-
-    final licensePath = request.licenseDocumentPath;
-    requestData.forEach((key, value) {
-      if (value == null) return;
-      if (key == 'license_document') return;
-      multipartRequest.fields[key] = value.toString();
-    });
-
-    if (licensePath != null && licensePath.isNotEmpty) {
-      multipartRequest.files.add(
-        await http.MultipartFile.fromPath('license_document', licensePath),
-      );
-    }
-
-    final streamedResponse = await _client.send(multipartRequest);
-    final response = await http.Response.fromStream(streamedResponse);
+    final response = await _client.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(requestData),
+    );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw AuthApiException(
@@ -160,28 +150,18 @@ class RemoteAuthApiService implements AuthApiService {
     required SignupRequest request,
     required String otp,
   }) async {
-    final uri = Uri.parse('${AppConfig.baseUrl}/users/pharmacy/signup/');
+    final uri = Uri.parse('${AppConfig.baseUrl}/users/signup/');
     final requestData = request.toJson();
     requestData['otp'] = otp;
 
-    final multipartRequest = http.MultipartRequest('POST', uri)
-      ..headers['Accept'] = 'application/json';
-
-    final documentPath = request.pharmacyLicenseDocumentPath;
-    requestData.forEach((key, value) {
-      if (value == null) return;
-      if (key == 'license_document') return;
-      multipartRequest.fields[key] = value.toString();
-    });
-
-    if (documentPath != null && documentPath.isNotEmpty) {
-      multipartRequest.files.add(
-        await http.MultipartFile.fromPath('license_document', documentPath),
-      );
-    }
-
-    final streamedResponse = await _client.send(multipartRequest);
-    final response = await http.Response.fromStream(streamedResponse);
+    final response = await _client.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(requestData),
+    );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw AuthApiException(
@@ -196,6 +176,133 @@ class RemoteAuthApiService implements AuthApiService {
     }
 
     return {'status': 'success', 'message': 'Pharmacy registered successfully'};
+  }
+
+  @override
+  Future<Map<String, dynamic>> forgotPassword({required String email}) async {
+    final uri = Uri.parse('${AppConfig.baseUrl}/users/forgot-password/');
+    final response = await _client.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({'email': email}),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw AuthApiException(
+        _extractErrorMessage(response.body) ?? 'Failed to send OTP',
+        statusCode: response.statusCode,
+      );
+    }
+
+    final decoded = _decodeJson(response.body);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+
+    return {'status': 'success', 'message': 'OTP sent to your email'};
+  }
+
+  @override
+  Future<Map<String, dynamic>> verifyResetPasswordOtp({
+    required String email,
+    required String otp,
+  }) async {
+    final uri = Uri.parse('${AppConfig.baseUrl}/users/verify-reset-otp/');
+    final response = await _client.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({'email': email, 'otp': otp}),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw AuthApiException(
+        _extractErrorMessage(response.body) ?? 'OTP verification failed',
+        statusCode: response.statusCode,
+      );
+    }
+
+    final decoded = _decodeJson(response.body);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+
+    return {'status': 'success', 'message': 'OTP verified successfully'};
+  }
+
+  @override
+  Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String otp,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    final uri = Uri.parse('${AppConfig.baseUrl}/users/reset-password/');
+    final response = await _client.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({
+        'email': email,
+        'otp': otp,
+        'new_password': newPassword,
+        'confirm_password': confirmPassword,
+      }),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw AuthApiException(
+        _extractErrorMessage(response.body) ?? 'Password reset failed',
+        statusCode: response.statusCode,
+      );
+    }
+
+    final decoded = _decodeJson(response.body);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+
+    return {'status': 'success', 'message': 'Password reset successfully'};
+  }
+
+  @override
+  Future<Map<String, dynamic>> logout({
+    required String deviceId,
+    required String refreshToken,
+  }) async {
+    final uri = Uri.parse('${AppConfig.baseUrl}/users/logout/');
+    final response = await _client.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({
+        'device_id': deviceId,
+        'refresh': refreshToken,
+      }),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw AuthApiException(
+        _extractErrorMessage(response.body) ?? 'Logout failed',
+        statusCode: response.statusCode,
+      );
+    }
+
+    final decoded = _decodeJson(response.body);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+
+    return {'status': 'success', 'message': 'Logged out successfully'};
   }
 
   void dispose() {

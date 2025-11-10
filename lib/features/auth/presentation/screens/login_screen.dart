@@ -66,20 +66,81 @@ class _LoginView extends StatelessWidget {
     if (viewModel.dialogMessage != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
+          final message = viewModel.dialogMessage!;
+          final isDeactivated = message.toLowerCase().contains('deactivated') || 
+                                message.toLowerCase().contains('inactive');
+          final isNotFound = message.toLowerCase().contains('not found');
+          final isWrongPassword = message.toLowerCase().contains('password') || 
+                                  message.toLowerCase().contains('incorrect');
+          
+          String title = 'Login Failed';
+          if (isDeactivated) {
+            title = 'Account Deactivated';
+          } else if (isNotFound) {
+            title = 'Account Not Found';
+          } else if (isWrongPassword) {
+            title = 'Incorrect Password';
+          }
+          
           showDialog<void>(
             context: context,
             barrierDismissible: false,
             builder: (dialogContext) {
               return AlertDialog(
-                title: const Text('Account Deactivated'),
-                content: Text(viewModel.dialogMessage!),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                title: Row(
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                content: Text(
+                  message,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    height: 1.5,
+                  ),
+                ),
                 actions: [
-                  TextButton(
+                  ElevatedButton(
                     onPressed: () {
                       Navigator.of(dialogContext).pop();
                       viewModel.clearDialogMessage();
                     },
-                    child: const Text('OK'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ],
               );
@@ -119,7 +180,7 @@ class _LoginView extends StatelessWidget {
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
                     Text(
                       'Email',
                       style: textTheme.bodyMedium?.copyWith(
@@ -127,7 +188,7 @@ class _LoginView extends StatelessWidget {
                         color: const Color(0xFF6C7278),
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     AppTextField(
                       controller: viewModel.emailController,
                       keyboardType: TextInputType.emailAddress,
@@ -136,7 +197,7 @@ class _LoginView extends StatelessWidget {
                       prefixIcon: const Icon(Icons.email_outlined),
                       validator: viewModel.validateEmail,
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
                       'Password',
                       style: textTheme.bodyMedium?.copyWith(
@@ -144,7 +205,7 @@ class _LoginView extends StatelessWidget {
                         color: const Color(0xFF6C7278),
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     AppTextField(
                       controller: viewModel.passwordController,
                       label: 'Password',
@@ -154,7 +215,7 @@ class _LoginView extends StatelessWidget {
                       enableObscureToggle: true,
                       validator: viewModel.validatePassword,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         SizedBox(

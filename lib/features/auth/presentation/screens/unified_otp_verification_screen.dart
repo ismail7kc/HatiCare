@@ -104,8 +104,8 @@ class _UnifiedOtpVerificationScreenState
 
       setState(() => isLoading = false);
 
-      final successMessage = _successMessageFromResponse(response) ??
-          'Your account has been successfully registered. Wait for admin approval.';
+      final successMessage =
+          _successMessageFromResponse(response) ?? 'Account registered successfully.';
 
       final dialogConfirmed = await showDialog<bool>(
         context: context,
@@ -114,12 +114,10 @@ class _UnifiedOtpVerificationScreenState
           final textTheme = Theme.of(dialogContext).textTheme;
           return AlertDialog(
             title: Text(
-              isDoctor ? 'Doctor Registration Submitted' : 'Pharmacy Registration Submitted',
+              isDoctor ? 'Doctor Registration Successful' : 'Pharmacy Registration Successful',
               style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
-            content: const Text(
-              'Your account has been successfully registered. Please wait for admin approval. This can take up to 24 hours.',
-            ),
+            content: Text(successMessage),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
@@ -144,7 +142,7 @@ class _UnifiedOtpVerificationScreenState
       if (!mounted) return;
 
       _showSnackBar(
-        successMessage,
+        'Account registered successfully',
         isError: false,
       );
     } catch (error) {
@@ -155,7 +153,66 @@ class _UnifiedOtpVerificationScreenState
       if (error is AuthApiException) {
         message = error.message;
       }
-      _showSnackBar(message, isError: true);
+      
+      // Show error dialog
+      await showDialog(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: Colors.red,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Verification Failed',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              message,
+              style: const TextStyle(
+                fontSize: 16,
+                height: 1.5,
+              ),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'OK',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
     }
   }
 
