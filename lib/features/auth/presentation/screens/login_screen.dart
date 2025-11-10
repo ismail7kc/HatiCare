@@ -197,7 +197,7 @@ class _LoginView extends StatelessWidget {
                       prefixIcon: const Icon(Icons.email_outlined),
                       validator: viewModel.validateEmail,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 4),
                     Text(
                       'Password',
                       style: textTheme.bodyMedium?.copyWith(

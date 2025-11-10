@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/core/widgets/app_primary_button.dart';
 import 'package:haticare/core/widgets/app_text_field.dart';
@@ -33,6 +32,7 @@ class _SignupView extends StatefulWidget {
 class _SignupViewState extends State<_SignupView>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
+  late final List<Widget> _tabChildren;
 
   @override
   void initState() {
@@ -44,6 +44,11 @@ class _SignupViewState extends State<_SignupView>
       initialIndex: viewModel.isDoctor ? 0 : 1,
     );
     _tabController.addListener(_handleTabChange);
+
+    _tabChildren = [
+      _DoctorSection(key: const ValueKey('doctor')),
+      _PharmacySection(key: const ValueKey('pharmacy')),
+    ];
   }
 
   void _handleTabChange() {
@@ -66,204 +71,226 @@ class _SignupViewState extends State<_SignupView>
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch<SignupViewModel>();
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
 
-    if (viewModel.shouldNavigateToOtp) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          // Determine which signup request to use
-          final signupRequest = viewModel.isDoctor
-              ? viewModel.pendingDoctorSignupRequest
-              : viewModel.pendingPharmacySignupRequest;
-          
-          final email = viewModel.isDoctor
-              ? viewModel.doctorEmailController.text.trim()
-              : viewModel.pharmacyEmailController.text.trim();
+    return Selector<SignupViewModel, _SignupState>(
+      selector: (_, viewModel) => _SignupState(
+        shouldNavigateToOtp: viewModel.shouldNavigateToOtp,
+        isDoctor: viewModel.isDoctor,
+        errorMessage: viewModel.errorMessage,
+        successMessage: viewModel.successMessage,
+        isSubmitting: viewModel.isSubmitting,
+        autovalidate: viewModel.autovalidate,
+      ),
+      builder: (context, state, _) {
+        final viewModel = context.read<SignupViewModel>();
 
-          if (signupRequest != null) {
-            viewModel.markOtpNavigationHandled();
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => UnifiedOtpVerificationScreen(
-                  email: email,
-                  signupRequest: signupRequest,
-                ),
-              ),
-            ).then((_) {
-              viewModel.clearPendingRequest();
-            });
-          } else {
-            viewModel.markOtpNavigationHandled();
-          }
+        if (state.shouldNavigateToOtp) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              final signupRequest = state.isDoctor
+                  ? viewModel.pendingDoctorSignupRequest
+                  : viewModel.pendingPharmacySignupRequest;
+
+              final email = state.isDoctor
+                  ? viewModel.doctorEmailController.text.trim()
+                  : viewModel.pharmacyEmailController.text.trim();
+
+              if (signupRequest != null) {
+                viewModel.markOtpNavigationHandled();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => UnifiedOtpVerificationScreen(
+                      email: email,
+                      signupRequest: signupRequest,
+                    ),
+                  ),
+                ).then((_) {
+                  viewModel.clearPendingRequest();
+                });
+              } else {
+                viewModel.markOtpNavigationHandled();
+              }
+            }
+          });
         }
-      });
-    }
 
-    final targetIndex = viewModel.isDoctor ? 0 : 1;
-    if (_tabController.index != targetIndex) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _tabController.index != targetIndex) {
-          _tabController.animateTo(
-            targetIndex,
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeInOut,
-          );
+        final targetIndex = state.isDoctor ? 0 : 1;
+        if (_tabController.index != targetIndex &&
+            !_tabController.indexIsChanging) {
+          _tabController.index = targetIndex;
         }
-      });
-    }
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: Form(
-                key: viewModel.formKey,
-                autovalidateMode: viewModel.autovalidate 
-                    ? AutovalidateMode.onUserInteraction 
-                    : AutovalidateMode.disabled,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 24),
-                    Text(
-                      'Create New Account',
-                      style: textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primaryDark,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Please fill in the details below to create your account',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0F2FC),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: TabBar(
-                        controller: _tabController,
-                        indicatorSize: TabBarIndicatorSize.tab,
-                        indicator: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        labelColor: Colors.white,
-                        unselectedLabelColor: const Color(0xFF7D7D91),
-                        labelStyle: textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                        unselectedLabelStyle: textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
-                        dividerColor: Colors.transparent,
-                        onTap: (index) {
-                          if (_tabController.index != index) {
-                            _tabController.animateTo(
-                              index,
-                              duration: const Duration(milliseconds: 180),
-                              curve: Curves.easeInOut,
-                            );
-                          }
-                          final role = index == 0
-                              ? UserRole.doctor
-                              : UserRole.pharmacy;
-                          if (viewModel.selectedRole != role) {
-                            viewModel.selectRole(role);
-                          }
-                        },
-                        tabs: const [
-                          Tab(text: 'Doctor'),
-                          Tab(text: 'Pharmacy'),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Expanded(
-                      child: TabBarView(
-                        controller: _tabController,
-                        physics: const BouncingScrollPhysics(),
-                        children: [
-                          SingleChildScrollView(
-                            physics: const BouncingScrollPhysics(),
-                            padding: const EdgeInsets.only(bottom: 24),
-                            child: _DoctorSection(
-                              viewModel: viewModel,
-                              textTheme: textTheme,
-                            ),
+        return Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 32,
+                  ),
+                  child: Form(
+                    key: viewModel.formKey,
+                    autovalidateMode: state.autovalidate
+                        ? AutovalidateMode.onUserInteraction
+                        : AutovalidateMode.disabled,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 24),
+                        Text(
+                          'Create New Account',
+                          style: textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primaryDark,
                           ),
-                          SingleChildScrollView(
-                            physics: const BouncingScrollPhysics(),
-                            padding: const EdgeInsets.only(bottom: 24),
-                            child: _PharmacySection(
-                              viewModel: viewModel,
-                              textTheme: textTheme,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Please fill in the details below to create your account',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0F2FC),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: TabBar(
+                            controller: _tabController,
+                            indicatorSize: TabBarIndicatorSize.tab,
+                            indicator: BoxDecoration(
+                              gradient: AppColors.primaryGradient,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            labelColor: Colors.white,
+                            unselectedLabelColor: const Color(0xFF7D7D91),
+                            labelStyle: textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            unselectedLabelStyle: textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w500),
+                            dividerColor: Colors.transparent,
+                            onTap: (index) {
+                              final role = index == 0
+                                  ? UserRole.doctor
+                                  : UserRole.pharmacy;
+                              if (viewModel.selectedRole != role) {
+                                viewModel.selectRole(role);
+                              }
+                            },
+                            tabs: const [
+                              Tab(text: 'Doctor'),
+                              Tab(text: 'Pharmacy'),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Expanded(
+                          child: TabBarView(
+                            controller: _tabController,
+                            physics: const ClampingScrollPhysics(),
+                            children: _tabChildren,
+                          ),
+                        ),
+                        if (state.errorMessage != null) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            state.errorMessage!,
+                            style: textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.error,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                    if (viewModel.errorMessage != null) ...[
-                      const SizedBox(height: 16),
-                      Text(
-                        viewModel.errorMessage!,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.error,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                    if (viewModel.successMessage != null) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              Icons.check_circle,
-                              color: AppColors.primary,
+                        if (state.successMessage != null) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                viewModel.successMessage!,
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w600,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: AppColors.primary,
                                 ),
-                              ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    state.successMessage!,
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: AppColors.textPrimary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
+}
+
+class _SignupState {
+  final bool shouldNavigateToOtp;
+  final bool isDoctor;
+  final String? errorMessage;
+  final String? successMessage;
+  final bool isSubmitting;
+  final bool autovalidate;
+
+  _SignupState({
+    required this.shouldNavigateToOtp,
+    required this.isDoctor,
+    required this.errorMessage,
+    required this.successMessage,
+    required this.isSubmitting,
+    required this.autovalidate,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _SignupState &&
+          runtimeType == other.runtimeType &&
+          shouldNavigateToOtp == other.shouldNavigateToOtp &&
+          isDoctor == other.isDoctor &&
+          errorMessage == other.errorMessage &&
+          successMessage == other.successMessage &&
+          isSubmitting == other.isSubmitting &&
+          autovalidate == other.autovalidate;
+
+  @override
+  int get hashCode =>
+      shouldNavigateToOtp.hashCode ^
+      isDoctor.hashCode ^
+      errorMessage.hashCode ^
+      successMessage.hashCode ^
+      isSubmitting.hashCode ^
+      autovalidate.hashCode;
 }
 
 InputDecoration _phoneFieldDecoration(BuildContext context, {String? hint}) {
@@ -289,8 +316,10 @@ InputDecoration _phoneFieldDecoration(BuildContext context, {String? hint}) {
       borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
     ),
     focusedErrorBorder: focusedBorder.copyWith(
-      borderSide:
-          BorderSide(color: Theme.of(context).colorScheme.error, width: 1.4),
+      borderSide: BorderSide(
+        color: Theme.of(context).colorScheme.error,
+        width: 1.4,
+      ),
     ),
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     counterText: '',
@@ -298,297 +327,295 @@ InputDecoration _phoneFieldDecoration(BuildContext context, {String? hint}) {
 }
 
 class _DoctorSection extends StatelessWidget {
-  const _DoctorSection({required this.viewModel, required this.textTheme});
-
-  final SignupViewModel viewModel;
-  final TextTheme textTheme;
+  const _DoctorSection({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _LabeledField(
-                label: 'First Name',
-                child: AppTextField(
-                  controller: viewModel.firstNameController,
+    final viewModel = context.read<SignupViewModel>();
+    final textTheme = Theme.of(context).textTheme;
+
+    return SingleChildScrollView(
+      physics: const ClampingScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _LabeledField(
                   label: 'First Name',
-                  hint: 'John',
-                  textCapitalization: TextCapitalization.words,
-                  prefixIcon: const Icon(Icons.person_outline),
-                  validator: viewModel.validateFirstName,
+                  child: AppTextField(
+                    controller: viewModel.firstNameController,
+                    label: 'First Name',
+                    hint: 'John',
+                    textCapitalization: TextCapitalization.words,
+                    prefixIcon: const Icon(Icons.person_outline),
+                    validator: viewModel.validateFirstName,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _LabeledField(
-                label: 'Last Name',
-                child: AppTextField(
-                  controller: viewModel.lastNameController,
+              const SizedBox(width: 12),
+              Expanded(
+                child: _LabeledField(
                   label: 'Last Name',
-                  hint: 'Doe',
-                  textCapitalization: TextCapitalization.words,
-                  prefixIcon: const Icon(Icons.person_outline),
-                  validator: viewModel.validateLastName,
+                  child: AppTextField(
+                    controller: viewModel.lastNameController,
+                    label: 'Last Name',
+                    hint: 'Doe',
+                    textCapitalization: TextCapitalization.words,
+                    prefixIcon: const Icon(Icons.person_outline),
+                    validator: viewModel.validateLastName,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        _LabeledField(
-          label: 'Phone Number',
-          child: IntlPhoneField(
-            controller: viewModel.phoneNumberController,
-            initialCountryCode: 'US',
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
             ],
-            dropdownIcon: const Icon(
-              Icons.arrow_drop_down,
-              color: AppColors.primary,
-            ),
-            showCountryFlag: true,
-            showDropdownIcon: true,
-            dropdownIconPosition: IconPosition.trailing,
-            flagsButtonPadding: const EdgeInsets.only(left: 12),
-            dropdownTextStyle:
-                Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
-            style: Theme.of(context).textTheme.bodyMedium,
-            decoration: _phoneFieldDecoration(
-              context,
-              hint: '1234567890',
-            ),
-            validator: viewModel.validateDoctorPhone,
-            onChanged: viewModel.updateDoctorPhone,
-            onCountryChanged: (country) {
-              viewModel.updateDoctorCountryCode(country.dialCode);
-            },
-            onSaved: viewModel.updateDoctorPhone,
           ),
-        ),
-        const SizedBox(height: 4),
-        _LabeledField(
-          label: 'Email',
-          child: AppTextField(
-            controller: viewModel.doctorEmailController,
+          const SizedBox(height: 4),
+          _LabeledField(
+            label: 'Phone Number',
+            child: IntlPhoneField(
+              controller: viewModel.phoneNumberController,
+              initialCountryCode: 'US',
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              dropdownIcon: const Icon(
+                Icons.arrow_drop_down,
+                color: AppColors.primary,
+              ),
+              showCountryFlag: true,
+              showDropdownIcon: true,
+              dropdownIconPosition: IconPosition.trailing,
+              flagsButtonPadding: const EdgeInsets.only(left: 12),
+              dropdownTextStyle: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary),
+              style: Theme.of(context).textTheme.bodyMedium,
+              decoration: _phoneFieldDecoration(context, hint: '1234567890'),
+              validator: viewModel.validateDoctorPhone,
+              onChanged: viewModel.updateDoctorPhone,
+              onCountryChanged: (country) {
+                viewModel.updateDoctorCountryCode(country.dialCode);
+              },
+              onSaved: viewModel.updateDoctorPhone,
+            ),
+          ),
+          const SizedBox(height: 4),
+          _LabeledField(
             label: 'Email',
-            hint: 'hello@example.com',
-            keyboardType: TextInputType.emailAddress,
-            prefixIcon: const Icon(Icons.email_outlined),
-            validator: viewModel.validateDoctorEmail,
+            child: AppTextField(
+              controller: viewModel.doctorEmailController,
+              label: 'Email',
+              hint: 'hello@example.com',
+              keyboardType: TextInputType.emailAddress,
+              prefixIcon: const Icon(Icons.email_outlined),
+              validator: viewModel.validateDoctorEmail,
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        _LabeledField(
-          label: 'Password',
-          child: AppTextField(
-            controller: viewModel.doctorPasswordController,
+          const SizedBox(height: 4),
+          _LabeledField(
             label: 'Password',
-            hint: 'Enter Your Password',
-            prefixIcon: const Icon(Icons.lock_outline),
-            obscureText: true,
-            enableObscureToggle: true,
-            validator: viewModel.validateDoctorPassword,
+            child: AppTextField(
+              controller: viewModel.doctorPasswordController,
+              label: 'Password',
+              hint: 'Enter Your Password',
+              prefixIcon: const Icon(Icons.lock_outline),
+              obscureText: true,
+              enableObscureToggle: true,
+              validator: viewModel.validateDoctorPassword,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        _LabeledField(
-          label: 'Confirm Password',
-          child: AppTextField(
-            controller: viewModel.doctorConfirmPasswordController,
+          const SizedBox(height: 4),
+          _LabeledField(
             label: 'Confirm Password',
-            hint: 'Re-enter your password',
-            prefixIcon: const Icon(Icons.lock_outline),
-            obscureText: true,
-            enableObscureToggle: true,
-            validator: viewModel.validateDoctorConfirmPassword,
-            onChanged: (_) {
-              // Trigger validation on confirm password field when typing
-              if (viewModel.autovalidate) {
-                viewModel.formKey.currentState?.validate();
-              }
+            child: AppTextField(
+              controller: viewModel.doctorConfirmPasswordController,
+              label: 'Confirm Password',
+              hint: 'Re-enter your password',
+              prefixIcon: const Icon(Icons.lock_outline),
+              obscureText: true,
+              enableObscureToggle: true,
+              validator: viewModel.validateDoctorConfirmPassword,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Selector<SignupViewModel, bool>(
+            selector: (_, vm) => vm.isSubmitting,
+            builder: (context, isSubmitting, _) {
+              final vm = context.read<SignupViewModel>();
+              return AppPrimaryButton(
+                label: 'Create Account',
+                onPressed: isSubmitting ? null : vm.submit,
+                isLoading: isSubmitting,
+              );
             },
           ),
-        ),
-        const SizedBox(height: 10),
-        AppPrimaryButton(
-          label: 'Create Account',
-          onPressed: viewModel.isSubmitting ? null : viewModel.submit,
-          isLoading: viewModel.isSubmitting,
-        ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Already have an account? ',
-              style: textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Already have an account? ',
+                style: textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
-            ),
-            TextButton(
-              onPressed: viewModel.isSubmitting
-                  ? null
-                  : () => Navigator.of(context).pop(),
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                foregroundColor: AppColors.primary,
+              TextButton(
+                onPressed: viewModel.isSubmitting
+                    ? null
+                    : () => Navigator.of(context).pop(),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  foregroundColor: AppColors.primary,
+                ),
+                child: const Text(
+                  'Log in',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
               ),
-              child: const Text(
-                'Log in',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _PharmacySection extends StatelessWidget {
-  const _PharmacySection({required this.viewModel, required this.textTheme});
-
-  final SignupViewModel viewModel;
-  final TextTheme textTheme;
+  const _PharmacySection({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _LabeledField(
-          label: 'Contact Person',
-          child: AppTextField(
-            controller: viewModel.ownerNameController,
+    final viewModel = context.read<SignupViewModel>();
+    final textTheme = Theme.of(context).textTheme;
+
+    return SingleChildScrollView(
+      physics: const ClampingScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _LabeledField(
             label: 'Contact Person',
-            hint: 'Dr. Ali Khan',
-            textCapitalization: TextCapitalization.words,
-            prefixIcon: const Icon(Icons.person_outline),
-            validator: viewModel.validateOwnerName,
-          ),
-        ),
-        const SizedBox(height: 4),
-        _LabeledField(
-          label: 'Phone Number',
-          child: IntlPhoneField(
-            controller: viewModel.businessPhoneController,
-            initialCountryCode: 'US',
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-            ],
-            dropdownIcon: const Icon(
-              Icons.arrow_drop_down,
-              color: AppColors.primary,
+            child: AppTextField(
+              controller: viewModel.ownerNameController,
+              label: 'Contact Person',
+              hint: 'Dr. Ali Khan',
+              textCapitalization: TextCapitalization.words,
+              prefixIcon: const Icon(Icons.person_outline),
+              validator: viewModel.validateOwnerName,
             ),
-            showCountryFlag: true,
-            showDropdownIcon: true,
-            dropdownIconPosition: IconPosition.trailing,
-            flagsButtonPadding: const EdgeInsets.only(left: 12),
-            dropdownTextStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-            style: Theme.of(context).textTheme.bodyMedium,
-            decoration: _phoneFieldDecoration(
-              context,
-              hint: '1234567890',
-            ),
-            validator: viewModel.validateBusinessPhone,
-            onChanged: viewModel.updateBusinessPhone,
-            onCountryChanged: (country) {
-              viewModel.updateBusinessCountryCode(country.dialCode);
-            },
-            onSaved: viewModel.updateBusinessPhone,
           ),
-        ),
-        const SizedBox(height: 4),
-        _LabeledField(
-          label: 'Email',
-          child: AppTextField(
-            controller: viewModel.pharmacyEmailController,
+          const SizedBox(height: 4),
+          _LabeledField(
+            label: 'Phone Number',
+            child: IntlPhoneField(
+              controller: viewModel.businessPhoneController,
+              initialCountryCode: 'US',
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              dropdownIcon: const Icon(
+                Icons.arrow_drop_down,
+                color: AppColors.primary,
+              ),
+              showCountryFlag: true,
+              showDropdownIcon: true,
+              dropdownIconPosition: IconPosition.trailing,
+              flagsButtonPadding: const EdgeInsets.only(left: 12),
+              dropdownTextStyle: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary),
+              style: Theme.of(context).textTheme.bodyMedium,
+              decoration: _phoneFieldDecoration(context, hint: '1234567890'),
+              validator: viewModel.validateBusinessPhone,
+              onChanged: viewModel.updateBusinessPhone,
+              onCountryChanged: (country) {
+                viewModel.updateBusinessCountryCode(country.dialCode);
+              },
+              onSaved: viewModel.updateBusinessPhone,
+            ),
+          ),
+          const SizedBox(height: 4),
+          _LabeledField(
             label: 'Email',
-            hint: 'pharmacy@example.com',
-            keyboardType: TextInputType.emailAddress,
-            prefixIcon: const Icon(Icons.email_outlined),
-            validator: viewModel.validatePharmacyEmail,
+            child: AppTextField(
+              controller: viewModel.pharmacyEmailController,
+              label: 'Email',
+              hint: 'pharmacy@example.com',
+              keyboardType: TextInputType.emailAddress,
+              prefixIcon: const Icon(Icons.email_outlined),
+              validator: viewModel.validatePharmacyEmail,
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        _LabeledField(
-          label: 'Password',
-          child: AppTextField(
-            controller: viewModel.pharmacyPasswordController,
+          const SizedBox(height: 4),
+          _LabeledField(
             label: 'Password',
-            hint: 'Enter Your Password',
-            prefixIcon: const Icon(Icons.lock_outline),
-            obscureText: true,
-            enableObscureToggle: true,
-            validator: viewModel.validatePharmacyPassword,
+            child: AppTextField(
+              controller: viewModel.pharmacyPasswordController,
+              label: 'Password',
+              hint: 'Enter Your Password',
+              prefixIcon: const Icon(Icons.lock_outline),
+              obscureText: true,
+              enableObscureToggle: true,
+              validator: viewModel.validatePharmacyPassword,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        _LabeledField(
-          label: 'Confirm Password',
-          child: AppTextField(
-            controller: viewModel.pharmacyConfirmPasswordController,
+          const SizedBox(height: 4),
+          _LabeledField(
             label: 'Confirm Password',
-            hint: 'Re-enter your password',
-            prefixIcon: const Icon(Icons.lock_outline),
-            obscureText: true,
-            enableObscureToggle: true,
-            validator: viewModel.validatePharmacyConfirmPassword,
-            onChanged: (_) {
-              if (viewModel.autovalidate) {
-                viewModel.formKey.currentState?.validate();
-              }
+            child: AppTextField(
+              controller: viewModel.pharmacyConfirmPasswordController,
+              label: 'Confirm Password',
+              hint: 'Re-enter your password',
+              prefixIcon: const Icon(Icons.lock_outline),
+              obscureText: true,
+              enableObscureToggle: true,
+              validator: viewModel.validatePharmacyConfirmPassword,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Selector<SignupViewModel, bool>(
+            selector: (_, vm) => vm.isSubmitting,
+            builder: (context, isSubmitting, _) {
+              final vm = context.read<SignupViewModel>();
+              return AppPrimaryButton(
+                label: 'Create Account',
+                onPressed: isSubmitting ? null : vm.submit,
+                isLoading: isSubmitting,
+              );
             },
           ),
-        ),
-        const SizedBox(height: 10),
-        AppPrimaryButton(
-          label: 'Create Account',
-          onPressed: viewModel.isSubmitting ? null : viewModel.submit,
-          isLoading: viewModel.isSubmitting,
-        ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Already have an account? ',
-              style: textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Already have an account? ',
+                style: textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
-            ),
-            TextButton(
-              onPressed: viewModel.isSubmitting
-                  ? null
-                  : () => Navigator.of(context).pop(),
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                foregroundColor: AppColors.primary,
+              TextButton(
+                onPressed: viewModel.isSubmitting
+                    ? null
+                    : () => Navigator.of(context).pop(),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  foregroundColor: AppColors.primary,
+                ),
+                child: const Text(
+                  'Log in',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
               ),
-              child: const Text(
-                'Log in',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -684,10 +711,7 @@ class _DocumentPickerTile extends StatelessWidget {
 }
 
 class _DatePickerField extends StatelessWidget {
-  const _DatePickerField({
-    required this.controller,
-    this.validator,
-  });
+  const _DatePickerField({required this.controller, this.validator});
 
   final TextEditingController controller;
   final String? Function(String?)? validator;
@@ -714,7 +738,7 @@ class _DatePickerField extends StatelessWidget {
 
     if (picked != null) {
       // Format date as YYYY-MM-DD
-      final formattedDate = 
+      final formattedDate =
           '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
       controller.text = formattedDate;
     }
@@ -729,10 +753,13 @@ class _DatePickerField extends StatelessWidget {
         filled: true,
         fillColor: AppColors.surface,
         hintText: 'YYYY-MM-DD',
-        hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: AppColors.textSecondary,
+        hintStyle: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+        prefixIcon: const Icon(
+          Icons.calendar_month_outlined,
+          color: AppColors.primary,
         ),
-        prefixIcon: const Icon(Icons.calendar_month_outlined, color: AppColors.primary),
         suffixIcon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -757,7 +784,10 @@ class _DatePickerField extends StatelessWidget {
             width: 1.4,
           ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
       ),
       style: Theme.of(context).textTheme.bodyMedium,
       validator: validator,
@@ -785,7 +815,10 @@ class _GenderDropdown extends StatelessWidget {
       decoration: InputDecoration(
         filled: true,
         fillColor: AppColors.surface,
-        prefixIcon: const Icon(Icons.person_2_outlined, color: AppColors.primary),
+        prefixIcon: const Icon(
+          Icons.person_2_outlined,
+          color: AppColors.primary,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: Colors.grey.shade300),
@@ -809,13 +842,16 @@ class _GenderDropdown extends StatelessWidget {
             width: 1.4,
           ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
       ),
       hint: Text(
         'Select Gender',
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: AppColors.textSecondary,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
       ),
       icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
       items: const [
