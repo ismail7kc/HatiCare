@@ -29,13 +29,11 @@ class AuthDViewModel extends ChangeNotifier {
       await prefs.remove('refresh_token');
       await prefs.remove('device_id');
       return true;
-    } catch (e) {
-      debugPrint('Logout Error: $e');
+    } catch (error) {
+      debugPrint('Logout Error: $error');
        return false;
     } finally {
       notifyListeners();
     }
   }
-
-  
 }
