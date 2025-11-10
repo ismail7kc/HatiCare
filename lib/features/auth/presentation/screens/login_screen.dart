@@ -11,6 +11,7 @@ import 'package:haticare/features/auth/presentation/viewmodels/login_view_model.
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/doctor_verification.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -41,7 +42,7 @@ class _LoginView extends StatelessWidget {
         if (role == 'doctor') {
           PersistentNavBarNavigator.pushNewScreen(
             context,
-            screen: DoctorHomeScreen(),
+            screen: DoctorVerificationScreen(),
             withNavBar: false,
             pageTransitionAnimation: PageTransitionAnimation.cupertino,
           );

@@ -12,7 +12,7 @@ class SettingsContent extends StatelessWidget {
   final viewModel = context.watch<AuthDViewModel>();
 
   return Scaffold(
-    backgroundColor: const Color(0xFFF9FAFB), // light gray screen background
+    backgroundColor: const Color(0xFFF9FAFB),
     body: SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(vertical: 20),
