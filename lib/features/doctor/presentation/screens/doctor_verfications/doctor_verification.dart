@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/identify_document.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/scan_passport.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/take_selfi.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
 class DoctorVerificationScreen extends StatefulWidget {
@@ -13,9 +15,9 @@ class DoctorVerificationScreen extends StatefulWidget {
 }
 
 class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
-  bool idCardChecked = true;
-  bool selfieChecked = true;
-  bool licenseChecked = true;
+  bool idCardChecked = false;
+  bool selfieChecked = false;
+  bool licenseChecked = false;
 
   bool get isAllChecked => idCardChecked && selfieChecked && licenseChecked;
 
@@ -63,8 +65,17 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                     const SizedBox(height: 30),
 
                     GestureDetector(
-                      onTap: () {
-                        setState(() => idCardChecked = !idCardChecked);
+                      onTap: () async {
+                        final completed = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const IdentifyDocumentScreen(),
+                          ),
+                        );
+
+                        if (completed == true) {
+                          setState(() => idCardChecked = true);
+                        }
                       },
                       child: _VerificationOption(
                         icon: 'assets/icons/id_card.svg',
@@ -78,8 +89,17 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                     const SizedBox(height: 15),
 
                     GestureDetector(
-                      onTap: () {
-                        setState(() => selfieChecked = !selfieChecked);
+                      onTap: () async {
+                        final completed = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const TakeSelfieScreen(),
+                          ),
+                        );
+
+                        if (completed == true) {
+                          setState(() => selfieChecked = true);
+                        }
                       },
                       child: _VerificationOption(
                         icon: 'assets/icons/selfie.svg',
@@ -93,9 +113,19 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                     const SizedBox(height: 15),
 
                     GestureDetector(
-                      onTap: () {
-                        setState(() => licenseChecked = !licenseChecked);
+                      onTap: () async {
+                        final completed = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ScanPassportScreen(screenTitle: 'Scan your License'),
+                          ),
+                        );
+
+                        if (completed == true) {
+                          setState(() => licenseChecked = true);
+                        }
                       },
+
                       child: _VerificationOption(
                         icon: 'assets/icons/id_card.svg',
                         title: 'Take a picture of Nursing License',
@@ -136,8 +166,7 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                         ),
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                Colors.transparent,
+                            backgroundColor: Colors.transparent,
                             shadowColor: Colors.transparent,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
@@ -146,11 +175,12 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                           ),
                           onPressed: () {
                             PersistentNavBarNavigator.pushNewScreen(
-                            context,
-                            screen: IdentifyDocumentScreen(),
-                            withNavBar: false,
-                            pageTransitionAnimation: PageTransitionAnimation.cupertino,
-                          );
+                              context,
+                              screen: IdentifyDocumentScreen(),
+                              withNavBar: false,
+                              pageTransitionAnimation:
+                                  PageTransitionAnimation.cupertino,
+                            );
                           },
                           child: const Text(
                             'Continue',

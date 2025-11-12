@@ -37,12 +37,22 @@ class _LoginView extends StatelessWidget {
     if (viewModel.shouldNavigate) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!context.mounted) return;
-
         final role = viewModel.roleFromResponse;
-        if (role == 'doctor') {
+        
+        if (!viewModel.isProfileCompleted) {
           PersistentNavBarNavigator.pushNewScreen(
             context,
             screen: DoctorVerificationScreen(),
+            withNavBar: false,
+            pageTransitionAnimation: PageTransitionAnimation.cupertino,
+          );
+          return;
+        }
+
+        if (role == 'doctor') {
+          PersistentNavBarNavigator.pushNewScreen(
+            context,
+            screen: DoctorHomeScreen(),
             withNavBar: false,
             pageTransitionAnimation: PageTransitionAnimation.cupertino,
           );
@@ -68,12 +78,14 @@ class _LoginView extends StatelessWidget {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
           final message = viewModel.dialogMessage!;
-          final isDeactivated = message.toLowerCase().contains('deactivated') || 
-                                message.toLowerCase().contains('inactive');
+          final isDeactivated =
+              message.toLowerCase().contains('deactivated') ||
+              message.toLowerCase().contains('inactive');
           final isNotFound = message.toLowerCase().contains('not found');
-          final isWrongPassword = message.toLowerCase().contains('password') || 
-                                  message.toLowerCase().contains('incorrect');
-          
+          final isWrongPassword =
+              message.toLowerCase().contains('password') ||
+              message.toLowerCase().contains('incorrect');
+
           String title = 'Login Failed';
           if (isDeactivated) {
             title = 'Account Deactivated';
@@ -82,7 +94,7 @@ class _LoginView extends StatelessWidget {
           } else if (isWrongPassword) {
             title = 'Incorrect Password';
           }
-          
+
           showDialog<void>(
             context: context,
             barrierDismissible: false,
@@ -112,10 +124,7 @@ class _LoginView extends StatelessWidget {
                 ),
                 content: Text(
                   message,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    height: 1.5,
-                  ),
+                  style: const TextStyle(fontSize: 16, height: 1.5),
                 ),
                 actions: [
                   ElevatedButton(

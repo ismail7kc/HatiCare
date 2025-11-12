@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/scan_passport.dart';
 
 class IdentifyDocumentScreen extends StatefulWidget {
   const IdentifyDocumentScreen({super.key});
@@ -19,10 +21,11 @@ class _IdentifyDocumentScreenState extends State<IdentifyDocumentScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        // titleSpacing: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
           onPressed: () {
-             Navigator.pop(context); 
+            Navigator.pop(context);
           },
         ),
         title: const Text(
@@ -33,6 +36,7 @@ class _IdentifyDocumentScreenState extends State<IdentifyDocumentScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        centerTitle: false,
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -78,7 +82,14 @@ class _IdentifyDocumentScreenState extends State<IdentifyDocumentScreen> {
   Widget _buildDocumentOption({required String icon, required String label}) {
     return InkWell(
       onTap: () {
-        print('$label tapped');
+        if (label == 'Passport') {
+          PersistentNavBarNavigator.pushNewScreen(
+            context,
+            screen: ScanPassportScreen(screenTitle: 'Scan your passport'),
+            withNavBar: false,
+            pageTransitionAnimation: PageTransitionAnimation.cupertino,
+          );
+        }
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(

@@ -232,8 +232,8 @@ class AppointmentDetail extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildActionButton(context, 'assets/icons/video_1.svg', "Issue RX"),
-                  _buildActionButton(context, 'assets/icons/video_2.svg', "Referral"),
+                  _buildActionButton(context, 'assets/icons/video_2.svg', "Issue RX"),
+                  _buildActionButton(context, 'assets/icons/video_1.svg', "Referral"),
                   _buildActionButton(context,'assets/icons/video_3.svg',"Hospitalize",
                   ),
                 ],

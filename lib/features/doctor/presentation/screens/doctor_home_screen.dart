@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/AuthRepository/authD_repository.dart';
 import 'package:haticare/features/doctor/presentation/screens/consultation_history.dart';
 import 'package:haticare/features/doctor/presentation/screens/setting_screen.dart';
@@ -28,9 +29,7 @@ class _MainScreenState extends State<DoctorHomeScreen> {
         const ConsultationHistoryScreen(),
         MultiProvider(
           providers: [
-            Provider<ApiClient>(
-              create: (_) => ApiClient(),
-            ),
+            Provider<ApiClient>(create: (_) => ApiClient()),
             ProxyProvider<ApiClient, AuthDRepository>(
               update: (_, apiClient, __) => AuthDRepository(apiClient),
             ),
@@ -91,6 +90,14 @@ class _HomeScreenState extends State<HomeScreen> {
   final appointments = AppointmentModel.sampleData;
 
   @override
+  void initState() {
+    super.initState();
+    SaveLoginResponse.loadLoginModel().then((_) {
+      setState(() {});
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -146,28 +153,36 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget headerView() {
+    final firstName = SaveLoginResponse.loginData?['first_name'];
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
           children: [
-            const CircleAvatar(
-              radius: 25,
-              // backgroundImage: AssetImage('assets/doctor.jpg'),
-            ),
+            const CircleAvatar(radius: 25),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text("Welcome Back,", style: TextStyle(color: Colors.grey)),
+              children: [
+                const Text(
+                  "Welcome Back,",
+                  style: TextStyle(color: Colors.grey),
+                ),
                 Text(
-                  "Dr. John Doe",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  firstName != null && firstName.isNotEmpty
+                      ? firstName
+                      : 'Loading...',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
               ],
             ),
           ],
         ),
+        // notification icon
         Stack(
           children: [
             SvgPicture.asset(
@@ -192,11 +207,6 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade300),
-        // boxShadow: [
-        //   BoxShadow(
-        //     color: Colors.black12,
-        //   ),
-        // ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -206,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
             style: TextStyle(
               fontSize: 16,
               color: isOnline ? const Color(0xFF34C759) : Colors.black,
-              fontWeight:  FontWeight.bold,
+              fontWeight: FontWeight.bold,
             ),
           ),
           AbsorbPointer(
@@ -349,7 +359,7 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFE0E0E0)),
+          border: Border.all(color: Color(0x4D3C64ED)),
           boxShadow: [
             BoxShadow(
               color: Colors.black12,
@@ -375,15 +385,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 SvgPicture.asset(
                   'assets/icons/appointment-Request.svg',
                   height: 24,
-                  color: const Color(0xFF3366FF),
                 ),
                 const SizedBox(width: 10),
-                const Text(
-                  "New Appointment Request",
-                  style: TextStyle(
-                    color: Color(0xFF3366FF),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                ShaderMask(
+                  shaderCallback: (bounds) =>
+                      AppColors.primaryGradient.createShader(
+                        Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+                      ),
+                  child: const Text(
+                    "New Appointment Request",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -399,7 +414,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SvgPicture.asset('assets/user-square.svg', height: 24),
+            SvgPicture.asset('assets/icons/user-square.svg', height: 24),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
@@ -424,7 +439,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SvgPicture.asset('assets/sticky-note.svg', height: 24),
+            SvgPicture.asset('assets/icons/sticky-note.svg', height: 24),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
@@ -449,10 +464,20 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 12),
 
-        Text(
-          appointment.appointmentTime,
-          style: const TextStyle(color: Colors.grey, fontSize: 13),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(width: 32),
+            Expanded(
+              child: Text(
+                appointment.appointmentTime,
+                style: const TextStyle(color: Colors.grey, fontSize: 13),
+                textAlign: TextAlign.left,
+              ),
+            ),
+          ],
         ),
+
         const SizedBox(height: 16),
 
         Row(
@@ -461,8 +486,9 @@ class _HomeScreenState extends State<HomeScreen> {
               child: OutlinedButton(
                 onPressed: () {},
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFFE0E0E0)),
-                  foregroundColor: Colors.grey[700],
+                  backgroundColor: const Color(0xFFE3E8EF),
+                  side: const BorderSide(color: Color(0xFFE3E8EF)),
+                  foregroundColor: Colors.redAccent.shade400,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),

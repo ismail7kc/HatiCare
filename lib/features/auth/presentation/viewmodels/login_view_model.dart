@@ -19,12 +19,12 @@ class LoginViewModel extends ChangeNotifier {
 
   bool rememberMe = false;
   bool isSubmitting = false;
+  bool isProfileCompleted = false;
   String? errorMessage;
   String? dialogMessage;
   Map<String, dynamic>? lastResponse;
   bool _shouldNavigate = false;
   bool _shouldAutovalidate = false;
-  // final helper = SharedPrefsHelper();
 
   Future<void> _loadSavedCredentials() async {
     try {
@@ -127,6 +127,8 @@ class LoginViewModel extends ChangeNotifier {
       // Save tokens
       final prefs = await SharedPreferences.getInstance();
 
+      /// Not Corrected way to do all stuff below 😅
+
       // Try to get access token from different possible locations
       String? accessToken;
       String? refreshToken;
@@ -136,6 +138,25 @@ class LoginViewModel extends ChangeNotifier {
       if (responseObj is Map<String, dynamic>) {
         accessToken = responseObj['access_token'] ?? responseObj['access'];
         refreshToken = responseObj['refresh_token'] ?? responseObj['refresh'];
+      }
+
+      if (response['success'] == true) {
+        if (response['data']['is_profile_complete'] == true) {
+          isProfileCompleted = true;
+        } else {
+          isProfileCompleted = false;
+          debugPrint('Profile incomplete!');
+        }
+      }
+
+      if (response['success'] == true && response['data'] != null) {
+        lastResponse = response['data'];
+
+        // Save login data for persistence AND runtime access
+        await SaveLoginResponse.saveLoginModel(lastResponse);
+
+        // At this point SaveLoginResponse.loginData is already set
+        print('Saved loginData: ${SaveLoginResponse.loginData}');
       }
 
       // Check at root level
