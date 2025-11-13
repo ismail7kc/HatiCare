@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/presentation/screens/edit_profile_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel.dart';
@@ -11,6 +12,11 @@ class SettingsContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<AuthDViewModel>();
+    final firstName = SaveLoginResponse.loginData?['first_name'] ?? '';
+    final lastName = SaveLoginResponse.loginData?['last_name'] ?? '';
+    final profileImageUrl =
+        SaveLoginResponse.loginData?['profile_picture'] ?? '';
+    final docName = '$firstName $lastName';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -43,11 +49,17 @@ class SettingsContent extends StatelessWidget {
                         alignment: Alignment.bottomRight,
                         children: [
                           Center(
-                            child: SvgPicture.asset(
-                              'assets/icons/person_icon.svg',
-                              width: 80,
-                              height: 80,
-                            ),
+                            child: profileImageUrl.isNotEmpty
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(50),
+                                    child: Image.network(
+                                      profileImageUrl,
+                                      width: 100,
+                                      height: 100,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : SvgPicture.asset('assets/icons/person_icon.svg', width: 80, height: 80),
                           ),
                           Positioned(
                             right: 0,
@@ -76,8 +88,8 @@ class SettingsContent extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Dr. John Doe',
+                    Text(
+                      docName.trim().isNotEmpty ? docName : 'Loading...',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
@@ -97,7 +109,6 @@ class SettingsContent extends StatelessWidget {
 
               const SizedBox(height: 32),
 
-              // Account Section
               _buildSection(
                 title: 'Account',
                 items: [
@@ -107,10 +118,10 @@ class SettingsContent extends StatelessWidget {
                     onTap: () {
                       debugPrint('Edit Button Tappable');
                       Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const EditProfileScreen(),
-                      ),
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const EditProfileScreen(),
+                        ),
                       );
                     },
                   ),
@@ -127,7 +138,6 @@ class SettingsContent extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // Support Section
               _buildSection(
                 title: 'Support',
                 items: [
@@ -140,7 +150,6 @@ class SettingsContent extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // Logout Button
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: GestureDetector(
@@ -233,7 +242,7 @@ class SettingItem extends StatelessWidget {
   final bool showArrow;
   final bool hasShadow;
   final bool hasBorder;
-  final VoidCallback? onTap; // <-- add this
+  final VoidCallback? onTap;
 
   const SettingItem({
     required this.icon,
@@ -242,14 +251,14 @@ class SettingItem extends StatelessWidget {
     this.showArrow = true,
     this.hasShadow = true,
     this.hasBorder = true,
-    this.onTap, // <-- add this
+    this.onTap,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap, // <-- handle tap
+      onTap: onTap,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

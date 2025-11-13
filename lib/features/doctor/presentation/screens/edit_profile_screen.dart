@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:intl/intl.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -14,6 +15,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   String gender = "Male";
   DateTime? selectedDate = DateTime(1992, 1, 8);
+
+  @override
+  void initState() {
+    super.initState();
+    SaveLoginResponse.loadLoginModel().then((_) {
+      setState(() {});
+    });
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final picked = await showDatePicker(
@@ -58,18 +67,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               children: [
                 Row(
                   children: [
-                    Expanded(child: _buildTextField("First Name", "Lois")),
+                    Expanded(
+                      child: _buildTextField("First Name", SaveLoginResponse.loginData?['first_name'] ?? ''),
+                    ),
                     const SizedBox(width: 12),
-                    Expanded(child: _buildTextField("Last Name", "Becket")),
+                    Expanded(
+                      child: _buildTextField("Last Name", SaveLoginResponse.loginData?['last_name'] ?? ''),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
 
-                _buildTextField("Email", "Loisbecket@gmail.com"),
+                _buildTextField(
+                  "Email",
+                  SaveLoginResponse.loginData?['email'] ?? '',
+                ),
                 const SizedBox(height: 16),
 
                 // --- Phone Number ---
-                _buildTextField("Phone Number", "+1 267 273 3282"),
+                _buildTextField(
+                  "Phone Number",
+                  SaveLoginResponse.loginData?['phone_number'] ?? '',
+                ),
                 const SizedBox(height: 16),
 
                 Text("Date of Birth", style: _labelStyle()),
@@ -164,15 +183,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildTextField(String label, String hint) {
+  Widget _buildTextField(String label, String value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: _labelStyle()),
         const SizedBox(height: 6),
         TextFormField(
+          initialValue: value,
           decoration: InputDecoration(
-            hintText: hint,
+            hintText: label,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
               vertical: 14,

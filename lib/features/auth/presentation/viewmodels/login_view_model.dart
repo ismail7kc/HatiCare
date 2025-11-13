@@ -151,11 +151,7 @@ class LoginViewModel extends ChangeNotifier {
 
       if (response['success'] == true && response['data'] != null) {
         lastResponse = response['data'];
-
-        // Save login data for persistence AND runtime access
         await SaveLoginResponse.saveLoginModel(lastResponse);
-
-        // At this point SaveLoginResponse.loginData is already set
         print('Saved loginData: ${SaveLoginResponse.loginData}');
       }
 

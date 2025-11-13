@@ -22,6 +22,14 @@ class DoctorHomeScreen extends StatefulWidget {
 
 class _MainScreenState extends State<DoctorHomeScreen> {
   @override
+  void initState() {
+    super.initState();
+    SaveLoginResponse.loadLoginModel().then((_) {
+      setState(() {});
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return CustomBottomNav(
       screens: [
@@ -90,14 +98,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final appointments = AppointmentModel.sampleData;
 
   @override
-  void initState() {
-    super.initState();
-    SaveLoginResponse.loadLoginModel().then((_) {
-      setState(() {});
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -153,14 +153,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget headerView() {
-    final firstName = SaveLoginResponse.loginData?['first_name'];
+    final firstName = SaveLoginResponse.loginData?['first_name'] ?? '';
+    final lastName = SaveLoginResponse.loginData?['last_name'] ?? '';
+    final profileImageUrl = SaveLoginResponse.loginData?['profile_picture'] ?? '';
+    final docName = '$firstName $lastName';
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
           children: [
-            const CircleAvatar(radius: 25),
+            CircleAvatar(
+              radius: 25,
+              backgroundImage: profileImageUrl.isNotEmpty
+                  ? NetworkImage(profileImageUrl)
+                  : const AssetImage('assets/images/haticare_logo.png')
+                        as ImageProvider,
+            ),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,9 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(color: Colors.grey),
                 ),
                 Text(
-                  firstName != null && firstName.isNotEmpty
-                      ? firstName
-                      : 'Loading...',
+                  docName.trim().isNotEmpty ? docName : 'Loading...',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
