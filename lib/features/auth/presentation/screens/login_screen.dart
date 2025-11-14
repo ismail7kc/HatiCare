@@ -61,7 +61,7 @@ class _LoginView extends StatelessWidget {
             MaterialPageRoute(builder: (_) => const PharmacyHomeScreen()),
             (route) => false,
           );
-        } else {
+        }  else {
           PersistentNavBarNavigator.pushNewScreen(
             context,
             screen: DoctorHomeScreen(),

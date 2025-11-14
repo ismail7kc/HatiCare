@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/AuthRepository/authD_repository.dart';
+import 'package:haticare/features/doctor/presentation/screens/audio_call.dart';
 import 'package:haticare/features/doctor/presentation/screens/consultation_history.dart';
 import 'package:haticare/features/doctor/presentation/screens/setting_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel.dart';
@@ -355,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: () {
         PersistentNavBarNavigator.pushNewScreen(
           context,
-          screen: AppointmentDetail(appointment: appointment),
+          screen: AppointmentDetail(appointment: appointment, isCameFromAccept: true),
           withNavBar: false,
           pageTransitionAnimation: PageTransitionAnimation.cupertino,
         );
@@ -515,10 +516,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: () {
                     PersistentNavBarNavigator.pushNewScreen(
                       context,
-                      screen: AppointmentDetail(
-                        appointment: appointment,
-                        isCameFromAccept: true,
-                      ),
+                      screen: AudioCallScreen(appointments: appointment),
                       withNavBar: false,
                       pageTransitionAnimation:
                           PageTransitionAnimation.cupertino,
