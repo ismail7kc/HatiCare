@@ -22,19 +22,15 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    
-    // Hide native splash screen
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    
-    // Initialize animation controller
+
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
 
-    // Scale animation: from full screen (5.0) to normal size (1.0)
     _scaleAnimation = Tween<double>(
-      begin: 5.0,
+      begin: 0.8,
       end: 1.0,
     ).animate(
       CurvedAnimation(
@@ -43,7 +39,6 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // Fade animation for smooth appearance
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -54,10 +49,8 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // Start animation
     _animationController.forward();
 
-    // Check login status after animation
     _checkLoginStatus();
   }
 
@@ -68,8 +61,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _checkLoginStatus() async {
-    // Wait for animation to complete
-    await Future.delayed(const Duration(milliseconds: 2000));
+    await Future.delayed(const Duration(milliseconds: 5000));
 
     if (!mounted) return;
 
@@ -80,7 +72,6 @@ class _SplashScreenState extends State<SplashScreen>
       final userType = prefs.getString('user_type');
 
       if (isLoggedIn && accessToken != null && accessToken.isNotEmpty) {
-        // User is logged in, navigate to appropriate home screen
         if (userType == 'doctor') {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => DoctorHomeScreen()),
@@ -90,20 +81,17 @@ class _SplashScreenState extends State<SplashScreen>
             MaterialPageRoute(builder: (_) => const PharmacyHomeScreen()),
           );
         } else {
-          // Default to login if user type is not found
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => const LoginScreen()),
           );
         }
       } else {
-        // User is not logged in, navigate to login screen
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const LoginScreen()),
         );
       }
     } catch (e) {
       debugPrint('Error checking login status: $e');
-      // On error, navigate to login screen
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -131,9 +119,8 @@ class _SplashScreenState extends State<SplashScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // App logo image with rounded corners
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(36),
+                      borderRadius: BorderRadius.circular(5),
                       clipBehavior: Clip.antiAlias,
                       child: Image.asset(
                         'assets/images/haticare_logo.png',

@@ -9,6 +9,7 @@ import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_history
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_settings_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/widgets/prescription_request_card.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/prescription_details_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../doctor/presentation/screens/setting_screen.dart';
 
@@ -46,11 +47,25 @@ class PharmacyHomeTabScreen extends StatefulWidget {
 
 class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen> {
   late List<PrescriptionRequest> prescriptionRequests;
+  String _firstName = '';
 
   @override
   void initState() {
     super.initState();
     prescriptionRequests = PrescriptionRequest.getDummyRequests();
+    _loadFirstName();
+  }
+
+  Future<void> _loadFirstName() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final name = prefs.getString('user_first_name') ?? '';
+      if (mounted) {
+        setState(() {
+          _firstName = name;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -76,14 +91,14 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen> {
                       const SizedBox(width: 10),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
+                        children: [
+                          const Text(
                             "Welcome Back,",
                             style: TextStyle(color: Colors.grey),
                           ),
                           Text(
-                            "Dr. John Doe",
-                            style: TextStyle(
+                            _firstName.isNotEmpty ? _firstName : 'User',
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
                             ),

@@ -407,6 +407,8 @@ class SignupViewModel extends ChangeNotifier {
         phoneNumber: isDoctor
             ? (_doctorPhoneNumber ?? phoneNumberController.text.trim())
             : null,
+        gender: isDoctor ? genderController.text.trim() : null,
+        dateOfBirth: isDoctor ? dateOfBirthController.text.trim() : null,
         ownerName: isPharmacy ? ownerNameController.text.trim() : null,
         businessPhone: isPharmacy
             ? (_businessPhoneNumber ?? businessPhoneController.text.trim())

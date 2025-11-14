@@ -80,6 +80,8 @@ class SignupRequest {
           'phone_number': phoneNumber,
           'first_name': firstName,
           'last_name': lastName,
+          'gender': _normalizedGender,
+          'date_of_birth': dateOfBirth,
         });
       case UserRole.pharmacy:
         return _clean({

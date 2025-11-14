@@ -210,13 +210,26 @@ class PharmacySettingsScreen extends StatelessWidget {
 
           const SizedBox(height: 14),
 
-          const Text(
-            'Dr. John Doe',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Colors.black,
-            ),
+          FutureBuilder<SharedPreferences>(
+            future: SharedPreferences.getInstance(),
+            builder: (context, snapshot) {
+              String name = 'User';
+              if (snapshot.hasData) {
+                final prefs = snapshot.data!;
+                final firstName = prefs.getString('user_first_name') ?? '';
+                if (firstName.isNotEmpty) {
+                  name = firstName;
+                }
+              }
+              return Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+              );
+            },
           ),
 
           const SizedBox(height: 6),
@@ -442,6 +455,8 @@ class PharmacySettingsScreen extends StatelessWidget {
       await prefs.remove('device_id');
       await prefs.remove('user_type');
       await prefs.remove('user_email');
+      await prefs.remove('user_first_name');
+      await prefs.remove('user_last_name');
       await prefs.setBool('is_logged_in', false);
 
       // Close loading dialog

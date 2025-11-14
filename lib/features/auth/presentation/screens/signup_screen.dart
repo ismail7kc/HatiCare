@@ -400,6 +400,33 @@ class _DoctorSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(
+                child: _LabeledField(
+                  label: 'Gender',
+                  child: _GenderDropdown(
+                    value: viewModel.genderController.text.isEmpty
+                        ? null
+                        : viewModel.genderController.text,
+                    onChanged: viewModel.setDoctorGender,
+                    validator: viewModel.validateDoctorGender,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _LabeledField(
+                  label: 'Date of Birth',
+                  child: _DatePickerField(
+                    controller: viewModel.dateOfBirthController,
+                    validator: viewModel.validateDoctorDob,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
           _LabeledField(
             label: 'Email',
             child: AppTextField(

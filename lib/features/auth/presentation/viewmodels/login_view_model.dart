@@ -167,6 +167,43 @@ class LoginViewModel extends ChangeNotifier {
         await prefs.setString('user_type', userType);
       }
       
+      // Save user name if available
+      String? firstName;
+      String? lastName;
+      // Root level
+      if (response['first_name'] is String) {
+        firstName = response['first_name'] as String;
+      }
+      if (response['last_name'] is String) {
+        lastName = response['last_name'] as String;
+      }
+      // In 'response' object
+      final responseObj2 = response['response'];
+      if (responseObj2 is Map<String, dynamic>) {
+        if (responseObj2['first_name'] is String && (firstName == null || firstName.isEmpty)) {
+          firstName = responseObj2['first_name'] as String;
+        }
+        if (responseObj2['last_name'] is String && (lastName == null || lastName.isEmpty)) {
+          lastName = responseObj2['last_name'] as String;
+        }
+      }
+      // In 'data' object
+      final dataObj = response['data'];
+      if (dataObj is Map<String, dynamic>) {
+        if (dataObj['first_name'] is String && (firstName == null || firstName.isEmpty)) {
+          firstName = dataObj['first_name'] as String;
+        }
+        if (dataObj['last_name'] is String && (lastName == null || lastName.isEmpty)) {
+          lastName = dataObj['last_name'] as String;
+        }
+      }
+      if (firstName != null && firstName.isNotEmpty) {
+        await prefs.setString('user_first_name', firstName);
+      }
+      if (lastName != null && lastName.isNotEmpty) {
+        await prefs.setString('user_last_name', lastName);
+      }
+      
       // Mark user as logged in
       await prefs.setBool('is_logged_in', true);
       await prefs.setString('user_email', emailController.text.trim());
