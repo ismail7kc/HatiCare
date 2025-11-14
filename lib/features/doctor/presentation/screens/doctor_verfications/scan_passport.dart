@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:haticare/core/theme/app_colors.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+
+import 'package:camera/camera.dart';
+import 'package:flutter/material.dart';
+import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class ScanPassportScreen extends StatefulWidget {
   final String screenTitle;
@@ -86,7 +88,7 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
             Text(
               widget.screenTitle == 'Scan your passport'
                   ? 'Please scan your passport'
-                  : 'Please scan your nursing license', 
+                  : 'Please scan your nursing license',
               style: const TextStyle(fontSize: 16, color: Colors.grey),
             ),
 
@@ -238,7 +240,11 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const DoctorHomeScreen()),
+                    );
+                  },
                   child: const Text(
                     'Continue',
                     style: TextStyle(
