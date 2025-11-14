@@ -4,6 +4,7 @@ import 'package:haticare/core/services/device_id_provider.dart';
 import 'package:haticare/features/auth/domain/exceptions/auth_exceptions.dart';
 import 'package:haticare/features/auth/domain/repositories/auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:haticare/features/common/shared_prefs_helper.dart';
 
 class LoginViewModel extends ChangeNotifier {
   LoginViewModel(this._repository) {
@@ -18,6 +19,7 @@ class LoginViewModel extends ChangeNotifier {
 
   bool rememberMe = false;
   bool isSubmitting = false;
+  bool isProfileCompleted = false;
   String? errorMessage;
   String? dialogMessage;
   Map<String, dynamic>? lastResponse;
@@ -125,6 +127,9 @@ class LoginViewModel extends ChangeNotifier {
       // Save tokens
       final prefs = await SharedPreferences.getInstance();
 
+      /// Not Corrected way to do all stuff below 😅
+
+
       // Try to get access token from different possible locations
       String? accessToken;
       String? refreshToken;
@@ -135,6 +140,22 @@ class LoginViewModel extends ChangeNotifier {
         accessToken = responseObj['access_token'] ?? responseObj['access'];
         refreshToken = responseObj['refresh_token'] ?? responseObj['refresh'];
       }
+
+      if (response['success'] == true) {
+        if (response['data']['is_profile_complete'] == true) {
+          isProfileCompleted = true;
+        } else {
+          isProfileCompleted = false;
+          debugPrint('Profile incomplete!');
+        }
+      }
+
+      if (response['success'] == true && response['data'] != null) {
+        lastResponse = response['data'];
+        await SaveLoginResponse.saveLoginModel(lastResponse);
+        print('Saved loginData: ${SaveLoginResponse.loginData}');
+      }
+
 
       // Check at root level
       accessToken ??= response['access_token'] ?? response['access'];
@@ -149,14 +170,14 @@ class LoginViewModel extends ChangeNotifier {
 
       if (accessToken != null && accessToken.isNotEmpty) {
         await prefs.setString('access_token', accessToken);
-        debugPrint('Access token saved');
+        debugPrint('access_token token is: $accessToken');
       } else {
         debugPrint('No access token found in response');
       }
 
       if (refreshToken != null && refreshToken.isNotEmpty) {
-        await prefs.setString('refresh_token', refreshToken);
-        debugPrint('Refresh token saved');
+        await SharedPrefsHelper.saveRefreshToken(refreshToken);
+        debugPrint('refresh token is: $refreshToken');
       } else {
         debugPrint('No refresh token found in response');
       }
@@ -166,6 +187,7 @@ class LoginViewModel extends ChangeNotifier {
       if (userType != null) {
         await prefs.setString('user_type', userType);
       }
+
 
       // Save user name if available
       String? firstName;
@@ -213,9 +235,12 @@ class LoginViewModel extends ChangeNotifier {
 
       if (errorMsg.contains('deactivated') || errorMsg.contains('inactive')) {
         dialogMessage = error.message;
-      } else if (errorMsg.contains('not found') || errorMsg.contains('does not exist')) {
+      } else if (errorMsg.contains('not found') ||
+          errorMsg.contains('does not exist')) {
         dialogMessage = 'Account not found. Please register your account.';
-      } else if (errorMsg.contains('password') || errorMsg.contains('incorrect') || errorMsg.contains('invalid')) {
+      } else if (errorMsg.contains('password') ||
+          errorMsg.contains('incorrect') ||
+          errorMsg.contains('invalid')) {
         dialogMessage = 'Incorrect password. Please try again.';
       } else if (errorMsg.contains('email')) {
         dialogMessage = 'Invalid email address.';

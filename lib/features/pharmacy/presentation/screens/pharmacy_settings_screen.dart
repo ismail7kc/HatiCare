@@ -4,6 +4,7 @@ import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/core/services/device_id_provider.dart';
 import 'package:haticare/features/auth/domain/repositories/auth_repository.dart';
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
+import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_notifications_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_privacy_policy_screen.dart';
 import 'package:provider/provider.dart';
@@ -450,7 +451,7 @@ class PharmacySettingsScreen extends StatelessWidget {
       );
 
       // Clear all login data
-      await prefs.remove('refresh_token');
+      SharedPrefsHelper.clearRefreshToken();
       await prefs.remove('access_token');
       await prefs.remove('device_id');
       await prefs.remove('user_type');

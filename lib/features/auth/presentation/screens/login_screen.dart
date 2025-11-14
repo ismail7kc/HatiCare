@@ -11,6 +11,7 @@ import 'package:haticare/features/auth/presentation/viewmodels/login_view_model.
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/doctor_verification.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -36,8 +37,18 @@ class _LoginView extends StatelessWidget {
     if (viewModel.shouldNavigate) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!context.mounted) return;
-
         final role = viewModel.roleFromResponse;
+        
+        if (!viewModel.isProfileCompleted) {
+          PersistentNavBarNavigator.pushNewScreen(
+            context,
+            screen: DoctorVerificationScreen(),
+            withNavBar: false,
+            pageTransitionAnimation: PageTransitionAnimation.cupertino,
+          );
+          return;
+        }
+
         if (role == 'doctor') {
           PersistentNavBarNavigator.pushNewScreen(
             context,
@@ -67,12 +78,14 @@ class _LoginView extends StatelessWidget {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
           final message = viewModel.dialogMessage!;
-          final isDeactivated = message.toLowerCase().contains('deactivated') || 
-                                message.toLowerCase().contains('inactive');
+          final isDeactivated =
+              message.toLowerCase().contains('deactivated') ||
+              message.toLowerCase().contains('inactive');
           final isNotFound = message.toLowerCase().contains('not found');
-          final isWrongPassword = message.toLowerCase().contains('password') || 
-                                  message.toLowerCase().contains('incorrect');
-          
+          final isWrongPassword =
+              message.toLowerCase().contains('password') ||
+              message.toLowerCase().contains('incorrect');
+
           String title = 'Login Failed';
           if (isDeactivated) {
             title = 'Account Deactivated';
@@ -81,7 +94,7 @@ class _LoginView extends StatelessWidget {
           } else if (isWrongPassword) {
             title = 'Incorrect Password';
           }
-          
+
           showDialog<void>(
             context: context,
             barrierDismissible: false,
@@ -111,10 +124,7 @@ class _LoginView extends StatelessWidget {
                 ),
                 content: Text(
                   message,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    height: 1.5,
-                  ),
+                  style: const TextStyle(fontSize: 16, height: 1.5),
                 ),
                 actions: [
                   ElevatedButton(

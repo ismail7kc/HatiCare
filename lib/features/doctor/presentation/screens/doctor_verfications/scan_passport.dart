@@ -1,0 +1,298 @@
+import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:haticare/core/theme/app_colors.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+
+class ScanPassportScreen extends StatefulWidget {
+  final String screenTitle;
+
+  const ScanPassportScreen({super.key, required this.screenTitle});
+
+  @override
+  State<ScanPassportScreen> createState() => _ScanPassportScreenState();
+}
+
+class _ScanPassportScreenState extends State<ScanPassportScreen> {
+  CameraController? _cameraController;
+  bool _isCameraReady = false;
+  File? _pickedImage;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeCamera();
+  }
+
+  Future<void> _initializeCamera() async {
+    final permission = await Permission.camera.request();
+    if (permission.isGranted) {
+      final cameras = await availableCameras();
+      final backCamera = cameras.firstWhere(
+        (camera) => camera.lensDirection == CameraLensDirection.back,
+      );
+
+      _cameraController = CameraController(
+        backCamera,
+        ResolutionPreset.medium,
+        enableAudio: false,
+      );
+
+      await _cameraController!.initialize();
+      if (mounted) {
+        setState(() => _isCameraReady = true);
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Camera permission is required')),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _cameraController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        titleSpacing: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          widget.screenTitle,
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: false,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            Text(
+              widget.screenTitle == 'Scan your passport'
+                  ? 'Please scan your passport'
+                  : 'Please scan your nursing license', 
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+
+            const SizedBox(height: 30),
+
+            Center(
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 327,
+                    height: 301,
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: _pickedImage != null
+                          ? Image.file(
+                              _pickedImage!,
+                              width: 280,
+                              height: 180,
+                              fit: BoxFit.cover,
+                            )
+                          : (_isCameraReady
+                                ? CameraPreview(_cameraController!)
+                                : Container(
+                                    color: Colors.black,
+                                    child: const Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  )),
+                    ),
+                  ),
+
+                  Positioned(
+                    top: 90,
+                    left: 20,
+                    right: 20,
+                    child: Container(height: 2, color: Colors.orangeAccent),
+                  ),
+
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    child: _buildCorner(top: true, left: true),
+                  ),
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: _buildCorner(top: true, left: false),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    child: _buildCorner(top: false, left: true),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: _buildCorner(top: false, left: false),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 40),
+
+            const Icon(Icons.info_outline, color: Colors.grey),
+            const SizedBox(height: 10),
+            const Text(
+              'Hold the camera still\nMake sure there is enough lighting',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey, fontSize: 15),
+            ),
+
+            SizedBox(height: 20),
+            const Text(
+              'or',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey, fontSize: 15),
+            ),
+
+            const SizedBox(height: 16),
+            SizedBox(
+              width: 236,
+              height: 52,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: AppColors.primaryLight, width: 2),
+                ),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onPressed: () async {
+                    final ImagePicker picker = ImagePicker();
+                    final XFile? image = await picker.pickImage(
+                      source: ImageSource.gallery,
+                    );
+                    if (image != null) {
+                      setState(() {
+                        _pickedImage = File(image.path);
+                        _isCameraReady = false;
+                      });
+                    }
+                  },
+                  child: const Text(
+                    'Upload from Gallery',
+                    style: TextStyle(
+                      color: AppColors.primaryLight,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            const Spacer(),
+
+            SizedBox(
+              width: double.infinity,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onPressed: () {},
+                  child: const Text(
+                    'Continue',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCorner({
+    bool top = true,
+    bool left = true,
+    double size = 30,
+    double borderWidth = 3,
+    double borderRadius = 6,
+  }) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.only(
+          topLeft: top && left ? Radius.circular(borderRadius) : Radius.zero,
+          topRight: top && !left ? Radius.circular(borderRadius) : Radius.zero,
+          bottomLeft: !top && left
+              ? Radius.circular(borderRadius)
+              : Radius.zero,
+          bottomRight: !top && !left
+              ? Radius.circular(borderRadius)
+              : Radius.zero,
+        ),
+        border: Border(
+          top: top
+              ? BorderSide(color: Colors.blue, width: borderWidth)
+              : BorderSide.none,
+          bottom: !top
+              ? BorderSide(color: Colors.blue, width: borderWidth)
+              : BorderSide.none,
+          left: left
+              ? BorderSide(color: Colors.blue, width: borderWidth)
+              : BorderSide.none,
+          right: !left
+              ? BorderSide(color: Colors.blue, width: borderWidth)
+              : BorderSide.none,
+        ),
+      ),
+    );
+  }
+}
