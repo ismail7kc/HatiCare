@@ -124,49 +124,49 @@ class LoginViewModel extends ChangeNotifier {
 
       // Save tokens
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Try to get access token from different possible locations
       String? accessToken;
       String? refreshToken;
-      
+
       // Check in response object
       final responseObj = response['response'];
       if (responseObj is Map<String, dynamic>) {
         accessToken = responseObj['access_token'] ?? responseObj['access'];
         refreshToken = responseObj['refresh_token'] ?? responseObj['refresh'];
       }
-      
+
       // Check at root level
       accessToken ??= response['access_token'] ?? response['access'];
       refreshToken ??= response['refresh_token'] ?? response['refresh'];
-      
+
       // Check in data object
       final data = response['data'];
       if (data is Map<String, dynamic>) {
         accessToken ??= data['access_token'] ?? data['access'];
         refreshToken ??= data['refresh_token'] ?? data['refresh'];
       }
-      
+
       if (accessToken != null && accessToken.isNotEmpty) {
         await prefs.setString('access_token', accessToken);
         debugPrint('Access token saved');
       } else {
         debugPrint('No access token found in response');
       }
-      
+
       if (refreshToken != null && refreshToken.isNotEmpty) {
         await prefs.setString('refresh_token', refreshToken);
         debugPrint('Refresh token saved');
       } else {
         debugPrint('No refresh token found in response');
       }
-      
+
       // Save user type
       final userType = roleFromResponse;
       if (userType != null) {
         await prefs.setString('user_type', userType);
       }
-      
+
       // Save user name if available
       String? firstName;
       String? lastName;
@@ -203,14 +203,14 @@ class LoginViewModel extends ChangeNotifier {
       if (lastName != null && lastName.isNotEmpty) {
         await prefs.setString('user_last_name', lastName);
       }
-      
+
       // Mark user as logged in
       await prefs.setBool('is_logged_in', true);
       await prefs.setString('user_email', emailController.text.trim());
     } on AuthApiException catch (error) {
       // Show appropriate error message based on the error
       final errorMsg = error.message.toLowerCase();
-      
+
       if (errorMsg.contains('deactivated') || errorMsg.contains('inactive')) {
         dialogMessage = error.message;
       } else if (errorMsg.contains('not found') || errorMsg.contains('does not exist')) {
@@ -224,7 +224,7 @@ class LoginViewModel extends ChangeNotifier {
             ? error.message
             : 'Login failed. Please try again.';
       }
-      
+
       errorMessage = null;
       _shouldNavigate = false;
       lastResponse = null;
@@ -246,25 +246,25 @@ class LoginViewModel extends ChangeNotifier {
   String? get roleFromResponse {
     final response = lastResponse;
     if (response == null) return null;
-    
+
     // Check for user_type first (new API format)
     final userType = response['user_type'];
     if (userType is String) return userType.toLowerCase();
-    
+
     // Check in response object
     final responseObj = response['response'];
     if (responseObj is Map<String, dynamic>) {
       final type = responseObj['user_type'];
       if (type is String) return type.toLowerCase();
     }
-    
+
     // Check in data object
     final data = response['data'];
     if (data is Map<String, dynamic>) {
       final type = data['user_type'] ?? data['role'] ?? data['type'];
       if (type is String) return type.toLowerCase();
     }
-    
+
     // Fallback to other possible fields
     final role = response['role'] ?? response['user_role'] ?? response['type'];
     return role is String ? role.toLowerCase() : null;
