@@ -53,7 +53,7 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
         ),
         navigatorObservers: [ChuckerFlutter.navigatorObserver],
-        home: const SplashScreen(),
+        home: const PharmacyHomeScreen(),
       ),
     );
   }
