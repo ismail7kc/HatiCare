@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:haticare/features/doctor/models/appointment_model.dart';
+import 'package:haticare/features/doctor/presentation/screens/appointment_detail.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
 class AudioCallScreen extends StatelessWidget {
-  const AudioCallScreen({super.key});
+  final AppointmentModel appointments;
+
+  const AudioCallScreen({super.key, required this.appointments});
 
   @override
   Widget build(BuildContext context) {
@@ -24,9 +28,7 @@ class AudioCallScreen extends StatelessWidget {
         centerTitle: false,
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppColors.primaryGradient,
-        ),
+        decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
         width: double.infinity,
         height: double.infinity,
         child: SafeArea(
@@ -60,15 +62,11 @@ class AudioCallScreen extends StatelessWidget {
               // Call Duration
               const Text(
                 "22:55 min",
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.white70, fontSize: 14),
               ),
 
               const Spacer(flex: 2),
 
-              // Action Row 1
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 30.0),
                 child: Row(
@@ -114,16 +112,26 @@ class AudioCallScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              Container(
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xFFE53935),
-                ),
-                padding: const EdgeInsets.all(16),
-                child: const Icon(
-                  Icons.call_end,
-                  color: Colors.white,
-                  size: 28,
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AppointmentDetail(appointment: appointments),
+                    ),
+                  );
+                },
+                child: Container(
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFFE53935),
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: const Icon(
+                    Icons.call_end,
+                    color: Colors.white,
+                    size: 28,
+                  ),
                 ),
               ),
 
@@ -146,7 +154,7 @@ class _ActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        SvgPicture.asset(icon, height: 28,),
+        SvgPicture.asset(icon, height: 28),
         const SizedBox(height: 6),
         Text(
           label,

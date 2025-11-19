@@ -59,7 +59,11 @@ class SettingsContent extends StatelessWidget {
                                       fit: BoxFit.cover,
                                     ),
                                   )
-                                : SvgPicture.asset('assets/icons/person_icon.svg', width: 80, height: 80),
+                                : SvgPicture.asset(
+                                    'assets/icons/person_icon.svg',
+                                    width: 80,
+                                    height: 80,
+                                  ),
                           ),
                           Positioned(
                             right: 0,
@@ -148,10 +152,10 @@ class SettingsContent extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              // const SizedBox(height: 24),
 
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
                 child: GestureDetector(
                   onTap: () async {
                     final shouldLogout = await showDialog<bool>(
@@ -200,13 +204,16 @@ class SettingsContent extends StatelessWidget {
                       }
                     }
                   },
-                  child: SettingItem(
-                    icon: Icons.logout,
-                    title: 'Logout',
-                    titleColor: const Color(0xFFFF3B30),
-                    showArrow: false,
-                    hasShadow: false,
-                    hasBorder: false,
+
+                  child: _buildSection(
+                    title: '',
+                    items: [
+                      SettingItem(
+                        icon: Icons.logout,
+                        title: 'Logout',
+                        titleColor: const Color(0xFFFF3B30),
+                      ),
+                    ],
                   ),
                 ),
               ),
