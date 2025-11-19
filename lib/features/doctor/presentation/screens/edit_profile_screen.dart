@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
+import 'package:haticare/features/doctor/ApiClient/api_client.dart';
+import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
+import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
 import 'package:intl/intl.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -13,14 +16,29 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  late final EditViewmodel editViewModel;
+
   String gender = "Male";
   DateTime? selectedDate = DateTime(1992, 1, 8);
+
+  String? licenseNumber;
+  String? selectedSpecialization;
+  String? selectedLicenseType;
+  String? years_Experience;
+  String? license_issue_authority;
 
   @override
   void initState() {
     super.initState();
     SaveLoginResponse.loadLoginModel().then((_) {
       setState(() {});
+    });
+
+    final apiClient = ApiClient();
+    final repository = RepositoryLayer(apiClient);
+    editViewModel = EditViewmodel(repository);
+    editViewModel.fetchSpecialization().then((_) {
+      setState(() {}); // refreshh dropdown.
     });
   }
 
@@ -68,11 +86,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildTextField("First Name", SaveLoginResponse.loginData?['first_name'] ?? ''),
+                      child: _buildTextField(
+                        "First Name",
+                        SaveLoginResponse.loginData?['first_name'] ?? '',
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _buildTextField("Last Name", SaveLoginResponse.loginData?['last_name'] ?? ''),
+                      child: _buildTextField(
+                        "Last Name",
+                        SaveLoginResponse.loginData?['last_name'] ?? '',
+                      ),
                     ),
                   ],
                 ),
@@ -132,20 +156,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                _buildTextField("License Number", "00000000000"),
+                _buildTextField("License Number", "$licenseNumber"),
                 const SizedBox(height: 16),
 
-                _buildDropdownField("License Type", "Select Type"),
+                _buildDropdownField("License Type", [
+                  "Select Type",
+                  "CDLs",
+                  "IDP",
+                ]),
+
                 const SizedBox(height: 16),
 
                 Row(
                   children: [
                     Expanded(
-                      child: _buildTextField("Years of Experience", "0"),
+                      child: _buildTextField(
+                        "Years of Experience",
+                        "$years_Experience",
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _buildDropdownField("Specialization", "Select"),
+                      child: _buildDropdownField(
+                        "Specialization",
+                        editViewModel.specializationNames,
+                      ),
                     ),
                   ],
                 ),
@@ -163,7 +198,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     gradient: AppColors.primaryGradient,
                   ),
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: () async {
+                      editViewModel.firstName =
+                          SaveLoginResponse.loginData?['first_name'] ?? '';
+                      editViewModel.lastName =
+                          SaveLoginResponse.loginData?['last_name'] ?? '';
+                      editViewModel.email =
+                          SaveLoginResponse.loginData?['email'] ?? '';
+                      editViewModel.phoneNumber =
+                          SaveLoginResponse.loginData?['phone_number'] ?? '';
+                          
+                      editViewModel.licenseNumber = licenseNumber;
+                      editViewModel.licenseType = selectedLicenseType ?? '';
+                      editViewModel.specialization = selectedSpecialization ?? '';
+                      editViewModel.yearsOfExperience = years_Experience;
+                      editViewModel.licenseIssuingAuthority = license_issue_authority;
+                      editViewModel.gender = gender;
+                      editViewModel.dob = selectedDate;
+
+                      await editViewModel.updateDoctorInfo();
+                    },
                     child: const Text(
                       "Save Changes",
                       style: TextStyle(
@@ -215,29 +269,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildDropdownField(String label, String hint) {
+  Widget _buildDropdownField(String label, List<String> items) {
+    final selectedValue = label == "Specialization"
+        ? selectedSpecialization
+        : selectedLicenseType;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: _labelStyle()),
         const SizedBox(height: 6),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
           decoration: _inputDecoration(),
-          child: DropdownButtonFormField<String>(
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              hintText: hint,
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 14,
-                horizontal: 12,
-              ),
-            ),
-            items: const [
-              DropdownMenuItem(value: 'Type 1', child: Text('Type 1')),
-              DropdownMenuItem(value: 'Type 2', child: Text('Type 2')),
-            ],
-            onChanged: (value) {},
+          child: DropdownButton<String>(
+            isExpanded: true,
+            value: selectedValue,
+            hint: Text('Select'),
+            underline: const SizedBox(),
+            items: items.map((name) {
+              return DropdownMenuItem<String>(value: name, child: Text(name));
+            }).toList(),
+            onChanged: items.isEmpty
+                ? null
+                : (value) {
+                    setState(() {
+                      if (label == "Specialization") {
+                        selectedSpecialization = value;
+                      } else if (label == "License Type") {
+                        selectedLicenseType = value;
+                      }
+                    });
+                  },
           ),
         ),
       ],

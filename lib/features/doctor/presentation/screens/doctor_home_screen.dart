@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
-import 'package:haticare/features/doctor/AuthRepository/authD_repository.dart';
+import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/audio_call.dart';
 import 'package:haticare/features/doctor/presentation/screens/consultation_history.dart';
 import 'package:haticare/features/doctor/presentation/screens/setting_screen.dart';
@@ -39,12 +39,12 @@ class _MainScreenState extends State<DoctorHomeScreen> {
         MultiProvider(
           providers: [
             Provider<ApiClient>(create: (_) => ApiClient()),
-            ProxyProvider<ApiClient, AuthDRepository>(
-              update: (_, apiClient, __) => AuthDRepository(apiClient),
+            ProxyProvider<ApiClient, RepositoryLayer>(
+              update: (_, apiClient, __) => RepositoryLayer(apiClient),
             ),
             ChangeNotifierProvider<AuthDViewModel>(
               create: (context) =>
-                  AuthDViewModel(context.read<AuthDRepository>()),
+                  AuthDViewModel(context.read<RepositoryLayer>()),
             ),
           ],
           child: const SettingsScreenWithAppBar(),
