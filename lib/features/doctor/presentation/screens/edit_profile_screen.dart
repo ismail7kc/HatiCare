@@ -1,10 +1,15 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
+import 'package:haticare/features/doctor/models/updated_doctor_model.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
 import 'package:intl/intl.dart';
+import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -15,30 +20,65 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-
   late final EditViewmodel editViewModel;
+
+  late TextEditingController firstNameController;
+  late TextEditingController lastNameController;
+  late TextEditingController emailController;
+  late TextEditingController phoneController;
+  late TextEditingController licenseNumberController;
+  late TextEditingController yearsExperienceController;
+  late TextEditingController licenseAuthorityController;
 
   String gender = "Male";
   DateTime? selectedDate = DateTime(1992, 1, 8);
-
-  String? licenseNumber;
   String? selectedSpecialization;
   String? selectedLicenseType;
-  String? years_Experience;
-  String? license_issue_authority;
 
   @override
   void initState() {
     super.initState();
-    SaveLoginResponse.loadLoginModel().then((_) {
-      setState(() {});
-    });
 
     final apiClient = ApiClient();
     final repository = RepositoryLayer(apiClient);
     editViewModel = EditViewmodel(repository);
+
+    SaveDoctorResponse.loadDoctorModel().then((_) {
+      final doctor = SaveDoctorResponse.doctorInstance;
+
+      firstNameController = TextEditingController(
+        text: SaveLoginResponse.loginData?['first_name'] ?? '',
+      );
+      lastNameController = TextEditingController(
+        text: SaveLoginResponse.loginData?['last_name'] ?? '',
+      );
+      emailController = TextEditingController(
+        text: SaveLoginResponse.loginData?['email'] ?? '',
+      );
+      phoneController = TextEditingController(
+        text: SaveLoginResponse.loginData?['phone_number'] ?? '',
+      );
+
+      licenseNumberController = TextEditingController(
+        text: doctor?.licenseNumber ?? '',
+      );
+      yearsExperienceController = TextEditingController(
+        text: doctor?.yearsOfExperience?.toString() ?? '',
+      );
+      licenseAuthorityController = TextEditingController(
+        text: doctor?.licenseIssuingAuthority ?? '',
+      );
+
+      gender = (doctor?.gender ?? 'M') == 'M' ? 'Male' : (doctor?.gender ?? 'F') == 'F' ? 'Female' : 'Other';
+      selectedDate = doctor?.dob ?? DateTime(1992, 1, 8);
+      selectedSpecialization = doctor?.specialization;
+      selectedLicenseType = doctor?.licenseType;
+
+      setState(() {});
+    });
+
     editViewModel.fetchSpecialization().then((_) {
-      setState(() {}); // refreshh dropdown.
+      setState(() {});
     });
   }
 
@@ -49,15 +89,57 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       firstDate: DateTime(1950),
       lastDate: DateTime.now(),
     );
-    if (picked != null && picked != selectedDate) {
-      setState(() => selectedDate = picked);
+    if (picked != null) setState(() => selectedDate = picked);
+  }
+
+  Future<void> _onSavePressed() async {
+    editViewModel.updateDoctorInstanceFromControllers(
+      firstName: firstNameController.text,
+      lastName: lastNameController.text,
+      email: emailController.text,
+      phoneNumber: phoneController.text,
+      licenseNumber: licenseNumberController.text,
+      licenseType: selectedLicenseType,
+      specialization: selectedSpecialization,
+      yearsExperience: yearsExperienceController.text,
+      licenseAuthority: licenseAuthorityController.text,
+      gender: gender,
+      dob: selectedDate,
+    );
+
+    final response = await editViewModel.updateDoctorInfo();
+
+    if (!context.mounted) return;
+
+    if (response['success'] == true) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Success'),
+          content: const Text('Doctor updated successfully'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                PersistentNavBarNavigator.pushNewScreen(
+                  context,
+                  screen: DoctorHomeScreen(),
+                  withNavBar: false,
+                  pageTransitionAnimation: PageTransitionAnimation.cupertino,
+                );
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF9FAFB),
+      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
@@ -73,7 +155,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             fontSize: 20,
           ),
         ),
-        centerTitle: false,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -88,33 +169,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     Expanded(
                       child: _buildTextField(
                         "First Name",
-                        SaveLoginResponse.loginData?['first_name'] ?? '',
+                        controller: firstNameController,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildTextField(
                         "Last Name",
-                        SaveLoginResponse.loginData?['last_name'] ?? '',
+                        controller: lastNameController,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-
-                _buildTextField(
-                  "Email",
-                  SaveLoginResponse.loginData?['email'] ?? '',
-                ),
+                _buildTextField("Email", controller: emailController),
                 const SizedBox(height: 16),
-
-                // --- Phone Number ---
-                _buildTextField(
-                  "Phone Number",
-                  SaveLoginResponse.loginData?['phone_number'] ?? '',
-                ),
+                _buildTextField("Phone Number", controller: phoneController),
                 const SizedBox(height: 16),
-
                 Text("Date of Birth", style: _labelStyle()),
                 const SizedBox(height: 6),
                 GestureDetector(
@@ -143,11 +214,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-
                 Text("Gender", style: _labelStyle()),
                 const SizedBox(height: 8),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     _buildGenderOption("Male"),
                     _buildGenderOption("Female"),
@@ -155,41 +224,44 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-
-                _buildTextField("License Number", "$licenseNumber"),
+                _buildTextField(
+                  "License Number",
+                  controller: licenseNumberController,
+                ),
                 const SizedBox(height: 16),
-
-                _buildDropdownField("License Type", [
-                  "Select Type",
-                  "CDLs",
-                  "IDP",
-                ]),
-
+                _buildDropdownField(
+                  label: "License Type",
+                  items: ["Select Type", "CDLs", "IDP"],
+                  value: selectedLicenseType,
+                  onChanged: (val) => setState(() => selectedLicenseType = val),
+                ),
                 const SizedBox(height: 16),
-
                 Row(
                   children: [
                     Expanded(
                       child: _buildTextField(
                         "Years of Experience",
-                        "$years_Experience",
+                        controller: yearsExperienceController,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildDropdownField(
-                        "Specialization",
-                        editViewModel.specializationNames,
+                        label: "Specialization",
+                        items: editViewModel.specializationNames,
+                        value: selectedSpecialization,
+                        onChanged: (val) =>
+                            setState(() => selectedSpecialization = val),
                       ),
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 16),
-
-                _buildTextField("License Issuing Authority", "00000000000"),
+                _buildTextField(
+                  "License Issuing Authority",
+                  controller: licenseAuthorityController,
+                ),
                 const SizedBox(height: 30),
-
                 Container(
                   width: double.infinity,
                   height: 55,
@@ -198,26 +270,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     gradient: AppColors.primaryGradient,
                   ),
                   child: TextButton(
-                    onPressed: () async {
-                      editViewModel.firstName =
-                          SaveLoginResponse.loginData?['first_name'] ?? '';
-                      editViewModel.lastName =
-                          SaveLoginResponse.loginData?['last_name'] ?? '';
-                      editViewModel.email =
-                          SaveLoginResponse.loginData?['email'] ?? '';
-                      editViewModel.phoneNumber =
-                          SaveLoginResponse.loginData?['phone_number'] ?? '';
-                          
-                      editViewModel.licenseNumber = licenseNumber;
-                      editViewModel.licenseType = selectedLicenseType ?? '';
-                      editViewModel.specialization = selectedSpecialization ?? '';
-                      editViewModel.yearsOfExperience = years_Experience;
-                      editViewModel.licenseIssuingAuthority = license_issue_authority;
-                      editViewModel.gender = gender;
-                      editViewModel.dob = selectedDate;
-
-                      await editViewModel.updateDoctorInfo();
-                    },
+                    onPressed: _onSavePressed,
                     child: const Text(
                       "Save Changes",
                       style: TextStyle(
@@ -237,14 +290,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildTextField(String label, String value) {
+  Widget _buildTextField(
+    String label, {
+    required TextEditingController controller,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: _labelStyle()),
         const SizedBox(height: 6),
         TextFormField(
-          initialValue: value,
+          controller: controller,
           decoration: InputDecoration(
             hintText: label,
             contentPadding: const EdgeInsets.symmetric(
@@ -269,11 +325,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildDropdownField(String label, List<String> items) {
-    final selectedValue = label == "Specialization"
-        ? selectedSpecialization
-        : selectedLicenseType;
-
+  Widget _buildDropdownField({
+    required String label,
+    required List<String> items,
+    required String? value,
+    required Function(String?) onChanged,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -284,23 +341,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           decoration: _inputDecoration(),
           child: DropdownButton<String>(
             isExpanded: true,
-            value: selectedValue,
-            hint: Text('Select'),
+            value: items.contains(value) ? value : null,
+            hint: const Text('Select'),
             underline: const SizedBox(),
             items: items.map((name) {
               return DropdownMenuItem<String>(value: name, child: Text(name));
             }).toList(),
-            onChanged: items.isEmpty
-                ? null
-                : (value) {
-                    setState(() {
-                      if (label == "Specialization") {
-                        selectedSpecialization = value;
-                      } else if (label == "License Type") {
-                        selectedLicenseType = value;
-                      }
-                    });
-                  },
+            onChanged: onChanged,
           ),
         ),
       ],
@@ -309,13 +356,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Widget _buildGenderOption(String value) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Radio<String>(
           value: value,
           groupValue: gender,
-          onChanged: (val) {
-            setState(() => gender = val!);
-          },
+          onChanged: (val) => setState(() => gender = val!),
           activeColor: const Color(0xFF1F2F98),
         ),
         Text(value),
