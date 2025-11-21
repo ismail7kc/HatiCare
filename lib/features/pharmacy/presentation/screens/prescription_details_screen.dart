@@ -152,7 +152,7 @@ class PrescriptionDetailsScreen extends StatelessWidget {
                           _buildMedicationItem(medication),
                         ],
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               ),

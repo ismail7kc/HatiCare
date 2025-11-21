@@ -2,15 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
-import 'package:haticare/features/doctor/presentation/screens/consultation_history.dart';
-import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/pharmacy/domain/entities/prescription_request.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_history_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_settings_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/widgets/prescription_request_card.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/prescription_details_screen.dart';
 
-import '../../../doctor/presentation/screens/setting_screen.dart';
 
 class PharmacyHomeScreen extends StatefulWidget {
   const PharmacyHomeScreen({super.key});

@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:http/http.dart' as http;
 
@@ -20,11 +22,7 @@ class ApiClient {
       body: jsonEncode(body),
     );
 
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return _decodeJson(response.body);
-    } else {
-      throw Exception('Request failed: ${response.statusCode}');
-    }
+    return _handleResponse(response);
   }
 
   Future<Map<String, dynamic>> getRequest(
@@ -43,59 +41,109 @@ class ApiClient {
     return _handleResponse(response);
   }
 
-  Future<Map<String, dynamic>> updateDocRequest(String url, {required Map<String, dynamic> body,Map<String, String>? headers,String? filePath}) async {
-    final uri = Uri.parse(url);
-    final request = http.MultipartRequest('PATCH', uri);
+  Future<Map<String, dynamic>> uploadProfileImage(String url, File imageFile) async {
+    try {
+      final uri = Uri.parse(url);
+      final request = http.MultipartRequest('PATCH', uri);
 
-    request.headers.addAll({
-      'Authorization': 'Bearer ${SaveLoginResponse.loginData?['access_token']}',
-      if (headers != null) ...headers,
-    });
+      request.headers['Authorization'] =
+          'Bearer ${SaveLoginResponse.loginData?['access_token']}';
+      request.headers['Accept'] = 'application/json';
 
-    body.forEach((key, value) {
-      if (value != null) {
-        if (value is DateTime) {
-          request.fields[key] = value.toIso8601String();
-        } else {
-          request.fields[key] = value.toString();
-        }
-      }
-    });
-
-    if (filePath != null) {
       request.files.add(
-        await http.MultipartFile.fromPath('profile_picture', filePath),
+        await http.MultipartFile.fromPath('profile_picture', imageFile.path),
       );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      debugPrint('✅ PATCH URL: $uri');
+      debugPrint('✅ Status Code: ${response.statusCode}');
+      debugPrint('✅ Response Body: ${response.body}');
+
+      return _handleResponse(response);
+    } catch (e) {
+      debugPrint('Upload Exception: $e');
+      return {"success": false, "message": e.toString()};
     }
+  }
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
+  // Future<Map<String, dynamic>> getSingleDoctor(String url) async {
+  //   final uri = Uri.parse(url);
 
-    return _handleResponse(response);
+  //   final response = await http.get(
+  //     uri,
+  //     headers: {
+  //       'Authorization':
+  //           'Bearer ${SaveLoginResponse.loginData?['access_token']}',
+  //     },
+  //   );
+
+  //   debugPrint('✅ PATCH URL: $uri');
+  //   debugPrint('✅ Status Code: ${response.statusCode}');
+  //   debugPrint('✅ Response Body: ${response.body}');
+
+  //   return _handleResponse(response);
+  // }
+
+  Future<Map<String, dynamic>> updateDocRequest(
+    String url, {
+    required Map<String, dynamic> body,
+  }) async {
+    try {
+      final uri = Uri.parse(url);
+
+      final request = http.MultipartRequest('PATCH', uri);
+
+      request.headers.addAll({
+        'Authorization':
+            'Bearer ${SaveLoginResponse.loginData?['access_token']}',
+        'Accept': 'application/json',
+      });
+
+      body.forEach((key, value) {
+        if (value != null) {
+          request.fields[key] = value is DateTime
+              ? value.toIso8601String()
+              : value.toString();
+        }
+      });
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      debugPrint('✅ PATCH URL: $uri');
+      debugPrint('✅ Status Code: ${response.statusCode}');
+      debugPrint('✅ Response Body: ${response.body}');
+
+      return _handleResponse(response);
+    } catch (e) {
+      debugPrint('updateDocRequest Exception: $e');
+      return {'success': false, 'message': e.toString(), 'data': {}};
+    }
   }
 
   Map<String, dynamic> _handleResponse(http.Response response) {
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return _decodeJson(response.body);
-    } else {
-      throw Exception(
-        'Request failed: ${response.statusCode}\n${response.body}',
-      );
+    try {
+      final decoded = jsonDecode(response.body);
+      return {
+        "success":
+            decoded['success'] ??
+            (response.statusCode >= 200 && response.statusCode < 300),
+        "code": response.statusCode,
+        "message": decoded['message'] ?? '',
+        "data": decoded['data'] ?? {},
+        "raw": response.body,
+      };
+    } catch (e) {
+      // debugPrint("Error decoding response: $e");
+      return {
+        "success": false,
+        "code": response.statusCode,
+        "message": "Invalid JSON",
+        "raw": response.body,
+        "data": {},
+      };
     }
   }
-
-  Map<String, dynamic> _decodeJson(String data) {
-    final decoded = json.decode(data);
-    if (decoded is Map<String, dynamic>) return decoded;
-    if (decoded is List) return {'data': decoded};
-    return {};
-  }
-
-  // Map<String, dynamic> _decodeJson(String data) {
-  //   try {
-  //     return json.decode(data) as Map<String, dynamic>;
-  //   } catch (_) {
-  //     return {'status': 'success'};
-  //   }
-  // }
 }

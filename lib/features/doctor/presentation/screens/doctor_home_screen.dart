@@ -25,9 +25,14 @@ class _MainScreenState extends State<DoctorHomeScreen> {
   @override
   void initState() {
     super.initState();
-    SaveLoginResponse.loadLoginModel().then((_) {
+    _loadLoginData();
+  }
+
+  Future<void> _loadLoginData() async {
+    await SaveLoginResponse.loadLoginModel();
+    if (mounted) {
       setState(() {});
-    });
+    }
   }
 
   @override
@@ -85,7 +90,6 @@ class SettingsScreenWithAppBar extends StatelessWidget {
   }
 }
 
-// Home Screen
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -93,7 +97,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool isOnline = false;
   bool hasAdminApproval = true;
   final appointments = AppointmentModel.sampleData;
@@ -156,7 +160,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget headerView() {
     final firstName = SaveLoginResponse.loginData?['first_name'] ?? '';
     final lastName = SaveLoginResponse.loginData?['last_name'] ?? '';
-    final profileImageUrl = SaveLoginResponse.loginData?['profile_picture'] ?? '';
+    final profileImageUrl =
+        SaveLoginResponse.loginData?['profile_picture'] ?? '';
     final docName = '$firstName $lastName';
 
     return Row(
@@ -190,7 +195,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        // notification icon
         Stack(
           children: [
             SvgPicture.asset(
@@ -356,7 +360,10 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: () {
         PersistentNavBarNavigator.pushNewScreen(
           context,
-          screen: AppointmentDetail(appointment: appointment, isCameFromAccept: true),
+          screen: AppointmentDetail(
+            appointment: appointment,
+            isCameFromAccept: true,
+          ),
           withNavBar: false,
           pageTransitionAnimation: PageTransitionAnimation.cupertino,
         );

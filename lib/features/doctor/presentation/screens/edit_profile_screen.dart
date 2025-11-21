@@ -63,7 +63,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         text: doctor?.licenseNumber ?? '',
       );
       yearsExperienceController = TextEditingController(
-        text: doctor?.yearsOfExperience?.toString() ?? '',
+        text: doctor?.yearsOfExperience.toString() ?? '',
       );
       licenseAuthorityController = TextEditingController(
         text: doctor?.licenseIssuingAuthority ?? '',

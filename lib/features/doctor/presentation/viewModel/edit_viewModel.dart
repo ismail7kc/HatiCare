@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/models/updated_doctor_model.dart';
@@ -79,15 +80,22 @@ class EditViewmodel extends ChangeNotifier {
     };
 
     final response = await repositoryLayer.updateDoctorInfo(body);
+
     if (response['success'] == true && response['data'] != null) {
       doctorInstance = Doctor.fromJson(response['data']);
-
       await SaveDoctorResponse.saveDoctorModel(response['data']);
 
       print(doctorInstance);
 
       notifyListeners();
     }
+
+    return response;
+  }
+
+  Future<Map<String, dynamic>> sendProfileImageToServr(File image) async {
+    final response = await repositoryLayer.sendProfileImageToServer(image);
+    debugPrint('📥 ViewModel Response: $response');
     return response;
   }
 }
