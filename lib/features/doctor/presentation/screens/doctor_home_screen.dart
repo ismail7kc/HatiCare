@@ -15,6 +15,11 @@ import 'appointment_detail.dart';
 import 'package:provider/provider.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 
+class ProfileNotifier {
+  static final ValueNotifier<String?> profileImageUrl = ValueNotifier(null);
+}
+
+
 class DoctorHomeScreen extends StatefulWidget {
   const DoctorHomeScreen({super.key});
 
@@ -185,60 +190,65 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   Widget headerView() {
-    final firstName = SaveLoginResponse.loginData?['first_name'] ?? '';
-    final lastName = SaveLoginResponse.loginData?['last_name'] ?? '';
-    final profileImageUrl =
-        SaveLoginResponse.loginData?['profile_picture'] ?? '';
-    final docName = '$firstName $lastName';
+  return ValueListenableBuilder<String?>(
+    valueListenable: ProfileNotifier.profileImageUrl,
+    builder: (context, updatedUrl, _) {
+      final loginDataUrl =
+          SaveLoginResponse.loginData?['profile_picture'] ?? '';
+      final profileImageUrl = updatedUrl ?? loginDataUrl;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 25,
-              backgroundImage: profileImageUrl.isNotEmpty
-                  ? NetworkImage(profileImageUrl)
-                  : const AssetImage('assets/images/haticare_logo.png')
+      final firstName = SaveLoginResponse.loginData?['first_name'] ?? '';
+      final lastName = SaveLoginResponse.loginData?['last_name'] ?? '';
+      final docName = '$firstName $lastName';
+
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 25,
+                backgroundImage: profileImageUrl.isNotEmpty
+                    ? NetworkImage(profileImageUrl)
+                    : const AssetImage('assets/images/haticare_logo.png')
                         as ImageProvider,
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Welcome Back,",
-                  style: TextStyle(color: Colors.grey),
-                ),
-                Text(
-                  docName.trim().isNotEmpty ? docName : 'Loading...',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Welcome Back,", style: TextStyle(color: Colors.grey)),
+                  Text(
+                    docName.trim().isNotEmpty ? docName : 'Loading...',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        Stack(
-          children: [
-            SvgPicture.asset(
-              'assets/icons/notification.svg',
-              height: 26,
-              color: Colors.black87,
-            ),
-            const Positioned(
-              right: 0,
-              top: 0,
-              child: CircleAvatar(radius: 4, backgroundColor: Colors.red),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
+                ],
+              ),
+            ],
+          ),
+          Stack(
+            children: [
+              SvgPicture.asset(
+                'assets/icons/notification.svg',
+                height: 26,
+                color: Colors.black87,
+              ),
+              const Positioned(
+                right: 0,
+                top: 0,
+                child: CircleAvatar(radius: 4, backgroundColor: Colors.red),
+              ),
+            ],
+          ),
+        ],
+      );
+    },
+  );
+}
+
 
   Widget toggleView() {
     return Container(

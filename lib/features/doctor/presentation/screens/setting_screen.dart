@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/edit_profile_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
 import 'package:provider/provider.dart';
@@ -55,6 +56,11 @@ class SettingsContentState extends State<SettingsContent> {
 
       if (response['success'] == true) {
         debugPrint("✅ Profile image uploaded successfully!");
+
+        final updatedImageUrl = response['data']['profile_picture'];
+        
+        SaveLoginResponse.loginData?['profile_picture'] = updatedImageUrl;
+        ProfileNotifier.profileImageUrl.value = updatedImageUrl;
 
         setState(() {});
 
