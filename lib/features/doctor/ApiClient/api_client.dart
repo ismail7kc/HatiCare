@@ -41,7 +41,10 @@ class ApiClient {
     return _handleResponse(response);
   }
 
-  Future<Map<String, dynamic>> uploadProfileImage(String url, File imageFile) async {
+  Future<Map<String, dynamic>> uploadProfileImage(
+    String url,
+    File imageFile,
+  ) async {
     try {
       final uri = Uri.parse(url);
       final request = http.MultipartRequest('PATCH', uri);
@@ -119,6 +122,30 @@ class ApiClient {
       return _handleResponse(response);
     } catch (e) {
       debugPrint('updateDocRequest Exception: $e');
+      return {'success': false, 'message': e.toString(), 'data': {}};
+    }
+  }
+
+  Future<Map<String, dynamic>> getPatientQueue(String url) async {
+    try {
+      final uri = Uri.parse(url);
+
+      final response = await _client.get(
+        uri,
+        headers: {
+          'Authorization':
+              'Bearer ${SaveLoginResponse.loginData?['access_token']}',
+          'Accept': 'application/json',
+        },
+      );
+
+      debugPrint('GET PatientQueue URL: $uri');
+      debugPrint('Status Code: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
+
+      return _handleResponse(response);
+    } catch (e) {
+      debugPrint('getPatientQueue Exception: $e');
       return {'success': false, 'message': e.toString(), 'data': {}};
     }
   }

@@ -37,6 +37,11 @@ class RepositoryLayer {
     return await _apiClient.updateDocRequest(url, body: body);
   }
 
+  Future<Map<String, dynamic>> getPatientQueue() async {
+    final url = '${AppConfig.baseUrl}patient/queue/'; // replace with your actual endpoint
+    return await _apiClient.getPatientQueue(url);
+  }
+
   // Future<Map<String, dynamic>> getSingleDoctor() async {
   //   final docID = SaveLoginResponse.loginData?['id'] ?? '';
   //   final url = '${AppConfig.baseUrl}doc/doctors/$docID/';

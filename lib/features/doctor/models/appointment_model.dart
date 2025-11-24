@@ -1,51 +1,69 @@
-class AppointmentModel {
-  final String patientName;
-  final int patientAge;
-  final String reasonForVisit;
-  final String appointmentTime;
-  final double progressValue;
-  final int minutesLeft;
-  final List<String> symptoms;
+class Patient {
+  final int id;
+  final String fullName;
+  final String phoneNumber;
+  final int age;
+  final String gender;
+  final String city;
+  final String state;
+  final String country;
 
-  AppointmentModel({
-    required this.patientName,
-    required this.patientAge,
-    required this.reasonForVisit,
-    required this.appointmentTime,
-    required this.progressValue,
-    required this.minutesLeft,
-    required this.symptoms,
+  Patient({
+    required this.id,
+    required this.fullName,
+    required this.phoneNumber,
+    required this.age,
+    required this.gender,
+    required this.city,
+    required this.state,
+    required this.country,
   });
 
-  static List<AppointmentModel> sampleData = [
-    AppointmentModel(
-      patientName: "Alex Johnson",
-      patientAge: 31,
-      reasonForVisit:
-          "Patient reports persistent dizziness and headaches for the last 3 days.",
-      appointmentTime: "Today at 4:30 PM",
-      progressValue: 0.65,
-      minutesLeft: 15,
-      symptoms: ["Sneezing", "Itchy Eyes", "Runny nose"],
-    ),
-    AppointmentModel(
-      patientName: "Sarah Connor",
-      patientAge: 27,
-      reasonForVisit:
-          "Experiencing lower back pain and fatigue for the past week.",
-      appointmentTime: "Today at 5:15 PM",
-      progressValue: 0.4,
-      minutesLeft: 25,
-      symptoms: ["Back Pain", "Fatigue"],
-    ),
-    AppointmentModel(
-      patientName: "Michael Brown",
-      patientAge: 45,
-      reasonForVisit: "Follow-up visit for blood pressure monitoring.",
-      appointmentTime: "Today at 6:00 PM",
-      progressValue: 0.85,
-      minutesLeft: 8,
-      symptoms: ["Dizziness", "Headache"],
-    ),
-  ];
+  factory Patient.fromJson(Map<String, dynamic> json) {
+    return Patient(
+      id: json['id'] ?? 0,
+      fullName: json['full_name'] ?? '',
+      phoneNumber: json['phone_number'] ?? '',
+      age: json['age'] ?? 0,
+      gender: json['gender'] ?? '',
+      city: json['city'] ?? '',
+      state: json['state'] ?? '',
+      country: json['country'] ?? '',
+    );
+  }
+}
+
+class AppointmentModel {
+  final int id;
+  final Patient patient;
+  final String patientName;
+  final String rawComplaint;
+  final String severity;
+  final String status;
+  final DateTime createdAt;
+  final String primarySpecialization;
+
+  AppointmentModel({
+    required this.id,
+    required this.patient,
+    required this.patientName,
+    required this.rawComplaint,
+    required this.severity,
+    required this.status,
+    required this.createdAt,
+    required this.primarySpecialization,
+  });
+
+  factory AppointmentModel.fromJson(Map<String, dynamic> json) {
+    return AppointmentModel(
+      id: json['id'] ?? 0,
+      patient: Patient.fromJson(json['patient'] ?? {}),
+      patientName: json['patient_name'] ?? '',
+      rawComplaint: json['raw_complaint'] ?? '',
+      severity: json['severity'] ?? '',
+      status: json['status'] ?? '',
+      createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
+      primarySpecialization: json['triage_data']?['primary_specialization_name'] ?? '',
+    );
+  }
 }

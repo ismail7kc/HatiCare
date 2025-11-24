@@ -6,6 +6,7 @@ import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/audio_call.dart';
 import 'package:haticare/features/doctor/presentation/screens/consultation_history.dart';
 import 'package:haticare/features/doctor/presentation/screens/setting_screen.dart';
+import 'package:haticare/features/doctor/presentation/viewModel/doctor_viewModel.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
@@ -100,7 +101,21 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool isOnline = false;
   bool hasAdminApproval = true;
-  final appointments = AppointmentModel.sampleData;
+
+  late DoctorViewModel doctorViewModel;
+
+  @override
+  void initState() {
+    super.initState();
+    doctorViewModel = DoctorViewModel(RepositoryLayer(ApiClient()));
+    doctorViewModel.fetchPatientQueue();
+  }
+
+  @override
+  void dispose() {
+    doctorViewModel.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               if (hasAdminApproval) const SizedBox(height: 10),
 
               isOnline
-                  ? handleAppointment(context, appointments)
+                  ? handleAppointment(context, doctorViewModel.appointments)
                   : patientQueueView(),
             ],
           ),
@@ -139,12 +154,24 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
-  Expanded handleAppointment(
+  Widget handleAppointment(
     BuildContext context,
     List<AppointmentModel> appointments,
   ) {
+    if (appointments.isEmpty) {
+      return Expanded(
+        child: Center(
+          child: Text(
+            "No appointments available",
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          ),
+        ),
+      );
+    }
+
     return Expanded(
       child: ListView.builder(
+        padding: EdgeInsets.zero,
         itemCount: appointments.length,
         itemBuilder: (context, index) {
           final appt = appointments[index];
@@ -369,7 +396,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(left: 2, right: 2),
+        margin: EdgeInsets.zero,
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -383,174 +410,180 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             ),
           ],
         ),
-        child: setupPatientCard(appointment),
+        child: setupPatientCardLive(appointment),
       ),
     );
   }
 
-  Column setupPatientCard(AppointmentModel appointment) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                SvgPicture.asset(
-                  'assets/icons/appointment-Request.svg',
-                  height: 24,
-                ),
-                const SizedBox(width: 10),
-                ShaderMask(
-                  shaderCallback: (bounds) =>
-                      AppColors.primaryGradient.createShader(
-                        Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+  Widget setupPatientCardLive(AppointmentModel appointment) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    SvgPicture.asset(
+                      'assets/icons/appointment-Request.svg',
+                      height: 24,
+                    ),
+                    const SizedBox(width: 10),
+                    Flexible(
+                      child: ShaderMask(
+                        shaderCallback: (bounds) =>
+                            AppColors.primaryGradient.createShader(
+                              Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+                            ),
+                        child: const Text(
+                          "New Appointment Request",
+                          overflow:
+                              TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                  child: const Text(
-                    "New Appointment Request",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
-            circularProgressBar(
-              appointment.progressValue,
-              appointment.minutesLeft,
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
+              ),
 
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SvgPicture.asset('assets/icons/user-square.svg', height: 24),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Patient", style: TextStyle(color: Colors.grey)),
-                  const SizedBox(height: 2),
-                  Text(
-                    "${appointment.patientName}, ${appointment.patientAge}",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
+              circularProgressBar(0.4, 9),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SvgPicture.asset('assets/icons/user-square.svg', height: 24),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Patient", style: TextStyle(color: Colors.grey)),
+                    const SizedBox(height: 2),
+                    Text(
+                      "${appointment.patientName}, ${appointment.patient.age}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
+            ],
+          ),
 
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SvgPicture.asset('assets/icons/sticky-note.svg', height: 24),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Reason for Visit",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    appointment.reasonForVisit,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
+          const SizedBox(height: 12),
+
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SvgPicture.asset('assets/icons/sticky-note.svg', height: 24),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Reason for Visit",
+                      style: TextStyle(color: Colors.grey),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(width: 32),
-            Expanded(
-              child: Text(
-                appointment.appointmentTime,
-                style: const TextStyle(color: Colors.grey, fontSize: 13),
-                textAlign: TextAlign.left,
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 16),
-
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE3E8EF),
-                  side: const BorderSide(color: Color(0xFFE3E8EF)),
-                  foregroundColor: Colors.redAccent.shade400,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                    const SizedBox(height: 2),
+                    Text(
+                      appointment.rawComplaint,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Text("Decline"),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(10),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  doctorViewModel.formatAppointmentTime(appointment.createdAt),
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
-                child: ElevatedButton(
-                  onPressed: () {
-                    PersistentNavBarNavigator.pushNewScreen(
-                      context,
-                      screen: AudioCallScreen(appointments: appointment),
-                      withNavBar: false,
-                      pageTransitionAnimation:
-                          PageTransitionAnimation.cupertino,
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    foregroundColor: Colors.white,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE3E8EF),
+                    side: const BorderSide(color: Color(0xFFE3E8EF)),
+                    foregroundColor: Colors.redAccent.shade400,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
-                    "Accept",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                  child: const Text("Decline"),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      PersistentNavBarNavigator.pushNewScreen(
+                        context,
+                        screen: AudioCallScreen(appointments: appointment),
+                        withNavBar: false,
+                        pageTransitionAnimation:
+                            PageTransitionAnimation.cupertino,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      "Accept",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 
