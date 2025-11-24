@@ -8,6 +8,10 @@ import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/edit_profile_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_contact_support_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_help_center_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_notifications_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_privacy_policy_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel.dart';
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
@@ -58,7 +62,7 @@ class SettingsContentState extends State<SettingsContent> {
         debugPrint("✅ Profile image uploaded successfully!");
 
         final updatedImageUrl = response['data']['profile_picture'];
-        
+
         SaveLoginResponse.loginData?['profile_picture'] = updatedImageUrl;
         ProfileNotifier.profileImageUrl.value = updatedImageUrl;
 
@@ -228,7 +232,7 @@ class SettingsContentState extends State<SettingsContent> {
                 title: 'Account',
                 items: [
                   SettingItem(
-                    icon: Icons.person_outline,
+                    icon: 'assets/icons/edit_profile_icon.svg',
                     title: 'Edit Profile',
                     onTap: () {
                       debugPrint('Edit Button Tappable');
@@ -241,12 +245,32 @@ class SettingsContentState extends State<SettingsContent> {
                     },
                   ),
                   SettingItem(
-                    icon: Icons.notifications_outlined,
+                    icon: 'assets/icons/notification_icon.svg',
                     title: 'Notifications',
+                    onTap: () {
+                      debugPrint('Notification Tapped');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const PharmacyNotificationsScreen(),
+                        ),
+                      );
+                    },
                   ),
                   SettingItem(
-                    icon: Icons.privacy_tip_outlined,
+                    icon: 'assets/icons/privacy_policy_icon.svg',
                     title: 'Privacy Policy',
+                    onTap: () {
+                      debugPrint('Notification Tapped');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const PharmacyPrivacyPolicyScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -256,14 +280,35 @@ class SettingsContentState extends State<SettingsContent> {
               _buildSection(
                 title: 'Support',
                 items: [
-                  SettingItem(icon: Icons.help_outline, title: 'Help Center'),
                   SettingItem(
-                    icon: Icons.phone_outlined,
+                    icon: 'assets/icons/help_center_icon.svg',
+                    title: 'Help Center',
+                    onTap: () {
+                      debugPrint("Help Center tapped");
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PharmacyHelpCenterScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  SettingItem(
+                    icon: 'assets/icons/contact_support_icon.svg',
                     title: 'Contact Support',
+                    onTap: () {
+                      debugPrint("Contact Support tapped");
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PharmacyContactSupportScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
-              // const SizedBox(height: 24),
+
               Padding(
                 padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
                 child: GestureDetector(
@@ -319,7 +364,7 @@ class SettingsContentState extends State<SettingsContent> {
                     title: '',
                     items: [
                       SettingItem(
-                        icon: Icons.logout,
+                        icon: 'assets/icons/logout.svg',
                         title: 'Logout',
                         titleColor: const Color(0xFFFF3B30),
                       ),
@@ -353,7 +398,7 @@ class SettingsContentState extends State<SettingsContent> {
 }
 
 class SettingItem extends StatelessWidget {
-  final IconData icon;
+  final String icon;
   final String title;
   final Color? titleColor;
   final bool showArrow;
@@ -397,7 +442,8 @@ class SettingItem extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 28, color: Colors.grey[700]),
+            SvgPicture.asset(icon, width: 28, height: 28),
+
             const SizedBox(width: 12),
             Expanded(
               child: Text(
