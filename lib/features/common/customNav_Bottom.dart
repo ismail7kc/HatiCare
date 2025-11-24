@@ -112,26 +112,21 @@ class _CustomBottomNavState extends State<CustomBottomNav> {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double itemWidth = screenWidth / widget.tabs.length;
 
-    return MediaQuery(
-      data: MediaQuery.of(context).copyWith(
-        padding: MediaQuery.of(context).padding.copyWith(bottom: 4),
+    return PersistentTabView(
+      context,
+      controller: _controller,
+      screens: widget.screens,
+      items: _navBarsItems(itemWidth),
+      backgroundColor: widget.backgroundColor,
+      decoration: NavBarDecoration(
+        borderRadius: BorderRadius.zero,
+        colorBehindNavBar: widget.backgroundColor,
       ),
-      child: PersistentTabView(
-        context,
-        controller: _controller,
-        screens: widget.screens,
-        items: _navBarsItems(itemWidth),
-        backgroundColor: widget.backgroundColor,
-        decoration: NavBarDecoration(
-          borderRadius: BorderRadius.zero,
-          colorBehindNavBar: widget.backgroundColor,
-        ),
-        navBarHeight: 80,
-        margin: EdgeInsets.zero,
-        padding: EdgeInsets.zero,
-        confineToSafeArea: true,
-        navBarStyle: NavBarStyle.style6,
-      ),
+      navBarHeight: 80,
+      margin: EdgeInsets.zero,
+      padding: EdgeInsets.zero,
+      confineToSafeArea: true,
+      navBarStyle: NavBarStyle.style6,
     );
   }
 }

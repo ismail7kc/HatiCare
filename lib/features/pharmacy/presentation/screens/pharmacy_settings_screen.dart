@@ -1,24 +1,269 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:chucker_flutter/chucker_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/core/services/device_id_provider.dart';
+import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/auth/domain/repositories/auth_repository.dart';
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/edit_pharmacy_profile_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_contact_support_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_help_center_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_notifications_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_privacy_policy_screen.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class PharmacySettingsScreen extends StatelessWidget {
-  const PharmacySettingsScreen({super.key});
+import '../../../../core/config/app_config.dart';
+import '../providers/pharmacy_user_provider.dart';
+
+class PharmacySettingsScreen extends StatefulWidget {
+  final VoidCallback? onProfileUpdated;
+  const PharmacySettingsScreen({super.key, this.onProfileUpdated});
+
+  @override
+  State<PharmacySettingsScreen> createState() => _PharmacySettingsScreenState();
+}
+
+class _PharmacySettingsScreenState extends State<PharmacySettingsScreen>
+    with AutomaticKeepAliveClientMixin {
+  bool _isUpdating = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Provider already fetches on initialization
+  }
+
+  Future<File?> _cropImage(File imageFile) async {
+    try {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: imageFile.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        compressQuality: 85,
+        maxWidth: 800,
+        maxHeight: 800,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Profile Picture',
+            toolbarColor: AppColors.primaryDark,
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: 'Crop Profile Picture',
+            aspectRatioLockEnabled: true,
+          ),
+        ],
+      );
+      if (croppedFile != null) {
+        return File(croppedFile.path);
+      }
+
+      return null;
+    } catch (e) {
+      debugPrint('Error cropping image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to crop image: ${e.toString()}')),
+        );
+      }
+      return null;
+    }
+  }
+
+  // Add a flag to prevent multiple uploads
+  bool _isUploading = false;
+
+  Future<void> _updateProfilePicture(File imageFile) async {
+    if (!mounted || _isUploading) return;
+
+    setState(() {
+      _isUpdating = true;
+      _isUploading = true;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final pharmacyId = prefs.getString('pharmacy_id') ?? '';
+      final accessToken = prefs.getString('access_token') ?? '';
+
+      if (pharmacyId.isEmpty) {
+        throw Exception('Pharmacy ID not found');
+      }
+
+      final uri = Uri.parse('${AppConfig.baseUrl}phar/pharmacies/$pharmacyId/');
+      final request = http.MultipartRequest('PATCH', uri);
+      request.headers['Authorization'] = 'Bearer $accessToken';
+      request.files.add(await http.MultipartFile.fromPath(
+        'profile_picture',
+        imageFile.path,
+      ));
+
+      final client = ChuckerHttpClient(http.Client());
+      final response = await client.send(request);
+      final responseBody = await response.stream.bytesToString();
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = jsonDecode(responseBody);
+        if (!mounted) return;
+
+        final dynamic responseData = jsonResponse is Map
+            ? (jsonResponse['data'] ?? jsonResponse)
+            : {};
+        final newImageUrl = responseData['profile_picture']?.toString();
+
+        if (newImageUrl != null && newImageUrl.isNotEmpty) {
+          // Add cache-busting timestamp
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final updatedUrl = newImageUrl.contains('?')
+              ? '$newImageUrl&t=$timestamp'
+              : '$newImageUrl?t=$timestamp';
+
+          // Update provider
+          if (mounted) {
+            context.read<PharmacyUserProvider>().updateProfilePicture(updatedUrl);
+          }
+
+          // Show success message
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Profile picture updated successfully'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      } else {
+        throw Exception('Failed to update profile picture: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error updating profile picture: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdating = false;
+          _isUploading = false;
+        });
+      }
+    }
+  }
+
+  void _showImagePickerBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: !_isUploading,
+      enableDrag: !_isUploading,
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => !_isUploading,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_isUploading) ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16.0),
+                    child: Column(
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Uploading image...'),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  const Text(
+                    'Select Profile Picture',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    leading: const Icon(Icons.camera_alt),
+                    title: const Text('Take Picture'),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await _pickImage(ImageSource.camera);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.image),
+                    title: const Text('Select From Gallery'),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await _pickImage(ImageSource.gallery);
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 800,
+      );
+      
+      if (pickedFile != null && mounted) {
+        final croppedFile = await _cropImage(File(pickedFile.path));
+        if (croppedFile != null && mounted) {
+          await _updateProfilePicture(croppedFile);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to ${source == ImageSource.camera ? 'take' : 'select'} image. Please try again.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    
+    final pharmacyProvider = context.watch<PharmacyUserProvider>();
+    
     return Scaffold(
-      backgroundColor: Color(0xFFF9FAFB),
+      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
-        backgroundColor:  Color(0xFFF9FAFB),
+        backgroundColor: const Color(0xFFF9FAFB),
         elevation: 0,
         title: const Text(
           'Settings',
@@ -36,7 +281,7 @@ class PharmacySettingsScreen extends StatelessWidget {
           children: [
             const SizedBox(height: 24),
             // Profile Section
-            _buildProfileSection(context),
+            _buildProfileSection(context, pharmacyProvider),
             const SizedBox(height: 32),
 
             // Account Section
@@ -58,8 +303,29 @@ class PharmacySettingsScreen extends StatelessWidget {
                     context,
                     svgIcon: 'assets/icons/edit_profile_icon.svg',
                     title: 'Edit Profile',
-                    onTap: () {
-                      // Navigate to edit profile
+                    onTap: () async {
+                      final prefs = await SharedPreferences.getInstance();
+                      final pharmacyId = prefs.getString('pharmacy_id') ?? '';
+                      final profileCompleted =
+                          prefs.getBool('pharmacy_profile_completed') ?? false;
+
+                      if (context.mounted) {
+                        // Navigate to edit profile with openedFromSettings = true
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditPharmacyProfileScreen(
+                              pharmacyId: pharmacyId,
+                              isForceComplete: !profileCompleted,
+                              openedFromSettings: true,
+                            ),
+                          ),
+                        );
+                        // Refresh provider data after returning
+                        if (context.mounted) {
+                          context.read<PharmacyUserProvider>().fetchProfile(forceRefresh: true);
+                        }
+                      }
                     },
                   ),
                   const SizedBox(height: 6),
@@ -71,7 +337,8 @@ class PharmacySettingsScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const PharmacyNotificationsScreen(),
+                          builder: (context) =>
+                              const PharmacyNotificationsScreen(),
                         ),
                       );
                     },
@@ -85,7 +352,8 @@ class PharmacySettingsScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const PharmacyPrivacyPolicyScreen(),
+                          builder: (context) =>
+                              const PharmacyPrivacyPolicyScreen(),
                         ),
                       );
                     },
@@ -115,7 +383,13 @@ class PharmacySettingsScreen extends StatelessWidget {
                     svgIcon: 'assets/icons/help_center_icon.svg',
                     title: 'Help Center',
                     onTap: () {
-                      // Navigate to help center
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const PharmacyHelpCenterScreen(),
+                        ),
+                      );
                     },
                   ),
                   const SizedBox(height: 6),
@@ -124,7 +398,13 @@ class PharmacySettingsScreen extends StatelessWidget {
                     svgIcon: 'assets/icons/contact_support_icon.svg',
                     title: 'Contact Support',
                     onTap: () {
-                      // Navigate to contact support
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const PharmacyContactSupportScreen(),
+                        ),
+                      );
                     },
                   ),
                 ],
@@ -144,7 +424,7 @@ class PharmacySettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileSection(BuildContext context) {
+  Widget _buildProfileSection(BuildContext context, PharmacyUserProvider provider) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -166,42 +446,103 @@ class PharmacySettingsScreen extends StatelessWidget {
         children: [
           Stack(
             children: [
-              /// ✅ Gradient Circle
-              Container(
-                width: 80,
-                height: 80,
-                decoration: const BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.person,
-                  color: Colors.white,
-                  size: 40,
-                ),
-              ),
+              /// Profile Picture with Loading State
+              provider.isLoading
+                  ? Container(
+                      width: 80,
+                      height: 80,
+                      decoration: const BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      ),
+                    )
+                  : _isUpdating
+                  ? Container(
+                      width: 80,
+                      height: 80,
+                      decoration: const BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      ),
+                    )
+                  : provider.profilePictureUrl.isNotEmpty
+                  ? ClipOval(
+                      child: Image.network(
+                        provider.profilePictureUrl,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 80,
+                            height: 80,
+                            decoration: const BoxDecoration(
+                              gradient: AppColors.primaryGradient,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.person,
+                              color: Colors.white,
+                              size: 40,
+                            ),
+                          );
+                        },
+                      ),
+                    )
+                  : Container(
+                      width: 80,
+                      height: 80,
+                      decoration: const BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.person,
+                        color: Colors.white,
+                        size: 40,
+                      ),
+                    ),
 
-              /// ✅ Edit Button
+              /// Edit Button
               Positioned(
                 right: 0,
                 bottom: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
+                child: GestureDetector(
+                  onTap: _isUpdating ? null : _showImagePickerBottomSheet,
                   child: Container(
                     padding: const EdgeInsets.all(3),
-                    decoration: const BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.edit,
+                    decoration: BoxDecoration(
                       color: Colors.white,
-                      size: 12,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: const BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.edit,
+                        color: Colors.white,
+                        size: 12,
+                      ),
                     ),
                   ),
                 ),
@@ -211,47 +552,48 @@ class PharmacySettingsScreen extends StatelessWidget {
 
           const SizedBox(height: 14),
 
-          FutureBuilder<SharedPreferences>(
-            future: SharedPreferences.getInstance(),
-            builder: (context, snapshot) {
-              String name = 'User';
-              if (snapshot.hasData) {
-                final prefs = snapshot.data!;
-                final firstName = prefs.getString('user_first_name') ?? '';
-                if (firstName.isNotEmpty) {
-                  name = firstName;
-                }
-              }
-              return Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
+          provider.isLoading
+              ? const SizedBox(
+                  width: 100,
+                  height: 20,
+                  child: LinearProgressIndicator(),
+                )
+              : Text(
+                  provider.pharmacyName.isNotEmpty ? provider.pharmacyName : 'User',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
                 ),
-              );
-            },
-          ),
 
           const SizedBox(height: 6),
 
-          const Text(
-            'General Physician',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-            ),
-          ),
+          provider.isLoading
+              ? const SizedBox(
+                  width: 100,
+                  height: 14,
+                  child: LinearProgressIndicator(),
+                )
+              : Text(
+                  provider.contactPerson.isNotEmpty ? provider.contactPerson : 'Contact Person',
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                ),
 
           const SizedBox(height: 4),
 
-          Text(
-            'License: GMC-12345',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey[600],
-            ),
-          ),
+          provider.isLoading
+              ? const SizedBox(
+                  width: 100,
+                  height: 13,
+                  child: LinearProgressIndicator(),
+                )
+              : Text(
+                  provider.licenseNumber.isNotEmpty
+                      ? 'License: ${provider.licenseNumber}'
+                      : 'License: N/A',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                ),
         ],
       ),
     );
@@ -297,11 +639,7 @@ class PharmacySettingsScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.black,
-                size: 16,
-              ),
+              Icon(Icons.arrow_forward_ios, color: Colors.black, size: 16),
             ],
           ),
         ),
@@ -324,11 +662,7 @@ class PharmacySettingsScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
           child: Row(
             children: [
-              const Icon(
-                Icons.logout,
-                color: Colors.red,
-                size: 24,
-              ),
+              const Icon(Icons.logout, color: Colors.red, size: 24),
               const SizedBox(width: 16),
               const Expanded(
                 child: Text(
@@ -357,11 +691,7 @@ class PharmacySettingsScreen extends StatelessWidget {
           ),
           title: const Row(
             children: [
-              Icon(
-                Icons.logout,
-                color: Colors.red,
-                size: 28,
-              ),
+              Icon(Icons.logout, color: Colors.red, size: 28),
               SizedBox(width: 12),
               Text(
                 'Logout',
@@ -374,45 +704,31 @@ class PharmacySettingsScreen extends StatelessWidget {
           ),
           content: const Text(
             'Are you sure you want to logout?',
-            style: TextStyle(
-              fontSize: 16,
-              height: 1.5,
-            ),
+            style: TextStyle(fontSize: 16),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
+              child: const Text(
                 'Cancel',
                 style: TextStyle(
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w600,
+                  color: Colors.grey,
                   fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
-            ElevatedButton(
+            TextButton(
               onPressed: () async {
                 Navigator.pop(dialogContext);
                 await _handleLogout(context);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                elevation: 0,
-              ),
               child: const Text(
                 'Logout',
                 style: TextStyle(
-                  fontWeight: FontWeight.w600,
+                  color: Colors.red,
                   fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -425,16 +741,14 @@ class PharmacySettingsScreen extends StatelessWidget {
   Future<void> _handleLogout(BuildContext context) async {
     // Get repository before showing dialog
     final authRepository = context.read<AuthRepository>();
-    
+
     // Show loading indicator
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return const Center(
-          child: CircularProgressIndicator(
-            color: Colors.white,
-          ),
+          child: CircularProgressIndicator(color: Colors.white),
         );
       },
     );
@@ -443,7 +757,7 @@ class PharmacySettingsScreen extends StatelessWidget {
       final prefs = await SharedPreferences.getInstance();
       final deviceId = await DeviceIdProvider().getDeviceId();
       final refreshToken = prefs.getString('refresh_token') ?? '';
-      
+
       // Call logout API
       await authRepository.logout(
         deviceId: deviceId,
@@ -463,41 +777,28 @@ class PharmacySettingsScreen extends StatelessWidget {
       // Close loading dialog
       if (context.mounted) {
         Navigator.of(context, rootNavigator: true).pop();
-        
+
         // Small delay to ensure dialog is closed
         await Future.delayed(const Duration(milliseconds: 100));
-        
+
         if (!context.mounted) return;
-        
-        // Navigate to login screen and clear all previous routes
-        Navigator.pushAndRemoveUntil(
-          context,
+
+        // Navigate to login screen and clear all previous routes using root navigator
+        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const LoginScreen()),
           (route) => false,
         );
-        
-        // Show success message
-        await Future.delayed(const Duration(milliseconds: 300));
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Logged out successfully'),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
       }
     } catch (e) {
       // Close loading dialog
       if (context.mounted) {
         Navigator.of(context, rootNavigator: true).pop();
-        
+
         // Small delay to ensure dialog is closed
         await Future.delayed(const Duration(milliseconds: 100));
-        
+
         if (!context.mounted) return;
-        
+
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

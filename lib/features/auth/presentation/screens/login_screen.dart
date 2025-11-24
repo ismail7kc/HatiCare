@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/core/widgets/app_primary_button.dart';
 import 'package:haticare/core/widgets/app_text_field.dart';
@@ -9,6 +10,7 @@ import 'package:haticare/features/auth/presentation/screens/forgot_password_scre
 import 'package:haticare/features/auth/presentation/screens/signup_screen.dart';
 import 'package:haticare/features/auth/presentation/viewmodels/login_view_model.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/edit_pharmacy_profile_screen.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/doctor_verification.dart';
@@ -35,9 +37,33 @@ class _LoginView extends StatelessWidget {
     final textTheme = theme.textTheme;
 
     if (viewModel.shouldNavigate) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!context.mounted) return;
         final role = viewModel.roleFromResponse;
+        
+        if (role == 'pharmacy') {
+          if (!viewModel.isProfileCompleted) {
+            final prefs = await SharedPreferences.getInstance();
+            final pharmacyId = viewModel.pharmacyId ?? prefs.getString('pharmacy_id') ?? '';
+            
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (_) => EditPharmacyProfileScreen(
+                  pharmacyId: pharmacyId,
+                  isForceComplete: true,
+                ),
+              ),
+              (route) => false,
+            );
+          } else {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const PharmacyHomeScreen()),
+              (route) => false,
+            );
+          }
+          viewModel.markNavigationHandled();
+          return;
+        }
         
         if (!viewModel.isProfileCompleted) {
           PersistentNavBarNavigator.pushNewScreen(
@@ -46,6 +72,7 @@ class _LoginView extends StatelessWidget {
             withNavBar: false,
             pageTransitionAnimation: PageTransitionAnimation.cupertino,
           );
+          viewModel.markNavigationHandled();
           return;
         }
 
@@ -56,12 +83,7 @@ class _LoginView extends StatelessWidget {
             withNavBar: false,
             pageTransitionAnimation: PageTransitionAnimation.cupertino,
           );
-        } else if (role == 'pharmacy') {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const PharmacyHomeScreen()),
-            (route) => false,
-          );
-        }  else {
+        } else {
           PersistentNavBarNavigator.pushNewScreen(
             context,
             screen: DoctorHomeScreen(),

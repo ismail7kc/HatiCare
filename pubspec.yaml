@@ -49,6 +49,9 @@ dependencies:
   camera: ^0.11.0+1
   permission_handler: ^11.3.1
   intl: 0.20.2
+  phone_numbers_parser: ^9.0.9  # For advanced phone number parsing
+  intl_phone_number_input: ^0.7.3  # For the phone input field
+  image_cropper: 11.0.0
 
 dev_dependencies:
   flutter_test:

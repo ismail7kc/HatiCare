@@ -4,6 +4,7 @@ import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/edit_pharmacy_profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -77,9 +78,26 @@ class _SplashScreenState extends State<SplashScreen>
             MaterialPageRoute(builder: (_) => DoctorHomeScreen()),
           );
         } else if (userType == 'pharmacy') {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const PharmacyHomeScreen()),
-          );
+          // PHARMACY: Check if profile is completed
+          final profileCompleted = prefs.getBool('pharmacy_profile_completed') ?? false;
+          final pharmacyId = prefs.getString('pharmacy_id') ?? '';
+          
+          if (!profileCompleted) {
+            // Force profile completion if incomplete
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => EditPharmacyProfileScreen(
+                  pharmacyId: pharmacyId,
+                  isForceComplete: true,
+                ),
+              ),
+            );
+          } else {
+            // Profile completed, allow home screen access
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const PharmacyHomeScreen()),
+            );
+          }
         } else {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => const LoginScreen()),

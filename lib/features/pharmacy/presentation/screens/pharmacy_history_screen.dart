@@ -141,11 +141,6 @@ class _PharmacyHistoryScreenState extends State<PharmacyHistoryScreen> {
     String text;
 
     switch (status) {
-      case PrescriptionStatus.notAvailable:
-        backgroundColor = const Color(0xFFFAE3E3);
-        textColor = const Color(0xFF8D2822);
-        text = 'Not Available';
-        break;
       case PrescriptionStatus.fullyDispensed:
         backgroundColor = const Color(0xFFE8F5E9);
         textColor = const Color(0xFF4CA054);
@@ -160,6 +155,11 @@ class _PharmacyHistoryScreenState extends State<PharmacyHistoryScreen> {
         backgroundColor = AppColors.primaryLight.withOpacity(0.1);
         textColor = AppColors.primaryDark;
         text = 'Issued';
+        break;
+      default:
+        backgroundColor = Colors.grey.withOpacity(0.1);
+        textColor = Colors.grey;
+        text = 'Unknown';
         break;
     }
 

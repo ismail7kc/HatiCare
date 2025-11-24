@@ -6,7 +6,9 @@ import 'package:haticare/features/auth/domain/repositories/auth_repository.dart'
 import 'package:intl_phone_field/phone_number.dart';
 
 class SignupViewModel extends ChangeNotifier {
-  SignupViewModel(this._repository);
+  SignupViewModel(this._repository) {
+    _setupErrorClearingListeners();
+  }
 
   final AuthRepository _repository;
 
@@ -50,7 +52,7 @@ class SignupViewModel extends ChangeNotifier {
 
   UserRole selectedRole = UserRole.doctor;
   bool isSubmitting = false;
-  bool autovalidate = false;
+  bool autovalidate = true;
   String? errorMessage;
   String? successMessage;
   bool _otpReadyForNavigation = false;
@@ -69,7 +71,7 @@ class SignupViewModel extends ChangeNotifier {
     selectedRole = role;
     errorMessage = null;
     successMessage = null;
-    autovalidate = false;
+    autovalidate = true;
     _otpReadyForNavigation = false;
     _doctorPhoneNumber = null;
     _doctorPhoneMeta = null;
@@ -77,6 +79,32 @@ class SignupViewModel extends ChangeNotifier {
     _businessPhoneMeta = null;
     formKey.currentState?.reset();
     notifyListeners();
+  }
+
+  void _setupErrorClearingListeners() {
+    // Doctor fields
+    firstNameController.addListener(_clearErrorOnChange);
+    lastNameController.addListener(_clearErrorOnChange);
+    phoneNumberController.addListener(_clearErrorOnChange);
+    genderController.addListener(_clearErrorOnChange);
+    dateOfBirthController.addListener(_clearErrorOnChange);
+    doctorEmailController.addListener(_clearErrorOnChange);
+    doctorPasswordController.addListener(_clearErrorOnChange);
+    doctorConfirmPasswordController.addListener(_clearErrorOnChange);
+
+    // Pharmacy fields
+    ownerNameController.addListener(_clearErrorOnChange);
+    businessPhoneController.addListener(_clearErrorOnChange);
+    pharmacyEmailController.addListener(_clearErrorOnChange);
+    pharmacyPasswordController.addListener(_clearErrorOnChange);
+    pharmacyConfirmPasswordController.addListener(_clearErrorOnChange);
+  }
+
+  void _clearErrorOnChange() {
+    if (errorMessage != null) {
+      errorMessage = null;
+      notifyListeners();
+    }
   }
 
   int? _expectedNationalLength(String? isoCode) {
@@ -360,27 +388,7 @@ class SignupViewModel extends ChangeNotifier {
   }
 
   Future<void> submit() async {
-    // Enable autovalidation after first submit attempt
-    if (!autovalidate) {
-      autovalidate = true;
-      notifyListeners();
-    }
-
     _otpReadyForNavigation = false;
-
-    // Manually validate phone numbers first since they might not be caught by form validation
-    String? phoneError;
-    if (isDoctor) {
-      phoneError = validateDoctorPhone(_doctorPhoneMeta);
-    } else if (isPharmacy) {
-      phoneError = validateBusinessPhone(_businessPhoneMeta);
-    }
-    
-    if (phoneError != null) {
-      errorMessage = phoneError;
-      notifyListeners();
-      return;
-    }
     
     if (!formKey.currentState!.validate()) {
       return;

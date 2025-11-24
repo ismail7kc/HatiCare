@@ -29,7 +29,6 @@ class PharmacyPrivacyPolicyScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -67,7 +66,6 @@ class PharmacyPrivacyPolicyScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Privacy Policy Content
             _buildSectionCard(
               title: '1. Information We Collect',
               content:

@@ -103,54 +103,6 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
             ),
 
             // Additional Notes
-            if (request.status == PrescriptionStatus.notAvailable) ...[
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3F3),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFFE0E0)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.info_outline, color: Color(0xFFD32F2F), size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'Not Available',
-                          style: TextStyle(
-                            color: Color(0xFFD32F2F),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'This prescription could not be filled because the medication is currently out of stock. We have notified the patient and will process the order as soon as stock is available.',
-                      style: TextStyle(
-                        color: Color(0xFFD32F2F),
-                        fontSize: 13,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Last updated: ${DateFormat('MMM d, yyyy hh:mm a').format(DateTime.now().subtract(const Duration(hours: 2)))}',
-                      style: TextStyle(
-                        color: const Color(0xFFD32F2F).withOpacity(0.8),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ],
         ),
       ),
@@ -173,15 +125,15 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
         statusIcon = Icons.history_outlined;
         statusText = 'Partially Dispensed';
         break;
-      case PrescriptionStatus.notAvailable:
-        statusColor = const Color(0xFFD32F2F);
-        statusIcon = Icons.error_outline;
-        statusText = 'Not Available';
-        break;
       case PrescriptionStatus.issued:
         statusColor = AppColors.primaryDark;
         statusIcon = Icons.pending_actions_outlined;
         statusText = 'Prescription Issued';
+        break;
+      default:
+        statusColor = Colors.grey;
+        statusIcon = Icons.help_outline;
+        statusText = 'Unknown Status';
         break;
     }
 

@@ -9,6 +9,7 @@ import 'package:haticare/features/common/shared_prefs_helper.dart';
 class LoginViewModel extends ChangeNotifier {
   LoginViewModel(this._repository) {
     _loadSavedCredentials();
+    _setupErrorClearingListeners();
   }
 
   final AuthRepository _repository;
@@ -25,6 +26,7 @@ class LoginViewModel extends ChangeNotifier {
   Map<String, dynamic>? lastResponse;
   bool _shouldNavigate = false;
   bool _shouldAutovalidate = false;
+  String? pharmacyId;
 
   Future<void> _loadSavedCredentials() async {
     try {
@@ -71,6 +73,18 @@ class LoginViewModel extends ChangeNotifier {
   void toggleRememberMe(bool? value) {
     rememberMe = value ?? false;
     notifyListeners();
+  }
+
+  void _setupErrorClearingListeners() {
+    emailController.addListener(_clearErrorOnChange);
+    passwordController.addListener(_clearErrorOnChange);
+  }
+
+  void _clearErrorOnChange() {
+    if (errorMessage != null) {
+      errorMessage = null;
+      notifyListeners();
+    }
   }
 
   String? validateEmail(String? value) {
@@ -142,12 +156,28 @@ class LoginViewModel extends ChangeNotifier {
       }
 
       if (response['success'] == true) {
-        if (response['data']['is_profile_complete'] == true) {
-          isProfileCompleted = true;
-        } else {
-          isProfileCompleted = false;
-          debugPrint('Profile incomplete!');
+        // Extract pharmacy ID for pharmacy role
+        final id = response['data']['id'];
+        if (id != null) {
+          pharmacyId = id.toString();
+          await prefs.setString('pharmacy_id', pharmacyId!);
+          debugPrint('Pharmacy ID saved: $pharmacyId');
         }
+        
+        // Check profile completion status from response
+        // Try multiple possible field names
+        bool profileCompleted = false;
+        if (response['data']['is_profile_complete'] == true) {
+          profileCompleted = true;
+        } else if (response['data']['profile_completed'] == true) {
+          profileCompleted = true;
+        } else if (response['data']['profile_complete'] == true) {
+          profileCompleted = true;
+        }
+        
+        isProfileCompleted = profileCompleted;
+        await prefs.setBool('pharmacy_profile_completed', profileCompleted);
+        debugPrint('Profile completed status: $profileCompleted');
       }
 
       if (response['success'] == true && response['data'] != null) {
@@ -189,15 +219,19 @@ class LoginViewModel extends ChangeNotifier {
       }
 
 
-      // Save user name if available
+      // Save user name and phone number if available
       String? firstName;
       String? lastName;
+      String? phoneNumber;
       // Root level
       if (response['first_name'] is String) {
         firstName = response['first_name'] as String;
       }
       if (response['last_name'] is String) {
         lastName = response['last_name'] as String;
+      }
+      if (response['phone_number'] is String) {
+        phoneNumber = response['phone_number'] as String;
       }
       // In 'response' object
       final responseObj2 = response['response'];
@@ -207,6 +241,9 @@ class LoginViewModel extends ChangeNotifier {
         }
         if (responseObj2['last_name'] is String && (lastName == null || lastName.isEmpty)) {
           lastName = responseObj2['last_name'] as String;
+        }
+        if (responseObj2['phone_number'] is String && (phoneNumber == null || phoneNumber.isEmpty)) {
+          phoneNumber = responseObj2['phone_number'] as String;
         }
       }
       // In 'data' object
@@ -218,12 +255,18 @@ class LoginViewModel extends ChangeNotifier {
         if (dataObj['last_name'] is String && (lastName == null || lastName.isEmpty)) {
           lastName = dataObj['last_name'] as String;
         }
+        if (dataObj['phone_number'] is String && (phoneNumber == null || phoneNumber.isEmpty)) {
+          phoneNumber = dataObj['phone_number'] as String;
+        }
       }
       if (firstName != null && firstName.isNotEmpty) {
         await prefs.setString('user_first_name', firstName);
       }
       if (lastName != null && lastName.isNotEmpty) {
         await prefs.setString('user_last_name', lastName);
+      }
+      if (phoneNumber != null && phoneNumber.isNotEmpty) {
+        await prefs.setString('user_phone_number', phoneNumber);
       }
 
       // Mark user as logged in

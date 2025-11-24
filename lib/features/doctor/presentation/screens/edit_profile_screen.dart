@@ -38,7 +38,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final repository = RepositoryLayer(apiClient);
     editViewModel = EditViewmodel(repository);
     editViewModel.fetchSpecialization().then((_) {
-      setState(() {}); // refreshh dropdown.
+      setState(() {});
     });
   }
 

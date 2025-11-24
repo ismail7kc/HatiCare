@@ -2,7 +2,6 @@ enum PrescriptionStatus {
   issued,
   fullyDispensed,
   partiallyDispensed,
-  notAvailable,
 }
 
 class PrescriptionRequest {
@@ -40,12 +39,11 @@ class PrescriptionRequest {
         return 'Fully Dispensed';
       case PrescriptionStatus.partiallyDispensed:
         return 'Partially Dispensed';
-      case PrescriptionStatus.notAvailable:
-        return 'Not Available';
+      default:
+        return 'Unknown';
     }
   }
 
-  // Dummy data for new requests
   static List<PrescriptionRequest> getDummyRequests() {
     return [
       PrescriptionRequest(
@@ -135,7 +133,6 @@ class PrescriptionRequest {
     ];
   }
 
-  // Dummy data for history with different statuses
   static List<PrescriptionRequest> getDummyHistory() {
     return [
       PrescriptionRequest(
@@ -145,7 +142,7 @@ class PrescriptionRequest {
         patientAge: 31,
         doctorName: 'Dr. John Smith, MD',
         dateIssued: DateTime(2025, 10, 30),
-        status: PrescriptionStatus.notAvailable,
+        status: PrescriptionStatus.fullyDispensed,
         medications: [
           Medication(
             name: 'Amoxicillin',
