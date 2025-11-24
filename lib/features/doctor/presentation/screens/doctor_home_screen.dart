@@ -6,6 +6,7 @@ import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/audio_call.dart';
 import 'package:haticare/features/doctor/presentation/screens/consultation_history.dart';
 import 'package:haticare/features/doctor/presentation/screens/setting_screen.dart';
+import 'package:haticare/features/doctor/presentation/viewModel/doctor_viewModel.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
@@ -13,6 +14,11 @@ import 'package:haticare/features/doctor/models/appointment_model.dart';
 import 'appointment_detail.dart';
 import 'package:provider/provider.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
+
+class ProfileNotifier {
+  static final ValueNotifier<String?> profileImageUrl = ValueNotifier(null);
+}
+
 
 class DoctorHomeScreen extends StatefulWidget {
   const DoctorHomeScreen({super.key});
@@ -25,9 +31,14 @@ class _MainScreenState extends State<DoctorHomeScreen> {
   @override
   void initState() {
     super.initState();
-    SaveLoginResponse.loadLoginModel().then((_) {
+    _loadLoginData();
+  }
+
+  Future<void> _loadLoginData() async {
+    await SaveLoginResponse.loadLoginModel();
+    if (mounted) {
       setState(() {});
-    });
+    }
   }
 
   @override
@@ -85,7 +96,6 @@ class SettingsScreenWithAppBar extends StatelessWidget {
   }
 }
 
-// Home Screen
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -93,10 +103,24 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool isOnline = false;
   bool hasAdminApproval = true;
-  final appointments = AppointmentModel.sampleData;
+
+  late DoctorViewModel doctorViewModel;
+
+  @override
+  void initState() {
+    super.initState();
+    doctorViewModel = DoctorViewModel(RepositoryLayer(ApiClient()));
+    doctorViewModel.fetchPatientQueue();
+  }
+
+  @override
+  void dispose() {
+    doctorViewModel.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
               if (hasAdminApproval) const SizedBox(height: 10),
 
               isOnline
-                  ? handleAppointment(context, appointments)
+                  ? handleAppointment(context, doctorViewModel.appointments)
                   : patientQueueView(),
             ],
           ),
@@ -135,12 +159,24 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Expanded handleAppointment(
+  Widget handleAppointment(
     BuildContext context,
     List<AppointmentModel> appointments,
   ) {
+    if (appointments.isEmpty) {
+      return Expanded(
+        child: Center(
+          child: Text(
+            "No appointments available",
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          ),
+        ),
+      );
+    }
+
     return Expanded(
       child: ListView.builder(
+        padding: EdgeInsets.zero,
         itemCount: appointments.length,
         itemBuilder: (context, index) {
           final appt = appointments[index];
@@ -154,60 +190,65 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget headerView() {
-    final firstName = SaveLoginResponse.loginData?['first_name'] ?? '';
-    final lastName = SaveLoginResponse.loginData?['last_name'] ?? '';
-    final profileImageUrl = SaveLoginResponse.loginData?['profile_picture'] ?? '';
-    final docName = '$firstName $lastName';
+  return ValueListenableBuilder<String?>(
+    valueListenable: ProfileNotifier.profileImageUrl,
+    builder: (context, updatedUrl, _) {
+      final loginDataUrl =
+          SaveLoginResponse.loginData?['profile_picture'] ?? '';
+      final profileImageUrl = updatedUrl ?? loginDataUrl;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 25,
-              backgroundImage: profileImageUrl.isNotEmpty
-                  ? NetworkImage(profileImageUrl)
-                  : const AssetImage('assets/images/haticare_logo.png')
+      final firstName = SaveLoginResponse.loginData?['first_name'] ?? '';
+      final lastName = SaveLoginResponse.loginData?['last_name'] ?? '';
+      final docName = '$firstName $lastName';
+
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 25,
+                backgroundImage: profileImageUrl.isNotEmpty
+                    ? NetworkImage(profileImageUrl)
+                    : const AssetImage('assets/images/haticare_logo.png')
                         as ImageProvider,
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Welcome Back,",
-                  style: TextStyle(color: Colors.grey),
-                ),
-                Text(
-                  docName.trim().isNotEmpty ? docName : 'Loading...',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Welcome Back,", style: TextStyle(color: Colors.grey)),
+                  Text(
+                    docName.trim().isNotEmpty ? docName : 'Loading...',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        // notification icon
-        Stack(
-          children: [
-            SvgPicture.asset(
-              'assets/icons/notification.svg',
-              height: 26,
-              color: Colors.black87,
-            ),
-            const Positioned(
-              right: 0,
-              top: 0,
-              child: CircleAvatar(radius: 4, backgroundColor: Colors.red),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
+                ],
+              ),
+            ],
+          ),
+          Stack(
+            children: [
+              SvgPicture.asset(
+                'assets/icons/notification.svg',
+                height: 26,
+                color: Colors.black87,
+              ),
+              const Positioned(
+                right: 0,
+                top: 0,
+                child: CircleAvatar(radius: 4, backgroundColor: Colors.red),
+              ),
+            ],
+          ),
+        ],
+      );
+    },
+  );
+}
+
 
   Widget toggleView() {
     return Container(
@@ -356,13 +397,16 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: () {
         PersistentNavBarNavigator.pushNewScreen(
           context,
-          screen: AppointmentDetail(appointment: appointment, isCameFromAccept: true),
+          screen: AppointmentDetail(
+            appointment: appointment,
+            isCameFromAccept: true,
+          ),
           withNavBar: false,
           pageTransitionAnimation: PageTransitionAnimation.cupertino,
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(left: 2, right: 2),
+        margin: EdgeInsets.zero,
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -376,174 +420,180 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        child: setupPatientCard(appointment),
+        child: setupPatientCardLive(appointment),
       ),
     );
   }
 
-  Column setupPatientCard(AppointmentModel appointment) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                SvgPicture.asset(
-                  'assets/icons/appointment-Request.svg',
-                  height: 24,
-                ),
-                const SizedBox(width: 10),
-                ShaderMask(
-                  shaderCallback: (bounds) =>
-                      AppColors.primaryGradient.createShader(
-                        Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+  Widget setupPatientCardLive(AppointmentModel appointment) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    SvgPicture.asset(
+                      'assets/icons/appointment-Request.svg',
+                      height: 24,
+                    ),
+                    const SizedBox(width: 10),
+                    Flexible(
+                      child: ShaderMask(
+                        shaderCallback: (bounds) =>
+                            AppColors.primaryGradient.createShader(
+                              Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+                            ),
+                        child: const Text(
+                          "New Appointment Request",
+                          overflow:
+                              TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                  child: const Text(
-                    "New Appointment Request",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
-            circularProgressBar(
-              appointment.progressValue,
-              appointment.minutesLeft,
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
+              ),
 
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SvgPicture.asset('assets/icons/user-square.svg', height: 24),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Patient", style: TextStyle(color: Colors.grey)),
-                  const SizedBox(height: 2),
-                  Text(
-                    "${appointment.patientName}, ${appointment.patientAge}",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
+              circularProgressBar(0.4, 9),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SvgPicture.asset('assets/icons/user-square.svg', height: 24),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Patient", style: TextStyle(color: Colors.grey)),
+                    const SizedBox(height: 2),
+                    Text(
+                      "${appointment.patientName}, ${appointment.patient.age}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
+            ],
+          ),
 
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SvgPicture.asset('assets/icons/sticky-note.svg', height: 24),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Reason for Visit",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    appointment.reasonForVisit,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
+          const SizedBox(height: 12),
+
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SvgPicture.asset('assets/icons/sticky-note.svg', height: 24),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Reason for Visit",
+                      style: TextStyle(color: Colors.grey),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(width: 32),
-            Expanded(
-              child: Text(
-                appointment.appointmentTime,
-                style: const TextStyle(color: Colors.grey, fontSize: 13),
-                textAlign: TextAlign.left,
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 16),
-
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE3E8EF),
-                  side: const BorderSide(color: Color(0xFFE3E8EF)),
-                  foregroundColor: Colors.redAccent.shade400,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                    const SizedBox(height: 2),
+                    Text(
+                      appointment.rawComplaint,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Text("Decline"),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(10),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  doctorViewModel.formatAppointmentTime(appointment.createdAt),
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
-                child: ElevatedButton(
-                  onPressed: () {
-                    PersistentNavBarNavigator.pushNewScreen(
-                      context,
-                      screen: AudioCallScreen(appointments: appointment),
-                      withNavBar: false,
-                      pageTransitionAnimation:
-                          PageTransitionAnimation.cupertino,
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    foregroundColor: Colors.white,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE3E8EF),
+                    side: const BorderSide(color: Color(0xFFE3E8EF)),
+                    foregroundColor: Colors.redAccent.shade400,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
-                    "Accept",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                  child: const Text("Decline"),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      PersistentNavBarNavigator.pushNewScreen(
+                        context,
+                        screen: AudioCallScreen(appointments: appointment),
+                        withNavBar: false,
+                        pageTransitionAnimation:
+                            PageTransitionAnimation.cupertino,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      "Accept",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/identify_document.dart';
-import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/scan_passport.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/take_selfi.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
+import 'package:flutter_doc_scanner/flutter_doc_scanner.dart';
 
 class DoctorVerificationScreen extends StatefulWidget {
   const DoctorVerificationScreen({super.key});
@@ -18,6 +18,7 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
   bool idCardChecked = false;
   bool selfieChecked = false;
   bool licenseChecked = false;
+  dynamic _scannedResult;
 
   bool get isAllChecked => idCardChecked && selfieChecked && licenseChecked;
 
@@ -114,15 +115,23 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
 
                     GestureDetector(
                       onTap: () async {
-                        final completed = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ScanPassportScreen(screenTitle: 'Scan your License'),
-                          ),
-                        );
-
-                        if (completed == true) {
-                          setState(() => licenseChecked = true);
+                        try {
+                          dynamic scanned = await FlutterDocScanner().getScannedDocumentAsImages(page: 1);
+                          if (scanned != null) {
+                            setState(() => licenseChecked = true);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Scan completed successfully'),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          debugPrint('Scanner error: $e');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Failed to open scanner'),
+                            ),
+                          );
                         }
                       },
 

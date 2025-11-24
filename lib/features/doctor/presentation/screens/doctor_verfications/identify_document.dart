@@ -122,7 +122,7 @@ class _IdentifyDocumentScreenState extends State<IdentifyDocumentScreen> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: DropdownButtonFormField<String>(
-        value: _selectedCountry,
+        initialValue: _selectedCountry,
         icon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
         iconSize: 24,
         elevation: 8,

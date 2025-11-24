@@ -59,7 +59,7 @@ class AppointmentDetail extends StatelessWidget {
                     width: 90,
                     height: 90,
                     child: CircularProgressIndicator(
-                      value: appointment.progressValue,
+                      // value: appointment.progressValue,
                       strokeWidth: 6,
                       backgroundColor: Colors.grey.shade200,
                       color: const Color(0xFF34C759),
@@ -93,10 +93,10 @@ class AppointmentDetail extends StatelessWidget {
               appointment.patientName,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
-            Text(
-              "${appointment.patientAge} years old, Male",
-              style: const TextStyle(color: Colors.grey),
-            ),
+            // Text(
+              // "${appointment.patientAge} years old, Male",
+              // style: const TextStyle(color: Colors.grey),
+            // ),
 
             const SizedBox(height: 30),
 
@@ -124,10 +124,10 @@ class AppointmentDetail extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          appointment.reasonForVisit,
-                          style: const TextStyle(color: Colors.grey),
-                        ),
+                        // Text(
+                        //   appointment.reasonForVisit,
+                        //   style: const TextStyle(color: Colors.grey),
+                        // ),
                       ],
                     ),
                   ),
@@ -164,21 +164,21 @@ class AppointmentDetail extends StatelessWidget {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: appointment.symptoms.map((symptom) {
-                      return Chip(
-                        label: Text(
-                          symptom,
-                          style: const TextStyle(
-                            color: Color(0xFF8B0000),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        backgroundColor: const Color(0xFFFFE5E5),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      );
-                    }).toList(),
+                    // children: appointment.symptoms.map((symptom) {
+                    //   return Chip(
+                    //     label: Text(
+                    //       symptom,
+                    //       style: const TextStyle(
+                    //         color: Color(0xFF8B0000),
+                    //         fontWeight: FontWeight.w500,
+                    //       ),
+                    //     ),
+                    //     backgroundColor: const Color(0xFFFFE5E5),
+                    //     shape: RoundedRectangleBorder(
+                    //       borderRadius: BorderRadius.circular(20),
+                    //     ),
+                    //   );
+                    // }).toList(),
                   ),
                 ],
               ),

@@ -1,13 +1,97 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
+import 'package:haticare/features/doctor/ApiClient/api_client.dart';
+import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/edit_profile_screen.dart';
+import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
 import 'package:provider/provider.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel.dart';
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
+import 'package:image_picker/image_picker.dart';
 
-class SettingsContent extends StatelessWidget {
+class SettingsContent extends StatefulWidget {
   const SettingsContent({super.key});
+
+  @override
+  State<SettingsContent> createState() => SettingsContentState();
+}
+
+class SettingsContentState extends State<SettingsContent> {
+  File? image;
+  late EditViewmodel editViewModel;
+  bool isUploading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    editViewModel = EditViewmodel(RepositoryLayer(ApiClient()));
+  }
+
+  Future<void> pickImage() async {
+    final XFile? pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
+    if (pickedFile != null) {
+      final File selectedImage = File(pickedFile.path);
+
+      setState(() {
+        image = selectedImage;
+        isUploading = true;
+      });
+    }
+    await uploadProfileImage(image!);
+
+    setState(() {
+      isUploading = false;
+    });
+  }
+
+  Future<void> uploadProfileImage(File imageFile) async {
+    try {
+      final response = await editViewModel.sendProfileImageToServr(imageFile);
+
+      if (response['success'] == true) {
+        debugPrint("✅ Profile image uploaded successfully!");
+
+        final updatedImageUrl = response['data']['profile_picture'];
+        
+        SaveLoginResponse.loginData?['profile_picture'] = updatedImageUrl;
+        ProfileNotifier.profileImageUrl.value = updatedImageUrl;
+
+        setState(() {});
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Profile image updated successfully!"),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        debugPrint("Upload failed: ${response['message'] ?? response}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Upload failed"),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("Error uploading image: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error uploading image"),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,41 +133,68 @@ class SettingsContent extends StatelessWidget {
                         alignment: Alignment.bottomRight,
                         children: [
                           Center(
-                            child: profileImageUrl.isNotEmpty
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(50),
-                                    child: Image.network(
-                                      profileImageUrl,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(50),
+                              child: image != null
+                                  ? Image.file(
+                                      image!,
                                       width: 100,
                                       height: 100,
                                       fit: BoxFit.cover,
-                                    ),
-                                  )
-                                : SvgPicture.asset(
-                                    'assets/icons/person_icon.svg',
-                                    width: 80,
-                                    height: 80,
-                                  ),
+                                    )
+                                  : (profileImageUrl.isNotEmpty
+                                        ? Image.network(
+                                            profileImageUrl,
+                                            width: 100,
+                                            height: 100,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : SvgPicture.asset(
+                                            'assets/icons/person_icon.svg',
+                                            width: 80,
+                                            height: 80,
+                                          )),
+                            ),
                           ),
+
+                          if (isUploading)
+                            Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                color: Colors.black45,
+                                borderRadius: BorderRadius.circular(50),
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 3,
+                                ),
+                              ),
+                            ),
+
                           Positioned(
                             right: 0,
                             bottom: 0,
-                            child: Container(
-                              width: 24,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 2,
+                            child: GestureDetector(
+                              onTap: pickImage,
+                              child: Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 2,
+                                  ),
                                 ),
-                              ),
-                              child: const CircleAvatar(
-                                backgroundColor: Color(0xFF243E8A),
-                                child: Icon(
-                                  Icons.edit,
-                                  size: 14,
-                                  color: Colors.white,
+                                child: CircleAvatar(
+                                  backgroundColor: Color(0xFF243E8A),
+                                  child: Icon(
+                                    Icons.edit,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
@@ -153,9 +264,8 @@ class SettingsContent extends StatelessWidget {
                 ],
               ),
               // const SizedBox(height: 24),
-
               Padding(
-              padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
                 child: GestureDetector(
                   onTap: () async {
                     final shouldLogout = await showDialog<bool>(

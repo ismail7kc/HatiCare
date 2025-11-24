@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   file_selector_windows
+  flutter_doc_scanner
   permission_handler_windows
   share_plus
   smart_auth

@@ -97,7 +97,7 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ...request.medications.map((med) => _buildMedicationItem(med)).toList(),
+                  ...request.medications.map((med) => _buildMedicationItem(med)),
                 ],
               ),
             ),

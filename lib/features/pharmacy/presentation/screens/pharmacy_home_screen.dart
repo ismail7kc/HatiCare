@@ -63,9 +63,9 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
-    
+
     final pharmacyProvider = context.watch<PharmacyUserProvider>();
-    
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
