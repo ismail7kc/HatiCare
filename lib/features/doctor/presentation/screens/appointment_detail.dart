@@ -268,13 +268,13 @@ class AppointmentDetail extends StatelessWidget {
                       ),
                       child: ElevatedButton(
                         onPressed: () {
-                          // PersistentNavBarNavigator.pushNewScreen(
-                          //   context,
-                          //   screen: AudioCallScreen(appointments: appointment),
-                          //   withNavBar: false,
-                          //   pageTransitionAnimation:
-                          //       PageTransitionAnimation.cupertino,
-                          // );
+                          PersistentNavBarNavigator.pushNewScreen(
+                            context,
+                            screen: AudioCallScreen(appointments: appointment),
+                            withNavBar: false,
+                            pageTransitionAnimation:
+                                PageTransitionAnimation.cupertino,
+                          );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
@@ -285,7 +285,7 @@ class AppointmentDetail extends StatelessWidget {
                           ),
                         ),
                         child: const Text(
-                          "Accept",
+                          "Accept & Call",
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
