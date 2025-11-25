@@ -66,7 +66,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         text: doctor?.licenseIssuingAuthority ?? '',
       );
 
-      gender = (doctor?.gender ?? 'M') == 'M' ? 'Male' : (doctor?.gender ?? 'F') == 'F' ? 'Female' : 'Other';
+      gender = (doctor?.gender ?? 'M') == 'M'
+          ? 'Male'
+          : (doctor?.gender ?? 'F') == 'F'
+          ? 'Female'
+          : 'Other';
       selectedDate = doctor?.dob ?? DateTime(1992, 1, 8);
       selectedSpecialization = doctor?.specialization;
       selectedLicenseType = doctor?.licenseType;
@@ -93,7 +97,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     editViewModel.updateDoctorInstanceFromControllers(
       firstName: firstNameController.text,
       lastName: lastNameController.text,
-      email: emailController.text,
+      email: SaveLoginResponse.loginData?['email'],
       phoneNumber: phoneController.text,
       licenseNumber: licenseNumberController.text,
       licenseType: selectedLicenseType,
@@ -179,7 +183,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildTextField("Email", controller: emailController),
+                _buildTextField("Email", controller: emailController, isEmail: true),
                 const SizedBox(height: 16),
                 _buildTextField("Phone Number", controller: phoneController),
                 const SizedBox(height: 16),
@@ -290,6 +294,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget _buildTextField(
     String label, {
     required TextEditingController controller,
+    bool isEmail = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -298,6 +303,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
+          readOnly: isEmail,
+          enabled: !isEmail,
           decoration: InputDecoration(
             hintText: label,
             contentPadding: const EdgeInsets.symmetric(

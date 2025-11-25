@@ -395,15 +395,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   ) {
     return GestureDetector(
       onTap: () {
-        PersistentNavBarNavigator.pushNewScreen(
-          context,
-          screen: AppointmentDetail(
-            appointment: appointment,
-            isCameFromAccept: true,
-          ),
-          withNavBar: false,
-          pageTransitionAnimation: PageTransitionAnimation.cupertino,
-        );
+        // PersistentNavBarNavigator.pushNewScreen(
+        //   context,
+        //   screen: AppointmentDetail(
+        //     appointment: appointment,
+        //     isCameFromAccept: true,
+        //   ),
+        //   withNavBar: false,
+        //   pageTransitionAnimation: PageTransitionAnimation.cupertino,
+        // );
       },
       child: Container(
         margin: EdgeInsets.zero,
@@ -565,7 +565,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     onPressed: () {
                       PersistentNavBarNavigator.pushNewScreen(
                         context,
-                        screen: AudioCallScreen(appointments: appointment),
+                        screen: AppointmentDetail(appointment: appointment),
                         withNavBar: false,
                         pageTransitionAnimation:
                             PageTransitionAnimation.cupertino,
@@ -581,7 +581,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                       ),
                     ),
                     child: const Text(
-                      "Accept",
+                      "View Details",
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
