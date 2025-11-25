@@ -251,10 +251,9 @@ class SignupViewModel extends ChangeNotifier {
       return 'Enter phone number';
     }
 
-    final expectedLength = _expectedNationalLength(candidate.countryISOCode);
     final digits = candidate.number.replaceAll(RegExp(r'\D'), '');
-    if (expectedLength != null && digits.length != expectedLength) {
-      return 'Enter a valid phone number';
+    if (digits.isEmpty) {
+      return 'Enter phone number';
     }
 
     _doctorPhoneNumber = _normalizePhoneNumber(candidate);
@@ -333,10 +332,9 @@ class SignupViewModel extends ChangeNotifier {
       return 'Enter business phone number';
     }
 
-    final expectedLength = _expectedNationalLength(candidate.countryISOCode);
     final digits = candidate.number.replaceAll(RegExp(r'\D'), '');
-    if (expectedLength != null && digits.length != expectedLength) {
-      return 'Enter a valid business phone number';
+    if (digits.isEmpty) {
+      return 'Enter business phone number';
     }
 
     _businessPhoneNumber = _normalizePhoneNumber(candidate);

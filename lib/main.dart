@@ -8,6 +8,8 @@ import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:haticare/features/auth/domain/repositories/auth_repository.dart';
 
+import 'features/auth/presentation/screens/splash_screen.dart';
+
 void main() {
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

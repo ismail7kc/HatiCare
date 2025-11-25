@@ -24,6 +24,11 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    // Disable keyboard on splash screen
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
 
     _animationController = AnimationController(
       vsync: this,
@@ -120,48 +125,54 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: AnimatedBuilder(
-        animation: _animationController,
-        builder: (context, child) {
-          if (_animationController.value == 0.0) {
-            return const SizedBox.shrink();
-          }
-          return Center(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: Transform.scale(
-                scale: _scaleAnimation.value,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(5),
-                      clipBehavior: Clip.antiAlias,
-                      child: Image.asset(
-                        'assets/images/haticare_logo.png',
-                        width: 150,
-                        height: 150,
-                        fit: BoxFit.contain,
+    return GestureDetector(
+      onTap: () {
+        // Dismiss keyboard if it appears
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: AnimatedBuilder(
+          animation: _animationController,
+          builder: (context, child) {
+            if (_animationController.value == 0.0) {
+              return const SizedBox.shrink();
+            }
+            return Center(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: Transform.scale(
+                  scale: _scaleAnimation.value,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        clipBehavior: Clip.antiAlias,
+                        child: Image.asset(
+                          'assets/images/haticare_logo.png',
+                          width: 150,
+                          height: 150,
+                          fit: BoxFit.contain,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'HatiCare',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryDark,
+                      const SizedBox(height: 24),
+                      Text(
+                        'HatiCare',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryDark,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
