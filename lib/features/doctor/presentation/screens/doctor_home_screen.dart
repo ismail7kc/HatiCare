@@ -19,7 +19,6 @@ class ProfileNotifier {
   static final ValueNotifier<String?> profileImageUrl = ValueNotifier(null);
 }
 
-
 class DoctorHomeScreen extends StatefulWidget {
   const DoctorHomeScreen({super.key});
 
@@ -127,33 +126,45 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              headerView(),
-              const SizedBox(height: 20),
+        top: true,
+        bottom: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  headerView(),
+                  const SizedBox(height: 20),
+                  toggleView(),
+                  const SizedBox(height: 20),
+                  statsView(),
+                  const SizedBox(height: 25),
 
-              toggleView(),
-              const SizedBox(height: 20),
+                  if (hasAdminApproval)
+                    const Text(
+                      "Patient Queue",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
 
-              statsView(),
-              const SizedBox(height: 25),
+                  if (hasAdminApproval) const SizedBox(height: 10),
+                ],
+              ),
+            ),
 
-              if (hasAdminApproval)
-                const Text(
-                  "Patient Queue",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-
-              if (hasAdminApproval) const SizedBox(height: 10),
-
-              isOnline
-                  ? handleAppointment(context, doctorViewModel.appointments)
-                  : patientQueueView(),
-            ],
-          ),
+            Expanded(
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                removeBottom: true,
+                child: handleAppointment(context, doctorViewModel.appointments),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -164,24 +175,24 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     List<AppointmentModel> appointments,
   ) {
     if (appointments.isEmpty) {
-      return Expanded(
-        child: Center(
-          child: Text(
-            "No appointments available",
-            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-          ),
+      return Center(
+        child: Text(
+          "No appointments available",
+          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
         ),
       );
     }
 
-    return Expanded(
+    return MediaQuery.removePadding(
+      context: context,
+      removeBottom: true,
+      removeTop: true,
       child: ListView.builder(
-        padding: EdgeInsets.zero,
         itemCount: appointments.length,
         itemBuilder: (context, index) {
           final appt = appointments[index];
           return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(16),
             child: patientAppointmentView(context, appt),
           );
         },
@@ -190,65 +201,67 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   Widget headerView() {
-  return ValueListenableBuilder<String?>(
-    valueListenable: ProfileNotifier.profileImageUrl,
-    builder: (context, updatedUrl, _) {
-      final loginDataUrl =
-          SaveLoginResponse.loginData?['profile_picture'] ?? '';
-      final profileImageUrl = updatedUrl ?? loginDataUrl;
+    return ValueListenableBuilder<String?>(
+      valueListenable: ProfileNotifier.profileImageUrl,
+      builder: (context, updatedUrl, _) {
+        final loginDataUrl =
+            SaveLoginResponse.loginData?['profile_picture'] ?? '';
+        final profileImageUrl = updatedUrl ?? loginDataUrl;
 
-      final firstName = SaveLoginResponse.loginData?['first_name'] ?? '';
-      final lastName = SaveLoginResponse.loginData?['last_name'] ?? '';
-      final docName = '$firstName $lastName';
+        final firstName = SaveLoginResponse.loginData?['first_name'] ?? '';
+        final lastName = SaveLoginResponse.loginData?['last_name'] ?? '';
+        final docName = '$firstName $lastName';
 
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 25,
-                backgroundImage: profileImageUrl.isNotEmpty
-                    ? NetworkImage(profileImageUrl)
-                    : const AssetImage('assets/images/haticare_logo.png')
-                        as ImageProvider,
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Welcome Back,", style: TextStyle(color: Colors.grey)),
-                  Text(
-                    docName.trim().isNotEmpty ? docName : 'Loading...',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 25,
+                  backgroundImage: profileImageUrl.isNotEmpty
+                      ? NetworkImage(profileImageUrl)
+                      : const AssetImage('assets/images/haticare_logo.png')
+                            as ImageProvider,
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Welcome Back,",
+                      style: TextStyle(color: Colors.grey),
                     ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          Stack(
-            children: [
-              SvgPicture.asset(
-                'assets/icons/notification.svg',
-                height: 26,
-                color: Colors.black87,
-              ),
-              const Positioned(
-                right: 0,
-                top: 0,
-                child: CircleAvatar(radius: 4, backgroundColor: Colors.red),
-              ),
-            ],
-          ),
-        ],
-      );
-    },
-  );
-}
-
+                    Text(
+                      docName.trim().isNotEmpty ? docName : 'Loading...',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            Stack(
+              children: [
+                SvgPicture.asset(
+                  'assets/icons/notification.svg',
+                  height: 26,
+                  color: Colors.black87,
+                ),
+                const Positioned(
+                  right: 0,
+                  top: 0,
+                  child: CircleAvatar(radius: 4, backgroundColor: Colors.red),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Widget toggleView() {
     return Container(
@@ -449,8 +462,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                             ),
                         child: const Text(
                           "New Appointment Request",
-                          overflow:
-                              TextOverflow.ellipsis,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -565,7 +577,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     onPressed: () {
                       PersistentNavBarNavigator.pushNewScreen(
                         context,
-                        screen: AppointmentDetail(appointment: appointment),
+                        screen: AppointmentDetail(
+                          appointment: appointment,
+                          isCameFromAccept: true,
+                        ),
                         withNavBar: false,
                         pageTransitionAnimation:
                             PageTransitionAnimation.cupertino,
