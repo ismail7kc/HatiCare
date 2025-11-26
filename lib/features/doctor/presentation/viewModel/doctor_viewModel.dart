@@ -26,8 +26,9 @@ class DoctorViewModel extends ChangeNotifier {
 
       if (response['success'] == true && response['data'] != null) {
         final List data = response['data'] as List;
-
-        _appointments = data.map((json) => AppointmentModel.fromJson(json)).toList();
+        _appointments = data
+            .map((json) => AppointmentModel.fromJson(json))
+            .toList();
       } else {
         _errorMessage = response['message'] ?? 'Failed to fetch patient queue';
       }
@@ -40,32 +41,42 @@ class DoctorViewModel extends ChangeNotifier {
   }
 
   String formatAppointmentTime(DateTime dateTime) {
-  final now = DateTime.now();
+    final now = DateTime.now();
 
-  final today = DateTime(now.year, now.month, now.day);
-  final dateOnly = DateTime(dateTime.year, dateTime.month, dateTime.day);
+    final today = DateTime(now.year, now.month, now.day);
+    final dateOnly = DateTime(dateTime.year, dateTime.month, dateTime.day);
 
-  final isToday = today == dateOnly;
-  final isYesterday = today.subtract(const Duration(days: 1)) == dateOnly;
+    final isToday = today == dateOnly;
+    final isYesterday = today.subtract(const Duration(days: 1)) == dateOnly;
 
-  final hour = dateTime.hour % 12 == 0 ? 12 : dateTime.hour % 12;
-  final minute = dateTime.minute.toString().padLeft(2, '0');
-  final ampm = dateTime.hour >= 12 ? "PM" : "AM";
+    final hour = dateTime.hour % 12 == 0 ? 12 : dateTime.hour % 12;
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    final ampm = dateTime.hour >= 12 ? "PM" : "AM";
 
-  final timeFormatted = "$hour:$minute $ampm";
+    final timeFormatted = "$hour:$minute $ampm";
 
-  if (isToday) return "Today $timeFormatted";
-  if (isYesterday) return "Yesterday $timeFormatted";
+    if (isToday) return "Today $timeFormatted";
+    if (isYesterday) return "Yesterday $timeFormatted";
 
-  return "${_month(dateTime.month)} ${dateTime.day}, $timeFormatted";
-}
+    return "${_month(dateTime.month)} ${dateTime.day}, $timeFormatted";
+  }
 
-String _month(int m) {
-  const months = [
-    "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-  ];
-  return months[m];
-}
-
+  String _month(int m) {
+    const months = [
+      "",
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    return months[m];
+  }
 }

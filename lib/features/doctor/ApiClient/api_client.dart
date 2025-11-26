@@ -150,6 +150,54 @@ class ApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> acceptPatientResponse(String url) async {
+    try {
+      final uri = Uri.parse(url);
+
+      final response = await _client.post(
+        uri,
+        headers: {
+          'Authorization':
+              'Bearer ${SaveLoginResponse.loginData?['access_token']}',
+        },
+      );
+
+      debugPrint('Patient Accecpt Response URL: $uri');
+      debugPrint('Status Code: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
+
+      return _handleResponse(response);
+    } catch (error) {
+      debugPrint('Patient Accept: $error');
+      return {'success': false, 'message': error.toString(), 'data': {}};
+    }
+  }
+
+  Future<Map<String, dynamic>> createPrescription(String url, {Map<String, dynamic>? body,}) async {
+    try {
+      final uri = Uri.parse(url);
+
+      final response = await _client.post(
+        uri,
+        headers: {
+          'Authorization':
+              'Bearer ${SaveLoginResponse.loginData?['access_token']}',
+          'Content-Type': 'application/json',
+        },
+        body: body != null ? jsonEncode(body) : null,
+      );
+
+      debugPrint('Patient Accept Response URL: $uri');
+      debugPrint('Status Code: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
+
+      return _handleResponse(response);
+    } catch (error) {
+      debugPrint('Patient Accept: $error');
+      return {'success': false, 'message': error.toString(), 'data': {}};
+    }
+  }
+
   Map<String, dynamic> _handleResponse(http.Response response) {
     try {
       final decoded = jsonDecode(response.body);

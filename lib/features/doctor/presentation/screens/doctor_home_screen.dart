@@ -3,7 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
-import 'package:haticare/features/doctor/presentation/screens/audio_call.dart';
+import 'package:haticare/features/doctor/presentation/screens/appointment_detail.dart';
 import 'package:haticare/features/doctor/presentation/screens/consultation_history.dart';
 import 'package:haticare/features/doctor/presentation/screens/setting_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/doctor_viewModel.dart';
@@ -11,7 +11,6 @@ import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
 import 'package:haticare/features/doctor/models/appointment_model.dart';
-import 'appointment_detail.dart';
 import 'package:provider/provider.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 
@@ -140,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   toggleView(),
                   const SizedBox(height: 20),
                   statsView(),
-                  const SizedBox(height: 25),
+                  const SizedBox(height: 20),
 
                   if (hasAdminApproval)
                     const Text(
@@ -151,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                       ),
                     ),
 
-                  if (hasAdminApproval) const SizedBox(height: 10),
+                  // if (hasAdminApproval) const SizedBox(height: 2),
                 ],
               ),
             ),
@@ -174,6 +173,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     BuildContext context,
     List<AppointmentModel> appointments,
   ) {
+    if (!isOnline) {
+      return patientQueueView();
+    }
+
     if (appointments.isEmpty) {
       return Center(
         child: Text(
@@ -183,20 +186,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       );
     }
 
-    return MediaQuery.removePadding(
-      context: context,
-      removeBottom: true,
-      removeTop: true,
-      child: ListView.builder(
-        itemCount: appointments.length,
-        itemBuilder: (context, index) {
-          final appt = appointments[index];
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: patientAppointmentView(context, appt),
-          );
-        },
-      ),
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 10),
+      itemCount: appointments.length,
+      itemBuilder: (context, index) {
+        final appt = appointments[index];
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: patientAppointmentView(context, appt),
+        );
+      },
     );
   }
 
@@ -577,7 +576,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     onPressed: () {
                       PersistentNavBarNavigator.pushNewScreen(
                         context,
-                        screen: AppointmentDetail(
+                        screen: AppointmentDetailScreen(
                           appointment: appointment,
                           isCameFromAccept: true,
                         ),
