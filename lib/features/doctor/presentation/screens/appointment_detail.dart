@@ -4,10 +4,10 @@ import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/audio_call.dart';
+import 'package:haticare/features/doctor/presentation/screens/issue_rx.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/appointment_detailVM.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/doctor/models/appointment_model.dart';
-import 'package:haticare/features/doctor/presentation/dialogs/dialog_helpers.dart';
 
 class AppointmentDetailScreen extends StatefulWidget {
   final AppointmentModel appointment;
@@ -204,7 +204,7 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                     }).toList(),
                   ),
                 ],
-              )
+              ),
             ),
 
             const SizedBox(height: 16),
@@ -349,7 +349,12 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
     return Column(
       children: [
         GestureDetector(
-          onTap: () => DialogHelper.showDialogForLabel(context, label, appointmentDetailvm),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => CreatePrescriptionScreen(appointmentDetailvm)),
+            );
+          },
           child: Container(
             width: 60,
             height: 60,

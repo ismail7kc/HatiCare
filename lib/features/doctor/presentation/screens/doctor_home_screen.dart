@@ -43,7 +43,12 @@ class _MainScreenState extends State<DoctorHomeScreen> {
   Widget build(BuildContext context) {
     return CustomBottomNav(
       screens: [
-        const HomeScreen(),
+        ChangeNotifierProvider(
+          create: (_) =>
+              DoctorViewModel(RepositoryLayer(ApiClient()))
+                ..fetchPatientQueue(),
+          child: const HomeScreen(),
+        ),
         const ConsultationHistoryScreen(),
         MultiProvider(
           providers: [
@@ -118,6 +123,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   void dispose() {
     doctorViewModel.dispose();
     super.dispose();
+  }
+
+  @override // this method will called when doctor object change
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    doctorViewModel = Provider.of<DoctorViewModel>(context);
   }
 
   @override
@@ -288,10 +299,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 value: isOnline,
                 activeThumbColor: const Color(0xFFFFFFFF),
                 activeTrackColor: const Color(0xFF34C759),
-                onChanged: (value) {
+                onChanged: (value) async {
                   setState(() {
                     isOnline = value;
                   });
+                  await doctorViewModel.isDoctorOnline(isOnline: value);
+                  await doctorViewModel.fetchPatientQueue();
+                  // wait until not get response from PATCH Requst.
                 },
               ),
             ),

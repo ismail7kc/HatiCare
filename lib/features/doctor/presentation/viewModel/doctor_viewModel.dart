@@ -16,6 +16,17 @@ class DoctorViewModel extends ChangeNotifier {
   String _errorMessage = '';
   String get errorMessage => _errorMessage;
 
+  Future<void> isDoctorOnline({required bool isOnline}) async {
+    final body = {'is_online': isOnline};
+
+    final response = await repository.updateDoctorInfo(body);
+
+    if (response['success'] == true && response['data'] != null) {
+      debugPrint('Response when docter send online true $response[message]');
+      notifyListeners();
+    }
+  }
+
   Future<void> fetchPatientQueue() async {
     _isLoading = true;
     _errorMessage = '';

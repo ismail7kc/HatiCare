@@ -3,7 +3,7 @@ class DoctorMedication {
   final String dose;
   final String frequency;
   final String duration;
-  final int quantity;
+  // final int quantity;
   final String notes;
 
   DoctorMedication({
@@ -11,7 +11,7 @@ class DoctorMedication {
     required this.dose,
     required this.frequency,
     required this.duration,
-    required this.quantity,
+    // required this.quantity,
     required this.notes,
   });
 
@@ -21,7 +21,7 @@ class DoctorMedication {
       "dose": dose,
       "frequency": frequency,
       "duration": duration,
-      "quantity": quantity,
+      // "quantity": quantity,
       "notes": notes,
     };
   }

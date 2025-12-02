@@ -173,7 +173,10 @@ class ApiClient {
     }
   }
 
-  Future<Map<String, dynamic>> createPrescription(String url, {Map<String, dynamic>? body,}) async {
+  Future<Map<String, dynamic>> createPrescription(
+    String url, {
+    Map<String, dynamic>? body,
+  }) async {
     try {
       final uri = Uri.parse(url);
 
@@ -187,13 +190,13 @@ class ApiClient {
         body: body != null ? jsonEncode(body) : null,
       );
 
-      debugPrint('Patient Accept Response URL: $uri');
+      debugPrint('Create Presecription Response URL: $uri');
       debugPrint('Status Code: ${response.statusCode}');
       debugPrint('Response Body: ${response.body}');
 
       return _handleResponse(response);
     } catch (error) {
-      debugPrint('Patient Accept: $error');
+      debugPrint('Patient Prescription: $error');
       return {'success': false, 'message': error.toString(), 'data': {}};
     }
   }

@@ -58,6 +58,8 @@ class RepositoryLayer {
       "notes": notes ?? "",
     };
 
+    debugPrint('prescription data is $data');
+
     return await _apiClient.createPrescription(url, body: data);
   }
 
