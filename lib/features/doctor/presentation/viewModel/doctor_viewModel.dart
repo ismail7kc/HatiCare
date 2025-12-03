@@ -18,7 +18,8 @@ class DoctorViewModel extends ChangeNotifier {
 
   Future<void> isDoctorOnline({required bool isOnline}) async {
     final body = {'is_online': isOnline};
-
+    
+    // update PATCH request if doctor have patient or not
     final response = await repository.updateDoctorInfo(body);
 
     if (response['success'] == true && response['data'] != null) {

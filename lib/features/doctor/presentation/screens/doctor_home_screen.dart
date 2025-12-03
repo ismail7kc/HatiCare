@@ -304,8 +304,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     isOnline = value;
                   });
                   await doctorViewModel.isDoctorOnline(isOnline: value);
-                  await doctorViewModel.fetchPatientQueue();
-                  // wait until not get response from PATCH Requst.
+                  await doctorViewModel.fetchPatientQueue(); // wait until not get response from PATCH Requst.
                 },
               ),
             ),
