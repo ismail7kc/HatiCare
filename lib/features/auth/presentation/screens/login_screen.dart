@@ -65,7 +65,7 @@ class _LoginView extends StatelessWidget {
           return;
         }
         
-        if (!viewModel.isProfileCompleted) {
+        if (viewModel.isProfileCompleted) {
           PersistentNavBarNavigator.pushNewScreen(
             context,
             screen: DoctorVerificationScreen(),
