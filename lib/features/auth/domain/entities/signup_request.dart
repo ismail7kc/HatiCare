@@ -92,6 +92,15 @@ class SignupRequest {
           'phone_number': businessPhone,
           'contact_person': ownerName,
         });
+      case UserRole.laboratory:
+        return _clean({
+          'email': email,
+          'password': password,
+          'confirm_password': confirmPassword,
+          'user_type': 'laboratory',
+          'phone_number': businessPhone,
+          'contact_person': ownerName,
+        });
     }
   }
 

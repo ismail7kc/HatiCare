@@ -50,6 +50,16 @@ class SignupViewModel extends ChangeNotifier {
   final pharmacyLicenseNumberController = TextEditingController();
   final taxIdentificationNumberController = TextEditingController();
 
+  // Laboratory fields
+  final laboratoryContactPersonController = TextEditingController();
+  final laboratoryPhoneController = TextEditingController();
+  String? _laboratoryPhoneNumber;
+  PhoneNumber? _laboratoryPhoneMeta;
+  String _laboratoryCountryCode = '+1';
+  final laboratoryEmailController = TextEditingController();
+  final laboratoryPasswordController = TextEditingController();
+  final laboratoryConfirmPasswordController = TextEditingController();
+
   UserRole selectedRole = UserRole.doctor;
   bool isSubmitting = false;
   bool autovalidate = true;
@@ -65,6 +75,7 @@ class SignupViewModel extends ChangeNotifier {
 
   SignupRequest? _pendingDoctorSignupRequest;
   SignupRequest? _pendingPharmacySignupRequest;
+  SignupRequest? _pendingLaboratorySignupRequest;
 
   void selectRole(UserRole role) {
     if (selectedRole == role) return;
@@ -77,6 +88,8 @@ class SignupViewModel extends ChangeNotifier {
     _doctorPhoneMeta = null;
     _businessPhoneNumber = null;
     _businessPhoneMeta = null;
+    _laboratoryPhoneNumber = null;
+    _laboratoryPhoneMeta = null;
     formKey.currentState?.reset();
     notifyListeners();
   }
@@ -98,6 +111,13 @@ class SignupViewModel extends ChangeNotifier {
     pharmacyEmailController.addListener(_clearErrorOnChange);
     pharmacyPasswordController.addListener(_clearErrorOnChange);
     pharmacyConfirmPasswordController.addListener(_clearErrorOnChange);
+
+    // Laboratory fields
+    laboratoryContactPersonController.addListener(_clearErrorOnChange);
+    laboratoryPhoneController.addListener(_clearErrorOnChange);
+    laboratoryEmailController.addListener(_clearErrorOnChange);
+    laboratoryPasswordController.addListener(_clearErrorOnChange);
+    laboratoryConfirmPasswordController.addListener(_clearErrorOnChange);
   }
 
   void _clearErrorOnChange() {
@@ -138,6 +158,7 @@ class SignupViewModel extends ChangeNotifier {
 
   bool get isDoctor => selectedRole == UserRole.doctor;
   bool get isPharmacy => selectedRole == UserRole.pharmacy;
+  bool get isLaboratory => selectedRole == UserRole.laboratory;
   bool get shouldNavigateToOtp => _otpReadyForNavigation;
 
   String? _requiredValidator(String? value, String fieldName) {
@@ -149,12 +170,40 @@ class SignupViewModel extends ChangeNotifier {
 
   String? validateFirstName(String? value) {
     if (!isDoctor) return null;
-    return _requiredValidator(value, 'first name');
+    
+    // Trim the value
+    final trimmed = value?.trim() ?? '';
+    
+    // Check if empty
+    if (trimmed.isEmpty) {
+      return 'Enter first name';
+    }
+    
+    // Check if only alphabets (and spaces)
+    if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(trimmed)) {
+      return 'First name should only contain alphabets';
+    }
+    
+    return null;
   }
 
   String? validateLastName(String? value) {
     if (!isDoctor) return null;
-    return _requiredValidator(value, 'last name');
+    
+    // Trim the value
+    final trimmed = value?.trim() ?? '';
+    
+    // Check if empty
+    if (trimmed.isEmpty) {
+      return 'Enter last name';
+    }
+    
+    // Check if only alphabets (and spaces)
+    if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(trimmed)) {
+      return 'Last name should only contain alphabets';
+    }
+    
+    return null;
   }
 
   String? _validateEmailFormat(String? value) {
@@ -172,9 +221,32 @@ class SignupViewModel extends ChangeNotifier {
     if (value == null || value.isEmpty) {
       return 'Please enter a password';
     }
+    
+    // Check minimum length
     if (value.length < 8) {
       return 'Password must be at least 8 characters';
     }
+    
+    // Check for uppercase letter
+    if (!RegExp(r'[A-Z]').hasMatch(value)) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    
+    // Check for lowercase letter
+    if (!RegExp(r'[a-z]').hasMatch(value)) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    
+    // Check for number
+    if (!RegExp(r'[0-9]').hasMatch(value)) {
+      return 'Password must contain at least one number';
+    }
+    
+    // Check for special character
+    if (!RegExp(r'[!@#\$%^&*()_+\-=\[\]{};:"\\|,.<>?]').hasMatch(value)) {
+      return 'Password must contain at least one special character';
+    }
+    
     return null;
   }
 
@@ -256,6 +328,12 @@ class SignupViewModel extends ChangeNotifier {
       return 'Enter phone number';
     }
 
+    // Validate based on country format
+    final expectedLength = _expectedNationalLength(candidate.countryISOCode);
+    if (expectedLength != null && digits.length != expectedLength) {
+      return 'Phone number must be $expectedLength digits for ${candidate.countryISOCode}';
+    }
+
     _doctorPhoneNumber = _normalizePhoneNumber(candidate);
     return null;
   }
@@ -325,6 +403,11 @@ class SignupViewModel extends ChangeNotifier {
     return _requiredValidator(value, 'owner / manager name');
   }
 
+  String? validateLaboratoryContactPerson(String? value) {
+    if (!isLaboratory) return null;
+    return _requiredValidator(value, 'contact person');
+  }
+
   String? validateBusinessPhone(PhoneNumber? phone) {
     if (!isPharmacy) return null;
     final candidate = phone ?? _businessPhoneMeta;
@@ -335,6 +418,12 @@ class SignupViewModel extends ChangeNotifier {
     final digits = candidate.number.replaceAll(RegExp(r'\D'), '');
     if (digits.isEmpty) {
       return 'Enter business phone number';
+    }
+
+    // Validate based on country format
+    final expectedLength = _expectedNationalLength(candidate.countryISOCode);
+    if (expectedLength != null && digits.length != expectedLength) {
+      return 'Phone number must be $expectedLength digits for ${candidate.countryISOCode}';
     }
 
     _businessPhoneNumber = _normalizePhoneNumber(candidate);
@@ -371,6 +460,61 @@ class SignupViewModel extends ChangeNotifier {
     return _requiredValidator(value, 'pharmacy license number');
   }
 
+  String? validateLaboratoryPhone(PhoneNumber? phone) {
+    if (!isLaboratory) return null;
+    final candidate = phone ?? _laboratoryPhoneMeta;
+    if (candidate == null || candidate.number.trim().isEmpty) {
+      return 'Enter phone number';
+    }
+
+    final digits = candidate.number.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) {
+      return 'Enter phone number';
+    }
+
+    // Validate based on country format
+    final expectedLength = _expectedNationalLength(candidate.countryISOCode);
+    if (expectedLength != null && digits.length != expectedLength) {
+      return 'Phone number must be $expectedLength digits for ${candidate.countryISOCode}';
+    }
+
+    _laboratoryPhoneNumber = _normalizePhoneNumber(candidate);
+    return null;
+  }
+
+  String? validateLaboratoryEmail(String? value) {
+    if (!isLaboratory) return null;
+    return _validateEmailFormat(value);
+  }
+
+  String? validateLaboratoryPassword(String? value) {
+    if (!isLaboratory) return null;
+    return _validatePasswordStrength(value);
+  }
+
+  String? validateLaboratoryConfirmPassword(String? value) {
+    if (!isLaboratory) return null;
+    if (value == null || value.isEmpty) {
+      return 'Please confirm your password';
+    }
+    if (value != laboratoryPasswordController.text) {
+      return 'Passwords do not match';
+    }
+    return null;
+  }
+
+  void updateLaboratoryPhone(PhoneNumber? phone) {
+    _laboratoryPhoneMeta = phone;
+    if (phone != null) {
+      _laboratoryCountryCode = phone.countryCode;
+      _laboratoryPhoneNumber = _normalizePhoneNumber(phone);
+    }
+  }
+
+  void updateLaboratoryCountryCode(String countryCode) {
+    _laboratoryCountryCode = _normalizeCountryCodeString(countryCode);
+  }
+
   void setDoctorLicenseDocument({required String path, required String name}) {
     doctorLicenseDocumentPath = path;
     doctorLicenseDocumentName = name;
@@ -402,12 +546,14 @@ class SignupViewModel extends ChangeNotifier {
         role: selectedRole,
         email: isDoctor
             ? doctorEmailController.text.trim()
-            : pharmacyEmailController.text.trim(),
+            : (isLaboratory
+                ? laboratoryEmailController.text.trim()
+                : pharmacyEmailController.text.trim()),
         password:
-            isDoctor ? doctorPasswordController.text : pharmacyPasswordController.text,
+            isDoctor ? doctorPasswordController.text : (isLaboratory ? laboratoryPasswordController.text : pharmacyPasswordController.text),
         confirmPassword: isDoctor
             ? doctorConfirmPasswordController.text
-            : pharmacyConfirmPasswordController.text,
+            : (isLaboratory ? laboratoryConfirmPasswordController.text : pharmacyConfirmPasswordController.text),
         firstName: isDoctor ? firstNameController.text.trim() : null,
         lastName: isDoctor ? lastNameController.text.trim() : null,
         phoneNumber: isDoctor
@@ -415,16 +561,23 @@ class SignupViewModel extends ChangeNotifier {
             : null,
         gender: isDoctor ? genderController.text.trim() : null,
         dateOfBirth: isDoctor ? dateOfBirthController.text.trim() : null,
-        ownerName: isPharmacy ? ownerNameController.text.trim() : null,
-        businessPhone: isPharmacy
-            ? (_businessPhoneNumber ?? businessPhoneController.text.trim())
+        ownerName: isPharmacy 
+            ? ownerNameController.text.trim() 
+            : (isLaboratory ? laboratoryContactPersonController.text.trim() : null),
+        businessPhone: (isPharmacy || isLaboratory)
+            ? (isLaboratory
+                ? (_laboratoryPhoneNumber ?? laboratoryPhoneController.text.trim())
+                : (_businessPhoneNumber ?? businessPhoneController.text.trim()))
             : null,
       );
       
-      // For both doctor and pharmacy, generate OTP first
+      // For doctor, pharmacy, and laboratory, generate OTP first
       Map<String, dynamic> otpResponse;
       if (isDoctor) {
         _pendingDoctorSignupRequest = request;
+        otpResponse = await _repository.generateOtp(email: request.email);
+      } else if (isLaboratory) {
+        _pendingLaboratorySignupRequest = request;
         otpResponse = await _repository.generateOtp(email: request.email);
       } else {
         // For pharmacy, also use OTP flow
@@ -452,10 +605,12 @@ class SignupViewModel extends ChangeNotifier {
 
   SignupRequest? get pendingDoctorSignupRequest => _pendingDoctorSignupRequest;
   SignupRequest? get pendingPharmacySignupRequest => _pendingPharmacySignupRequest;
+  SignupRequest? get pendingLaboratorySignupRequest => _pendingLaboratorySignupRequest;
 
   void clearPendingRequest() {
     _pendingDoctorSignupRequest = null;
     _pendingPharmacySignupRequest = null;
+    _pendingLaboratorySignupRequest = null;
     _otpReadyForNavigation = false;
   }
 
@@ -497,6 +652,11 @@ class SignupViewModel extends ChangeNotifier {
     countryController.dispose();
     pharmacyLicenseNumberController.dispose();
     taxIdentificationNumberController.dispose();
+    laboratoryContactPersonController.dispose();
+    laboratoryPhoneController.dispose();
+    laboratoryEmailController.dispose();
+    laboratoryPasswordController.dispose();
+    laboratoryConfirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -511,5 +671,37 @@ class SignupViewModel extends ChangeNotifier {
       return response['status'] as String;
     }
     return null;
+  }
+
+  Future<void> laboratorySignupWithOtp({required String otp}) async {
+    if (_pendingLaboratorySignupRequest == null) {
+      errorMessage = 'No pending laboratory signup request';
+      notifyListeners();
+      return;
+    }
+
+    isSubmitting = true;
+    errorMessage = null;
+    successMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _repository.laboratorySignupWithOtp(
+        request: _pendingLaboratorySignupRequest!,
+        otp: otp,
+      );
+
+      successMessage = _successMessageFromResponse(response) ?? 'Laboratory registered successfully';
+      _pendingLaboratorySignupRequest = null;
+    } catch (error) {
+      if (error is AuthApiException) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = 'Laboratory signup failed. Please try again.';
+      }
+    } finally {
+      isSubmitting = false;
+      notifyListeners();
+    }
   }
 }

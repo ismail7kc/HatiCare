@@ -30,43 +30,14 @@ class _SignupView extends StatefulWidget {
   State<_SignupView> createState() => _SignupViewState();
 }
 
-class _SignupViewState extends State<_SignupView>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
-  late final List<Widget> _tabChildren;
-
+class _SignupViewState extends State<_SignupView> {
   @override
   void initState() {
     super.initState();
-    final viewModel = context.read<SignupViewModel>();
-    _tabController = TabController(
-      length: 2,
-      vsync: this,
-      initialIndex: viewModel.isDoctor ? 0 : 1,
-    );
-    _tabController.addListener(_handleTabChange);
-
-    _tabChildren = [
-      _DoctorSection(key: const ValueKey('doctor')),
-      _PharmacySection(key: const ValueKey('pharmacy')),
-    ];
-  }
-
-  void _handleTabChange() {
-    if (_tabController.indexIsChanging) return;
-    final viewModel = context.read<SignupViewModel>();
-    final role = _tabController.index == 0
-        ? UserRole.doctor
-        : UserRole.pharmacy;
-    if (viewModel.selectedRole != role) {
-      viewModel.selectRole(role);
-    }
   }
 
   @override
   void dispose() {
-    _tabController.removeListener(_handleTabChange);
-    _tabController.dispose();
     super.dispose();
   }
 
@@ -79,6 +50,7 @@ class _SignupViewState extends State<_SignupView>
       selector: (_, viewModel) => _SignupState(
         shouldNavigateToOtp: viewModel.shouldNavigateToOtp,
         isDoctor: viewModel.isDoctor,
+        isLaboratory: viewModel.isLaboratory,
         errorMessage: viewModel.errorMessage,
         successMessage: viewModel.successMessage,
         isSubmitting: viewModel.isSubmitting,
@@ -92,11 +64,15 @@ class _SignupViewState extends State<_SignupView>
             if (mounted) {
               final signupRequest = state.isDoctor
                   ? viewModel.pendingDoctorSignupRequest
-                  : viewModel.pendingPharmacySignupRequest;
+                  : (state.isLaboratory
+                      ? viewModel.pendingLaboratorySignupRequest
+                      : viewModel.pendingPharmacySignupRequest);
 
               final email = state.isDoctor
                   ? viewModel.doctorEmailController.text.trim()
-                  : viewModel.pharmacyEmailController.text.trim();
+                  : (state.isLaboratory
+                      ? viewModel.laboratoryEmailController.text.trim()
+                      : viewModel.pharmacyEmailController.text.trim());
 
               if (signupRequest != null) {
                 viewModel.markOtpNavigationHandled();
@@ -116,12 +92,6 @@ class _SignupViewState extends State<_SignupView>
               }
             }
           });
-        }
-
-        final targetIndex = state.isDoctor ? 0 : 1;
-        if (_tabController.index != targetIndex &&
-            !_tabController.indexIsChanging) {
-          _tabController.index = targetIndex;
         }
 
         return Scaffold(
@@ -161,49 +131,36 @@ class _SignupViewState extends State<_SignupView>
                             ),
                           ),
                           const SizedBox(height: 24),
-                          Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF0F2FC),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: TabBar(
-                              controller: _tabController,
-                              indicatorSize: TabBarIndicatorSize.tab,
-                              indicator: BoxDecoration(
-                                gradient: AppColors.primaryGradient,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              labelColor: Colors.white,
-                              unselectedLabelColor: const Color(0xFF7D7D91),
-                              labelStyle: textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                              unselectedLabelStyle: textTheme.bodyMedium
-                                  ?.copyWith(fontWeight: FontWeight.w500),
-                              dividerColor: Colors.transparent,
-                              onTap: (index) {
-                                final role = index == 0
-                                    ? UserRole.doctor
-                                    : UserRole.pharmacy;
-                                if (viewModel.selectedRole != role) {
-                                  viewModel.selectRole(role);
-                                }
+                          _LabeledField(
+                            label: 'Select Role',
+                            child: Selector<SignupViewModel, UserRole>(
+                              selector: (_, vm) => vm.selectedRole,
+                              builder: (context, selectedRole, _) {
+                                return _RoleDropdown(
+                                  value: selectedRole,
+                                  onChanged: (role) {
+                                    if (role != null && viewModel.selectedRole != role) {
+                                      viewModel.selectRole(role);
+                                    }
+                                  },
+                                );
                               },
-                              tabs: const [
-                                Tab(text: 'Doctor'),
-                                Tab(text: 'Pharmacy'),
-                              ],
                             ),
                           ),
-                          const SizedBox(height: 14),
-                          SizedBox(
-                            height: 800,
-                            child: TabBarView(
-                              controller: _tabController,
-                              physics: const ClampingScrollPhysics(),
-                              children: _tabChildren,
-                            ),
+                          const SizedBox(height: 24),
+                          Selector<SignupViewModel, UserRole>(
+                            selector: (_, vm) => vm.selectedRole,
+                            builder: (context, selectedRole, _) {
+                              return SingleChildScrollView(
+                                physics: const ClampingScrollPhysics(),
+                                padding: const EdgeInsets.only(bottom: 24),
+                                child: selectedRole == UserRole.doctor
+                                    ? const _DoctorSection()
+                                    : (selectedRole == UserRole.pharmacy
+                                        ? const _PharmacySection()
+                                        : const _LaboratorySection()),
+                              );
+                            },
                           ),
                         if (state.errorMessage != null) ...[
                           const SizedBox(height: 16),
@@ -261,6 +218,7 @@ class _SignupViewState extends State<_SignupView>
 class _SignupState {
   final bool shouldNavigateToOtp;
   final bool isDoctor;
+  final bool isLaboratory;
   final String? errorMessage;
   final String? successMessage;
   final bool isSubmitting;
@@ -269,6 +227,7 @@ class _SignupState {
   _SignupState({
     required this.shouldNavigateToOtp,
     required this.isDoctor,
+    required this.isLaboratory,
     required this.errorMessage,
     required this.successMessage,
     required this.isSubmitting,
@@ -282,6 +241,7 @@ class _SignupState {
           runtimeType == other.runtimeType &&
           shouldNavigateToOtp == other.shouldNavigateToOtp &&
           isDoctor == other.isDoctor &&
+          isLaboratory == other.isLaboratory &&
           errorMessage == other.errorMessage &&
           successMessage == other.successMessage &&
           isSubmitting == other.isSubmitting &&
@@ -291,6 +251,7 @@ class _SignupState {
   int get hashCode =>
       shouldNavigateToOtp.hashCode ^
       isDoctor.hashCode ^
+      isLaboratory.hashCode ^
       errorMessage.hashCode ^
       successMessage.hashCode ^
       isSubmitting.hashCode ^
@@ -482,6 +443,9 @@ class _DoctorSection extends StatelessWidget {
                     textCapitalization: TextCapitalization.words,
                     prefixIcon: const Icon(Icons.person_outline),
                     validator: viewModel.validateFirstName,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
+                    ],
                   ),
                 ),
               ),
@@ -496,6 +460,9 @@ class _DoctorSection extends StatelessWidget {
                     textCapitalization: TextCapitalization.words,
                     prefixIcon: const Icon(Icons.person_outline),
                     validator: viewModel.validateLastName,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
+                    ],
                   ),
                 ),
               ),
@@ -765,6 +732,125 @@ class _PharmacySection extends StatelessWidget {
   }
 }
 
+class _LaboratorySection extends StatelessWidget {
+  const _LaboratorySection({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final viewModel = context.read<SignupViewModel>();
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _LabeledField(
+          label: 'Contact Person',
+          child: AppTextField(
+            controller: viewModel.laboratoryContactPersonController,
+            label: 'Contact Person',
+            hint: 'Dr. Ali Khan',
+            textCapitalization: TextCapitalization.words,
+            prefixIcon: const Icon(Icons.person_outline),
+            validator: viewModel.validateLaboratoryContactPerson,
+          ),
+        ),
+        const SizedBox(height: 4),
+        _PhoneFieldWrapper(
+          label: 'Phone Number',
+          controller: viewModel.laboratoryPhoneController,
+          validator: viewModel.validateLaboratoryPhone,
+          onChanged: viewModel.updateLaboratoryPhone,
+          onCountryChanged: (country) {
+            if (country != null && country is Map && country.containsKey('dial_code')) {
+              viewModel.updateLaboratoryCountryCode(country['dial_code'] as String);
+            }
+          },
+          initialCountryCode: 'US',
+          hint: '1234567890',
+        ),
+        const SizedBox(height: 4),
+        _LabeledField(
+          label: 'Email',
+          child: AppTextField(
+            controller: viewModel.laboratoryEmailController,
+            label: 'Email',
+            hint: 'laboratory@example.com',
+            keyboardType: TextInputType.emailAddress,
+            prefixIcon: const Icon(Icons.email_outlined),
+            validator: viewModel.validateLaboratoryEmail,
+          ),
+        ),
+        const SizedBox(height: 4),
+        _LabeledField(
+          label: 'Password',
+          child: AppTextField(
+            controller: viewModel.laboratoryPasswordController,
+            label: 'Password',
+            hint: 'Enter Your Password',
+            prefixIcon: const Icon(Icons.lock_outline),
+            obscureText: true,
+            enableObscureToggle: true,
+            validator: viewModel.validateLaboratoryPassword,
+          ),
+        ),
+        const SizedBox(height: 4),
+        _LabeledField(
+          label: 'Confirm Password',
+          child: AppTextField(
+            controller: viewModel.laboratoryConfirmPasswordController,
+            label: 'Confirm Password',
+            hint: 'Re-enter your password',
+            prefixIcon: const Icon(Icons.lock_outline),
+            obscureText: true,
+            enableObscureToggle: true,
+            validator: viewModel.validateLaboratoryConfirmPassword,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Selector<SignupViewModel, bool>(
+          selector: (_, vm) => vm.isSubmitting,
+          builder: (context, isSubmitting, _) {
+            final vm = context.read<SignupViewModel>();
+            return AppPrimaryButton(
+              label: 'Create Account',
+              onPressed: isSubmitting ? null : vm.submit,
+              isLoading: isSubmitting,
+            );
+          },
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Already have an account? ',
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            TextButton(
+              onPressed: viewModel.isSubmitting
+                  ? null
+                  : () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                foregroundColor: AppColors.primary,
+              ),
+              child: const Text(
+                'Log in',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 class _LabeledField extends StatelessWidget {
   const _LabeledField({
     required this.label,
@@ -942,6 +1028,127 @@ class _DatePickerField extends StatelessWidget {
   }
 }
 
+class _RoleDropdown extends StatefulWidget {
+  const _RoleDropdown({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final UserRole value;
+  final ValueChanged<UserRole?> onChanged;
+
+  @override
+  State<_RoleDropdown> createState() => _RoleDropdownState();
+}
+
+class _RoleDropdownState extends State<_RoleDropdown> {
+  late FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _showRoleMenu() {
+    final RenderBox renderBox = context.findRenderObject() as RenderBox;
+    final Offset offset = renderBox.localToGlobal(Offset.zero);
+    final Size size = renderBox.size;
+
+    showMenu<UserRole>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        offset.dx,
+        offset.dy + size.height - 1,
+        offset.dx,
+        offset.dy + size.height + 300,
+      ),
+      items: const [
+        PopupMenuItem(value: UserRole.doctor, child: Text('Doctor')),
+        PopupMenuItem(value: UserRole.pharmacy, child: Text('Pharmacy')),
+        PopupMenuItem(value: UserRole.laboratory, child: Text('Laboratory')),
+      ],
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
+      color: Colors.white,
+      constraints: BoxConstraints(
+        minWidth: size.width,
+        maxWidth: size.width,
+      ),
+    ).then((value) {
+      if (value != null) {
+        widget.onChanged(value);
+      }
+    });
+  }
+
+  String _getRoleLabel(UserRole role) {
+    switch (role) {
+      case UserRole.doctor:
+        return 'Doctor';
+      case UserRole.pharmacy:
+        return 'Pharmacy';
+      case UserRole.laboratory:
+        return 'Laboratory';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _showRoleMenu,
+      child: InputDecorator(
+        isFocused: false,
+        isEmpty: false,
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: AppColors.surface,
+          prefixIcon: const Icon(
+            Icons.business_outlined,
+            color: AppColors.primary,
+          ),
+          suffixIcon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(
+              color: AppColors.primary,
+              width: 1.4,
+            ),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
+        ),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            _getRoleLabel(widget.value),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _GenderDropdown extends StatefulWidget {
   const _GenderDropdown({
     required this.value,
@@ -980,9 +1187,9 @@ class _GenderDropdownState extends State<_GenderDropdown> {
     showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(
-        offset.dx - 0,
-        offset.dy + size.height - 2,
-        offset.dx + size.width + 8,
+        offset.dx,
+        offset.dy + size.height - 1,
+        offset.dx,
         offset.dy + size.height + 300,
       ),
       items: const [
@@ -994,6 +1201,10 @@ class _GenderDropdownState extends State<_GenderDropdown> {
         borderRadius: BorderRadius.circular(14),
       ),
       color: Colors.white,
+      constraints: BoxConstraints(
+        minWidth: size.width,
+        maxWidth: size.width,
+      ),
     ).then((value) {
       if (value != null) {
         // Call the onChanged callback which will trigger FormField.onChanged

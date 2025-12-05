@@ -11,6 +11,8 @@ import 'package:haticare/features/auth/presentation/screens/signup_screen.dart';
 import 'package:haticare/features/auth/presentation/viewmodels/login_view_model.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/edit_pharmacy_profile_screen.dart';
+import 'package:haticare/features/laboratory/presentation/screens/laboratory_home_screen.dart';
+import 'package:haticare/features/laboratory/presentation/screens/edit_laboratory_profile_screen.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/doctor_verification.dart';
@@ -41,25 +43,48 @@ class _LoginView extends StatelessWidget {
         if (!context.mounted) return;
         final role = viewModel.roleFromResponse;
         
-        if (role == 'pharmacy') {
+        if (role == 'pharmacy' || role == 'laboratory') {
           if (!viewModel.isProfileCompleted) {
             final prefs = await SharedPreferences.getInstance();
-            final pharmacyId = viewModel.pharmacyId ?? prefs.getString('pharmacy_id') ?? '';
             
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (_) => EditPharmacyProfileScreen(
-                  pharmacyId: pharmacyId,
-                  isForceComplete: true,
+            if (role == 'laboratory') {
+              final laboratoryId = prefs.getString('laboratory_id') ?? '';
+              
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(
+                  builder: (_) => EditLaboratoryProfileScreen(
+                    laboratoryId: laboratoryId,
+                    isForceComplete: true,
+                    openedFromSettings: false,
+                  ),
                 ),
-              ),
-              (route) => false,
-            );
+                (route) => false,
+              );
+            } else {
+              final pharmacyId = viewModel.pharmacyId ?? prefs.getString('pharmacy_id') ?? '';
+              
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(
+                  builder: (_) => EditPharmacyProfileScreen(
+                    pharmacyId: pharmacyId,
+                    isForceComplete: true,
+                  ),
+                ),
+                (route) => false,
+              );
+            }
           } else {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const PharmacyHomeScreen()),
-              (route) => false,
-            );
+            if (role == 'laboratory') {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LaboratoryHomeScreen()),
+                (route) => false,
+              );
+            } else {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const PharmacyHomeScreen()),
+                (route) => false,
+              );
+            }
           }
           viewModel.markNavigationHandled();
           return;

@@ -17,6 +17,10 @@ abstract class AuthRepository {
     required SignupRequest request,
     required String otp,
   });
+  Future<Map<String, dynamic>> laboratorySignupWithOtp({
+    required SignupRequest request,
+    required String otp,
+  });
   Future<Map<String, dynamic>> forgotPassword({required String email});
   Future<Map<String, dynamic>> verifyResetPasswordOtp({
     required String email,

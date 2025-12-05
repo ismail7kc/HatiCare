@@ -65,6 +65,18 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Map<String, dynamic>> laboratorySignupWithOtp({
+    required SignupRequest request,
+    required String otp,
+  }) async {
+    if (request.confirmPassword != null &&
+        request.password != request.confirmPassword) {
+      throw const PasswordMismatchException();
+    }
+    return await _apiService.laboratorySignupWithOtp(request: request, otp: otp);
+  }
+
+  @override
   Future<Map<String, dynamic>> forgotPassword({required String email}) {
     return _apiService.forgotPassword(email: email);
   }

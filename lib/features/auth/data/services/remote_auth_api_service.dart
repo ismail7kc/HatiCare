@@ -179,6 +179,39 @@ class RemoteAuthApiService implements AuthApiService {
   }
 
   @override
+  Future<Map<String, dynamic>> laboratorySignupWithOtp({
+    required SignupRequest request,
+    required String otp,
+  }) async {
+    final uri = Uri.parse('${AppConfig.baseUrl}/users/signup/');
+    final requestData = request.toJson();
+    requestData['otp'] = otp;
+
+    final response = await _client.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(requestData),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw AuthApiException(
+        _extractErrorMessage(response.body) ?? 'Laboratory signup failed',
+        statusCode: response.statusCode,
+      );
+    }
+
+    final decoded = _decodeJson(response.body);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+
+    return {'status': 'success', 'message': 'Laboratory registered successfully'};
+  }
+
+  @override
   Future<Map<String, dynamic>> forgotPassword({required String email}) async {
     final uri = Uri.parse('${AppConfig.baseUrl}/users/forgot-password/');
     final response = await _client.post(
@@ -315,6 +348,8 @@ class RemoteAuthApiService implements AuthApiService {
         return 'users/signup/doctor/';
       case UserRole.pharmacy:
         return 'users/signup/pharmacy/';
+      case UserRole.laboratory:
+        return 'users/signup/pharmacy/'; // Laboratory uses same API as pharmacy
     }
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/app_colors.dart';
 
@@ -27,6 +28,8 @@ class AppTextField extends StatefulWidget {
     this.maxLength,
     this.onTap,
     this.helperText,
+    this.inputFormatters,
+    this.allowEmptySpaces = false,
   });
 
   final String label;
@@ -51,6 +54,8 @@ class AppTextField extends StatefulWidget {
   final int? maxLength;
   final VoidCallback? onTap;
   final String? helperText;
+  final List<TextInputFormatter>? inputFormatters;
+  final bool allowEmptySpaces;
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();
@@ -102,12 +107,24 @@ class _AppTextFieldState extends State<AppTextField> {
       borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
     );
 
+    // Combine validators: trim validator + custom validator
+    String? _combinedValidator(String? value) {
+      // First check if empty spaces only (when not allowing empty spaces)
+      if (!widget.allowEmptySpaces && value != null) {
+        if (value.trim().isEmpty) {
+          return 'This field cannot be empty';
+        }
+      }
+      // Then run custom validator
+      return widget.validator?.call(value);
+    }
+
     return TextFormField(
       controller: widget.controller,
       focusNode: widget.focusNode,
       keyboardType: widget.keyboardType,
       textCapitalization: widget.textCapitalization,
-      validator: widget.validator,
+      validator: _combinedValidator,
       onChanged: widget.onChanged,
       onFieldSubmitted: widget.onFieldSubmitted,
       textInputAction: widget.textInputAction,
@@ -119,6 +136,7 @@ class _AppTextFieldState extends State<AppTextField> {
       minLines: widget.minLines,
       maxLength: widget.maxLength,
       onTap: widget.onTap,
+      inputFormatters: widget.inputFormatters,
       decoration: InputDecoration(
         hintText: widget.hint ?? widget.label,
         helperText: widget.helperText ?? ' ',

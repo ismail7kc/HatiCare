@@ -27,6 +27,7 @@ class LoginViewModel extends ChangeNotifier {
   bool _shouldNavigate = false;
   bool _shouldAutovalidate = false;
   String? pharmacyId;
+  String? laboratoryId;
 
   Future<void> _loadSavedCredentials() async {
     try {
@@ -156,12 +157,20 @@ class LoginViewModel extends ChangeNotifier {
       }
 
       if (response['success'] == true) {
-        // Extract pharmacy ID for pharmacy role
+        // Extract ID based on role
         final id = response['data']['id'];
+        final role = roleFromResponse;
+        
         if (id != null) {
-          pharmacyId = id.toString();
-          await prefs.setString('pharmacy_id', pharmacyId!);
-          debugPrint('Pharmacy ID saved: $pharmacyId');
+          if (role == 'laboratory') {
+            laboratoryId = id.toString();
+            await prefs.setString('laboratory_id', laboratoryId!);
+            debugPrint('Laboratory ID saved: $laboratoryId');
+          } else {
+            pharmacyId = id.toString();
+            await prefs.setString('pharmacy_id', pharmacyId!);
+            debugPrint('Pharmacy ID saved: $pharmacyId');
+          }
         }
         
         // Check profile completion status from response
@@ -176,7 +185,14 @@ class LoginViewModel extends ChangeNotifier {
         }
         
         isProfileCompleted = profileCompleted;
-        await prefs.setBool('pharmacy_profile_completed', profileCompleted);
+        
+        // Save profile completion status based on role
+        if (role == 'laboratory') {
+          await prefs.setBool('laboratory_profile_completed', profileCompleted);
+        } else {
+          await prefs.setBool('pharmacy_profile_completed', profileCompleted);
+        }
+        
         debugPrint('Profile completed status: $profileCompleted');
       }
 

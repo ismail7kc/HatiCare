@@ -58,8 +58,13 @@ class _UnifiedOtpVerificationScreenState
 
   bool get isDoctor => widget.signupRequest.role == UserRole.doctor;
   bool get isPharmacy => widget.signupRequest.role == UserRole.pharmacy;
+  bool get isLaboratory => widget.signupRequest.role == UserRole.laboratory;
 
-  String get roleTitle => isDoctor ? 'Doctor' : 'Pharmacy';
+  String get roleTitle {
+    if (isDoctor) return 'Doctor';
+    if (isPharmacy) return 'Pharmacy';
+    return 'Laboratory';
+  }
 
   @override
   void initState() {
@@ -93,8 +98,14 @@ class _UnifiedOtpVerificationScreenState
           request: widget.signupRequest,
           otp: pinController.text,
         );
-      } else {
+      } else if (isPharmacy) {
         response = await repository.pharmacySignupWithOtp(
+          request: widget.signupRequest,
+          otp: pinController.text,
+        );
+      } else {
+        // Laboratory
+        response = await repository.laboratorySignupWithOtp(
           request: widget.signupRequest,
           otp: pinController.text,
         );
