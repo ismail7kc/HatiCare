@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:haticare/core/theme/app_colors.dart';
-import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
+import 'package:haticare/features/doctor/ApiClient/api_client.dart';
+import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class ScanPassportScreen extends StatefulWidget {
@@ -20,11 +22,16 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
   CameraController? _cameraController;
   bool _isCameraReady = false;
   File? _pickedImage;
+  late RepositoryLayer repoLayer;
 
   @override
   void initState() {
     super.initState();
     _initializeCamera();
+
+    final apiClient = ApiClient();
+    final repository = RepositoryLayer(apiClient);
+    repoLayer = repository;
   }
 
   Future<void> _initializeCamera() async {
@@ -50,6 +57,38 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
         const SnackBar(content: Text('Camera permission is required')),
       );
     }
+  }
+
+  Future<void> _uploadImage(File file) async {
+    final Map<String, dynamic> data = {"id_document": file};
+
+    await repoLayer.updateDoctorInfo(data);
+
+    if (mounted) Navigator.pop(context, true);
+  }
+
+  Future<void> pickFromGallery() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+    );
+
+    if (result != null && result.files.single.path != null) {
+      final file = File(result.files.single.path!);
+      _pickedImage = file;
+      setState(() {});
+      await _uploadImage(file);
+    }
+  }
+
+  Future<void> captureImage() async {
+    if (!_cameraController!.value.isInitialized) return;
+
+    final XFile picture = await _cameraController!.takePicture();
+    final file = File(picture.path);
+
+    setState(() => _pickedImage = file);
+    await _uploadImage(file);
   }
 
   @override
@@ -198,19 +237,7 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  onPressed: () async {
-                    final ImagePicker picker = ImagePicker();
-                    final XFile? image = await picker.pickImage(
-                      source: ImageSource.gallery,
-                    );
-                    if (image != null) {
-                      setState(() {
-                        _pickedImage = File(image.path);
-                        _isCameraReady = false;
-                        Navigator.pop(context, true);
-                      });
-                    }
-                  },
+                  onPressed: pickFromGallery,
                   child: const Text(
                     'Upload from Gallery',
                     style: TextStyle(
@@ -241,9 +268,7 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  onPressed: () {
-                    Navigator.pop(context, true);
-                  },
+                  onPressed: _isCameraReady ? captureImage : null,
                   child: const Text(
                     'Capture',
                     style: TextStyle(

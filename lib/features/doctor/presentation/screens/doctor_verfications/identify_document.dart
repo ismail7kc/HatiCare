@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/scan_passport.dart';
 
 class IdentifyDocumentScreen extends StatefulWidget {

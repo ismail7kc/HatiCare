@@ -54,6 +54,7 @@ dependencies:
   intl_phone_number_input: ^0.7.3  # For the phone input field
   image_cropper: 11.0.0
 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
