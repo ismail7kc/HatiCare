@@ -108,7 +108,9 @@ class _TakeSelfieScreenState extends State<TakeSelfieScreen> {
                           borderRadius: BorderRadius.circular(16),
                           child: _isCameraReady
                               ? CameraPreview(_cameraController!)
-                              : const Center(child: CircularProgressIndicator()),
+                              : const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
                         ),
                       ),
 
@@ -131,7 +133,9 @@ class _TakeSelfieScreenState extends State<TakeSelfieScreen> {
                   borderRadius: BorderRadius.circular(28),
                 ),
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.pop(context, true);
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
@@ -141,7 +145,7 @@ class _TakeSelfieScreenState extends State<TakeSelfieScreen> {
                     ),
                   ),
                   child: const Text(
-                    'Continue',
+                    'Capture',
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
@@ -159,8 +163,10 @@ class _TakeSelfieScreenState extends State<TakeSelfieScreen> {
   }
 
   Widget _buildCorner(Alignment alignment) {
-    final bool isTop = alignment == Alignment.topLeft || alignment == Alignment.topRight;
-    final bool isLeft = alignment == Alignment.topLeft || alignment == Alignment.bottomLeft;
+    final bool isTop =
+        alignment == Alignment.topLeft || alignment == Alignment.topRight;
+    final bool isLeft =
+        alignment == Alignment.topLeft || alignment == Alignment.bottomLeft;
 
     return Align(
       alignment: alignment,
@@ -169,10 +175,18 @@ class _TakeSelfieScreenState extends State<TakeSelfieScreen> {
         height: 50,
         decoration: BoxDecoration(
           border: Border(
-            top: isTop ? const BorderSide(color: Colors.black, width: 1) : BorderSide.none,
-            left: isLeft ? const BorderSide(color: Colors.black, width: 1) : BorderSide.none,
-            right: !isLeft ? const BorderSide(color: Colors.black, width: 1) : BorderSide.none,
-            bottom: !isTop ? const BorderSide(color: Colors.black, width: 1) : BorderSide.none,
+            top: isTop
+                ? const BorderSide(color: Colors.black, width: 1)
+                : BorderSide.none,
+            left: isLeft
+                ? const BorderSide(color: Colors.black, width: 1)
+                : BorderSide.none,
+            right: !isLeft
+                ? const BorderSide(color: Colors.black, width: 1)
+                : BorderSide.none,
+            bottom: !isTop
+                ? const BorderSide(color: Colors.black, width: 1)
+                : BorderSide.none,
           ),
         ),
       ),

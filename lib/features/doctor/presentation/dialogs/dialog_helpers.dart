@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/features/doctor/presentation/viewModel/appointment_detailVM.dart';
 
 class DialogHelper {
-  static void showDialogForLabel(BuildContext context, String label) {
+  static late AppointmentDetailvm appointmentDetailvm;
+
+  static void showDialogForLabel(
+    BuildContext context,
+    String label,
+    AppointmentDetailvm appointModel,
+  ) {
+    appointmentDetailvm = appointModel;
+
     if (label == 'Issue RX') {
       showIssueRxDialog(context);
     } else if (label == 'Referral') {
@@ -13,6 +22,9 @@ class DialogHelper {
         'assets/icons/issue-Rx.svg',
         'Enter referral details (e.g., Specialist, reason for referral)...',
         'Issue Referral',
+        onAction: () {
+          debugPrint("Referral action tapped!");
+        },
       );
     } else if (label == 'Hospitalize') {
       showHospitalizationDialog(
@@ -21,6 +33,9 @@ class DialogHelper {
         'assets/icons/issue-Rx.svg',
         'Enter reason and notes for hospitalization...',
         'Recommend',
+        onAction: () {
+          debugPrint("Hospitalization action tapped!");
+        },
       );
     }
   }
@@ -110,7 +125,12 @@ class DialogHelper {
                   context,
                   cancelText: "Cancel",
                   actionText: 'Issue Rx',
-                  onAction: () {},
+                  onAction: () {
+                    debugPrint('Issue RX tapped');
+                    // Api Call
+                    appointmentDetailvm.createPrescription(medications: []);
+                    Navigator.pop(context);
+                  },
                 ),
               ],
             ),
@@ -125,8 +145,9 @@ class DialogHelper {
     String title,
     String icon,
     String description,
-    String actionButton,
-  ) {
+    String actionButton, {
+    VoidCallback? onAction, // <-- new
+  }) {
     final TextEditingController notesController = TextEditingController();
 
     showDialog(
@@ -158,16 +179,14 @@ class DialogHelper {
                     const SizedBox(width: 8),
                     Text(
                       title,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-
                 TextField(
                   controller: notesController,
                   maxLines: 4,
@@ -184,21 +203,13 @@ class DialogHelper {
                   ),
                 ),
                 const SizedBox(height: 20),
-
                 _buildDialogButtons(
                   context,
                   cancelText: "Cancel",
                   actionText: actionButton,
                   onAction: () {
-                    if (notesController.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Please enter a reason or note."),
-                        ),
-                      );
-                    } else {
-                      Navigator.pop(context);
-                    }
+                    if (onAction != null) onAction();
+                    Navigator.pop(context);
                   },
                 ),
               ],

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/identify_document.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/take_selfi.dart';
-import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
-import 'package:flutter_doc_scanner/flutter_doc_scanner.dart';
 
 class DoctorVerificationScreen extends StatefulWidget {
   const DoctorVerificationScreen({super.key});
@@ -18,7 +17,6 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
   bool idCardChecked = false;
   bool selfieChecked = false;
   bool licenseChecked = false;
-  dynamic _scannedResult;
 
   bool get isAllChecked => idCardChecked && selfieChecked && licenseChecked;
 
@@ -66,23 +64,26 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                     const SizedBox(height: 30),
 
                     GestureDetector(
-                      onTap: () async {
-                        final completed = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const IdentifyDocumentScreen(),
-                          ),
-                        );
+                      onTap: idCardChecked
+                          ? null
+                          : () async {
+                              final completed = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const IdentifyDocumentScreen(),
+                                ),
+                              );
 
-                        if (completed == true) {
-                          setState(() => idCardChecked = true);
-                        }
-                      },
+                              if (completed == true) {
+                                setState(() => idCardChecked = true);
+                              }
+                            },
                       child: _VerificationOption(
                         icon: 'assets/icons/id_card.svg',
                         title: 'Take a picture of a valid ID',
                         subtitle:
-                            'To check if your personal information is correct.',
+                            'To check if your personal informations are correct.',
                         isChecked: idCardChecked,
                       ),
                     ),
@@ -90,18 +91,20 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                     const SizedBox(height: 15),
 
                     GestureDetector(
-                      onTap: () async {
-                        final completed = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const TakeSelfieScreen(),
-                          ),
-                        );
+                      onTap: selfieChecked
+                          ? null
+                          : () async {
+                              final completed = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const TakeSelfieScreen(),
+                                ),
+                              );
 
-                        if (completed == true) {
-                          setState(() => selfieChecked = true);
-                        }
-                      },
+                              if (completed == true) {
+                                setState(() => selfieChecked = true);
+                              }
+                            },
                       child: _VerificationOption(
                         icon: 'assets/icons/selfie.svg',
                         title: 'Take a selfie',
@@ -114,27 +117,21 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                     const SizedBox(height: 15),
 
                     GestureDetector(
-                      onTap: () async {
-                        try {
-                          dynamic scanned = await FlutterDocScanner().getScannedDocumentAsImages(page: 1);
-                          if (scanned != null) {
-                            setState(() => licenseChecked = true);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Scan completed successfully'),
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          debugPrint('Scanner error: $e');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Failed to open scanner'),
-                            ),
-                          );
-                        }
-                      },
+                      onTap: licenseChecked
+                          ? null
+                          : () async {
+                              final completed = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const IdentifyDocumentScreen(),
+                                ),
+                              );
 
+                              if (completed == true) {
+                                setState(() => licenseChecked = true);
+                              }
+                            },
                       child: _VerificationOption(
                         icon: 'assets/icons/id_card.svg',
                         title: 'Take a picture of Nursing License',
@@ -143,6 +140,7 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                         isChecked: licenseChecked,
                       ),
                     ),
+
                     const SizedBox(height: 25),
 
                     Row(
@@ -167,36 +165,44 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                     SizedBox(height: 40),
                     Padding(
                       padding: const EdgeInsets.all(20.0),
-                      child: Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                      child: Opacity(
+                        opacity: isAllChecked ? 1.0 : 0.4,
+                        child: Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            gradient: isAllChecked
+                                ? AppColors.primaryGradient
+                                : LinearGradient(
+                                    colors: [Colors.grey, Colors.grey],
+                                  ),
+                            borderRadius: BorderRadius.circular(30),
                           ),
-                          onPressed: () {
-                            PersistentNavBarNavigator.pushNewScreen(
-                              context,
-                              screen: IdentifyDocumentScreen(),
-                              withNavBar: false,
-                              pageTransitionAnimation:
-                                  PageTransitionAnimation.cupertino,
-                            );
-                          },
-                          child: const Text(
-                            'Continue',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            onPressed: isAllChecked
+                                ? () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => DoctorHomeScreen(),
+                                      ),
+                                    );
+                                  }
+                                : null,
+                            child: const Text(
+                              'Continue',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),

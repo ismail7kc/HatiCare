@@ -136,7 +136,7 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
                     top: 90,
                     left: 20,
                     right: 20,
-                    child: Container(height: 2, color: Colors.orangeAccent),
+                    child: Container(height: 2), // Remove Orange Color
                   ),
 
                   Positioned(
@@ -207,6 +207,7 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
                       setState(() {
                         _pickedImage = File(image.path);
                         _isCameraReady = false;
+                        Navigator.pop(context, true);
                       });
                     }
                   },
@@ -241,12 +242,10 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const DoctorHomeScreen()),
-                    );
+                    Navigator.pop(context, true);
                   },
                   child: const Text(
-                    'Continue',
+                    'Capture',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,

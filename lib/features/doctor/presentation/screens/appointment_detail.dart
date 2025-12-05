@@ -1,20 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/features/doctor/ApiClient/api_client.dart';
+import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/audio_call.dart';
+import 'package:haticare/features/doctor/presentation/screens/issue_rx.dart';
+import 'package:haticare/features/doctor/presentation/viewModel/appointment_detailVM.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/doctor/models/appointment_model.dart';
-import 'package:haticare/features/doctor/presentation/dialogs/dialog_helpers.dart';
 
-class AppointmentDetail extends StatelessWidget {
+class AppointmentDetailScreen extends StatefulWidget {
   final AppointmentModel appointment;
   final bool isCameFromAccept;
 
-  const AppointmentDetail({
+  const AppointmentDetailScreen({
     super.key,
     required this.appointment,
     this.isCameFromAccept = false,
   });
+
+  @override
+  State<AppointmentDetailScreen> createState() => _AppointmentDetailState();
+}
+
+class _AppointmentDetailState extends State<AppointmentDetailScreen> {
+  late AppointmentDetailvm appointmentDetailvm;
+  final symptoms = ["Fever", "Headache", "Cough"];
+
+  @override
+  void initState() {
+    super.initState();
+
+    final apiClient = ApiClient();
+    final repository = RepositoryLayer(apiClient);
+    appointmentDetailvm = AppointmentDetailvm(repository);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +58,7 @@ class AppointmentDetail extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            if (isCameFromAccept) ...[
+            if (widget.isCameFromAccept) ...[
               const Text(
                 "Incoming Request",
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
@@ -51,7 +71,7 @@ class AppointmentDetail extends StatelessWidget {
               const SizedBox(height: 25),
             ],
 
-            if (isCameFromAccept) ...[
+            if (widget.isCameFromAccept) ...[
               Stack(
                 alignment: Alignment.center,
                 children: [
@@ -90,14 +110,14 @@ class AppointmentDetail extends StatelessWidget {
 
             const SizedBox(height: 18),
             Text(
-              appointment.patientName,
+              widget.appointment.patientName,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
-            // Text(
-              // "${appointment.patientAge} years old, Male",
-              // style: const TextStyle(color: Colors.grey),
-            // ),
 
+            // Text(
+            // "${appointment.patientAge} years old, Male",
+            // style: const TextStyle(color: Colors.grey),
+            // ),
             const SizedBox(height: 30),
 
             // Reason for Visit
@@ -124,10 +144,10 @@ class AppointmentDetail extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        // Text(
-                        //   appointment.reasonForVisit,
-                        //   style: const TextStyle(color: Colors.grey),
-                        // ),
+                        Text(
+                          widget.appointment.rawComplaint,
+                          style: const TextStyle(color: Colors.grey),
+                        ),
                       ],
                     ),
                   ),
@@ -149,7 +169,10 @@ class AppointmentDetail extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      SvgPicture.asset('assets/icons/sticky-note.svg', height: 24),
+                      SvgPicture.asset(
+                        'assets/icons/sticky-note.svg',
+                        height: 24,
+                      ),
                       const SizedBox(width: 10),
                       const Text(
                         "Reported Symptoms",
@@ -164,28 +187,28 @@ class AppointmentDetail extends StatelessWidget {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    // children: appointment.symptoms.map((symptom) {
-                    //   return Chip(
-                    //     label: Text(
-                    //       symptom,
-                    //       style: const TextStyle(
-                    //         color: Color(0xFF8B0000),
-                    //         fontWeight: FontWeight.w500,
-                    //       ),
-                    //     ),
-                    //     backgroundColor: const Color(0xFFFFE5E5),
-                    //     shape: RoundedRectangleBorder(
-                    //       borderRadius: BorderRadius.circular(20),
-                    //     ),
-                    //   );
-                    // }).toList(),
+                    children: symptoms.map((symptom) {
+                      return Chip(
+                        label: Text(
+                          symptom,
+                          style: const TextStyle(
+                            color: Color(0xFF8B0000),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        backgroundColor: const Color(0xFFFFE5E5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ],
               ),
             ),
 
             const SizedBox(height: 16),
-            if (!isCameFromAccept) ...[
+            if (!widget.isCameFromAccept) ...[
               Container(
                 height: 108,
                 padding: const EdgeInsets.symmetric(
@@ -232,9 +255,20 @@ class AppointmentDetail extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildActionButton(context, 'assets/icons/video_2.svg', "Issue RX"),
-                  _buildActionButton(context, 'assets/icons/video_1.svg', "Referral"),
-                  _buildActionButton(context,'assets/icons/video_3.svg',"Hospitalize",
+                  _buildActionButton(
+                    context,
+                    'assets/icons/video_2.svg',
+                    "Issue RX",
+                  ),
+                  _buildActionButton(
+                    context,
+                    'assets/icons/video_1.svg',
+                    "Referral",
+                  ),
+                  _buildActionButton(
+                    context,
+                    'assets/icons/video_3.svg',
+                    "Hospitalize",
                   ),
                 ],
               ),
@@ -242,7 +276,7 @@ class AppointmentDetail extends StatelessWidget {
 
             const SizedBox(height: 40),
 
-            if (isCameFromAccept) ...[
+            if (widget.isCameFromAccept) ...[
               Row(
                 children: [
                   Expanded(
@@ -268,9 +302,13 @@ class AppointmentDetail extends StatelessWidget {
                       ),
                       child: ElevatedButton(
                         onPressed: () {
+                          // Api Call when tap on Accept
+                          appointmentDetailvm.acceptPatientResponse(widget.appointment.id);
                           PersistentNavBarNavigator.pushNewScreen(
                             context,
-                            screen: AudioCallScreen(appointments: appointment),
+                            screen: AudioCallScreen(
+                              appointments: widget.appointment,
+                            ),
                             withNavBar: false,
                             pageTransitionAnimation:
                                 PageTransitionAnimation.cupertino,
@@ -311,7 +349,12 @@ class AppointmentDetail extends StatelessWidget {
     return Column(
       children: [
         GestureDetector(
-          onTap: () => DialogHelper.showDialogForLabel(context, label),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => CreatePrescriptionScreen(appointmentDetailvm)),
+            );
+          },
           child: Container(
             width: 60,
             height: 60,

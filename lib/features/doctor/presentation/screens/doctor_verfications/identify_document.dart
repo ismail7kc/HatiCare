@@ -81,14 +81,19 @@ class _IdentifyDocumentScreenState extends State<IdentifyDocumentScreen> {
 
   Widget _buildDocumentOption({required String icon, required String label}) {
     return InkWell(
-      onTap: () {
+      onTap: () async {
         if (label == 'Passport') {
-          PersistentNavBarNavigator.pushNewScreen(
+          final result = await Navigator.push(
             context,
-            screen: ScanPassportScreen(screenTitle: 'Scan your passport'),
-            withNavBar: false,
-            pageTransitionAnimation: PageTransitionAnimation.cupertino,
+            MaterialPageRoute(
+              builder: (_) =>
+                  ScanPassportScreen(screenTitle: 'Scan your passport'),
+            ),
           );
+
+          if (result == true) {
+            Navigator.pop(context, true);
+          }
         }
       },
       borderRadius: BorderRadius.circular(12),

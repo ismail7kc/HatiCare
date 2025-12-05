@@ -3,7 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
-import 'package:haticare/features/doctor/presentation/screens/audio_call.dart';
+import 'package:haticare/features/doctor/presentation/screens/appointment_detail.dart';
 import 'package:haticare/features/doctor/presentation/screens/consultation_history.dart';
 import 'package:haticare/features/doctor/presentation/screens/setting_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/doctor_viewModel.dart';
@@ -11,14 +11,12 @@ import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
 import 'package:haticare/features/doctor/models/appointment_model.dart';
-import 'appointment_detail.dart';
 import 'package:provider/provider.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 
 class ProfileNotifier {
   static final ValueNotifier<String?> profileImageUrl = ValueNotifier(null);
 }
-
 
 class DoctorHomeScreen extends StatefulWidget {
   const DoctorHomeScreen({super.key});
@@ -45,7 +43,12 @@ class _MainScreenState extends State<DoctorHomeScreen> {
   Widget build(BuildContext context) {
     return CustomBottomNav(
       screens: [
-        const HomeScreen(),
+        ChangeNotifierProvider(
+          create: (_) =>
+              DoctorViewModel(RepositoryLayer(ApiClient()))
+                ..fetchPatientQueue(),
+          child: const HomeScreen(),
+        ),
         const ConsultationHistoryScreen(),
         MultiProvider(
           providers: [
@@ -122,38 +125,56 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     super.dispose();
   }
 
+  @override // this method will called when doctor object change
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    doctorViewModel = Provider.of<DoctorViewModel>(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              headerView(),
-              const SizedBox(height: 20),
+        top: true,
+        bottom: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  headerView(),
+                  const SizedBox(height: 20),
+                  toggleView(),
+                  const SizedBox(height: 20),
+                  statsView(),
+                  const SizedBox(height: 20),
 
-              toggleView(),
-              const SizedBox(height: 20),
+                  if (hasAdminApproval)
+                    const Text(
+                      "Patient Queue",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
 
-              statsView(),
-              const SizedBox(height: 25),
+                  // if (hasAdminApproval) const SizedBox(height: 2),
+                ],
+              ),
+            ),
 
-              if (hasAdminApproval)
-                const Text(
-                  "Patient Queue",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-
-              if (hasAdminApproval) const SizedBox(height: 10),
-
-              isOnline
-                  ? handleAppointment(context, doctorViewModel.appointments)
-                  : patientQueueView(),
-            ],
-          ),
+            Expanded(
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                removeBottom: true,
+                child: handleAppointment(context, doctorViewModel.appointments),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -163,92 +184,94 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     BuildContext context,
     List<AppointmentModel> appointments,
   ) {
+    if (!isOnline) {
+      return patientQueueView();
+    }
+
     if (appointments.isEmpty) {
-      return Expanded(
-        child: Center(
-          child: Text(
-            "No appointments available",
-            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-          ),
+      return Center(
+        child: Text(
+          "No appointments available",
+          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
         ),
       );
     }
 
-    return Expanded(
-      child: ListView.builder(
-        padding: EdgeInsets.zero,
-        itemCount: appointments.length,
-        itemBuilder: (context, index) {
-          final appt = appointments[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: patientAppointmentView(context, appt),
-          );
-        },
-      ),
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 10),
+      itemCount: appointments.length,
+      itemBuilder: (context, index) {
+        final appt = appointments[index];
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: patientAppointmentView(context, appt),
+        );
+      },
     );
   }
 
   Widget headerView() {
-  return ValueListenableBuilder<String?>(
-    valueListenable: ProfileNotifier.profileImageUrl,
-    builder: (context, updatedUrl, _) {
-      final loginDataUrl =
-          SaveLoginResponse.loginData?['profile_picture'] ?? '';
-      final profileImageUrl = updatedUrl ?? loginDataUrl;
+    return ValueListenableBuilder<String?>(
+      valueListenable: ProfileNotifier.profileImageUrl,
+      builder: (context, updatedUrl, _) {
+        final loginDataUrl =
+            SaveLoginResponse.loginData?['profile_picture'] ?? '';
+        final profileImageUrl = updatedUrl ?? loginDataUrl;
 
-      final firstName = SaveLoginResponse.loginData?['first_name'] ?? '';
-      final lastName = SaveLoginResponse.loginData?['last_name'] ?? '';
-      final docName = '$firstName $lastName';
+        final firstName = SaveLoginResponse.loginData?['first_name'] ?? '';
+        final lastName = SaveLoginResponse.loginData?['last_name'] ?? '';
+        final docName = '$firstName $lastName';
 
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 25,
-                backgroundImage: profileImageUrl.isNotEmpty
-                    ? NetworkImage(profileImageUrl)
-                    : const AssetImage('assets/images/haticare_logo.png')
-                        as ImageProvider,
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Welcome Back,", style: TextStyle(color: Colors.grey)),
-                  Text(
-                    docName.trim().isNotEmpty ? docName : 'Loading...',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 25,
+                  backgroundImage: profileImageUrl.isNotEmpty
+                      ? NetworkImage(profileImageUrl)
+                      : const AssetImage('assets/images/haticare_logo.png')
+                            as ImageProvider,
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Welcome Back,",
+                      style: TextStyle(color: Colors.grey),
                     ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          Stack(
-            children: [
-              SvgPicture.asset(
-                'assets/icons/notification.svg',
-                height: 26,
-                color: Colors.black87,
-              ),
-              const Positioned(
-                right: 0,
-                top: 0,
-                child: CircleAvatar(radius: 4, backgroundColor: Colors.red),
-              ),
-            ],
-          ),
-        ],
-      );
-    },
-  );
-}
-
+                    Text(
+                      docName.trim().isNotEmpty ? docName : 'Loading...',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            Stack(
+              children: [
+                SvgPicture.asset(
+                  'assets/icons/notification.svg',
+                  height: 26,
+                  color: Colors.black87,
+                ),
+                const Positioned(
+                  right: 0,
+                  top: 0,
+                  child: CircleAvatar(radius: 4, backgroundColor: Colors.red),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Widget toggleView() {
     return Container(
@@ -276,10 +299,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 value: isOnline,
                 activeThumbColor: const Color(0xFFFFFFFF),
                 activeTrackColor: const Color(0xFF34C759),
-                onChanged: (value) {
+                onChanged: (value) async {
                   setState(() {
                     isOnline = value;
                   });
+                  await doctorViewModel.isDoctorOnline(isOnline: value);
+                  await doctorViewModel.fetchPatientQueue(); // wait until not get response from PATCH Requst.
                 },
               ),
             ),
@@ -449,8 +474,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                             ),
                         child: const Text(
                           "New Appointment Request",
-                          overflow:
-                              TextOverflow.ellipsis,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -565,7 +589,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     onPressed: () {
                       PersistentNavBarNavigator.pushNewScreen(
                         context,
-                        screen: AppointmentDetail(appointment: appointment),
+                        screen: AppointmentDetailScreen(
+                          appointment: appointment,
+                          isCameFromAccept: true,
+                        ),
                         withNavBar: false,
                         pageTransitionAnimation:
                             PageTransitionAnimation.cupertino,
