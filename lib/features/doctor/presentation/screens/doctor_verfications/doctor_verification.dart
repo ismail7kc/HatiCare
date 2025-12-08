@@ -71,7 +71,7 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) =>
-                                      const IdentifyDocumentScreen(),
+                                      const IdentifyDocumentScreen(isValidID: true),
                                 ),
                               );
 
@@ -124,7 +124,7 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) =>
-                                      const IdentifyDocumentScreen(),
+                                      const IdentifyDocumentScreen(isValidID: false),
                                 ),
                               );
 
@@ -188,12 +188,14 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                             ),
                             onPressed: isAllChecked
                                 ? () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => DoctorHomeScreen(),
-                                      ),
-                                    );
+                                    // if (isAllChecked) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => DoctorHomeScreen(),
+                                        ),
+                                      );
+                                    // }
                                   }
                                 : null,
                             child: const Text(

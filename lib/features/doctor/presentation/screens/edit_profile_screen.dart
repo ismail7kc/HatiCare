@@ -7,6 +7,7 @@ import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen
 import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
 import 'package:intl/intl.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -26,6 +27,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController licenseNumberController;
   late TextEditingController yearsExperienceController;
   late TextEditingController licenseAuthorityController;
+  late TextEditingController dobController;
 
   String gender = "Male";
   DateTime? selectedDate = DateTime(1992, 1, 8);
@@ -71,7 +73,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           : (doctor?.gender ?? 'F') == 'F'
           ? 'Female'
           : 'Other';
+
       selectedDate = doctor?.dob ?? DateTime(1992, 1, 8);
+      dobController = TextEditingController(
+        text: DateFormat('MMM dd, yyyy').format(selectedDate!),
+      );
+
       selectedSpecialization = doctor?.specialization;
       selectedLicenseType = doctor?.licenseType;
 
@@ -83,17 +90,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
   }
 
-  Future<void> _selectDate(BuildContext context) async {
-    final picked = await showDatePicker(
+  void _showError(String msg) {
+    showDialog(
       context: context,
-      initialDate: selectedDate ?? DateTime.now(),
-      firstDate: DateTime(1950),
-      lastDate: DateTime.now(),
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text("Validation Error"),
+        content: Text(msg),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context, rootNavigator: true).pop();
+            },
+            child: const Text("OK"),
+          ),
+        ],
+      ),
     );
-    if (picked != null) setState(() => selectedDate = picked);
   }
 
   Future<void> _onSavePressed() async {
+    if (!_formKey.currentState!.validate()) {
+      _showError("Please fill all fields correctly");
+      return;
+    }
+
+    if (selectedLicenseType == null || selectedLicenseType!.isEmpty) {
+      _showError("Please select License Type");
+      return;
+    }
+
+    if (selectedSpecialization == null || selectedSpecialization!.isEmpty) {
+      _showError("Please select Specialization");
+      return;
+    }
+
     editViewModel.updateDoctorInstanceFromControllers(
       firstName: firstNameController.text,
       lastName: lastNameController.text,
@@ -171,6 +202,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       child: _buildTextField(
                         "First Name",
                         controller: firstNameController,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return "Required";
+                          }
+                          if (!RegExp(r'^[a-zA-Z]+$').hasMatch(value.trim())) {
+                            return "Alphabets only";
+                          }
+                          return null;
+                        },
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -178,43 +218,147 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       child: _buildTextField(
                         "Last Name",
                         controller: lastNameController,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return "Required";
+                          }
+                          if (!RegExp(r'^[a-zA-Z]+$').hasMatch(value.trim())) {
+                            return "Alphabets only";
+                          }
+                          return null;
+                        },
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildTextField("Email", controller: emailController, isEmail: true),
+
+                _buildTextField(
+                  "Email",
+                  controller: emailController,
+                  isEmail: true,
+                  validator: (_) => null,
+                ),
                 const SizedBox(height: 16),
-                _buildTextField("Phone Number", controller: phoneController),
+
+                Text("Phone Number", style: _labelStyle()),
+                const SizedBox(height: 6),
+                Container(
+                  decoration: _inputDecoration(),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 0,
+                  ),
+                  child: IntlPhoneField(
+                    controller: phoneController,
+                    initialCountryCode: "US",
+                    showDropdownIcon: true,
+                    dropdownIconPosition: IconPosition.trailing,
+                    flagsButtonMargin: const EdgeInsets.only(right: 8),
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      hintText: "Phone Number",
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onChanged: (phone) {
+                      phoneController.text = phone.number;
+                    },
+                    validator: (phone) {
+                      if (phone == null || phone.number.isEmpty) {
+                        return "Phone number is required";
+                      }
+
+                      final nationalNumber = phone.number.replaceAll(
+                        RegExp(r'\D'),
+                        '',
+                      );
+                      final country = phone.countryISOCode;
+
+                      if (country == "US") {
+                        if (!RegExp(
+                          r'^[2-9]\d{2}[2-9]\d{2}\d{4}$',
+                        ).hasMatch(nationalNumber)) {
+                          return "Enter a valid US phone number (10 digits)";
+                        }
+                      } else if (country == "NG") {
+                        if (!RegExp(r'^[789]\d{9}$').hasMatch(nationalNumber)) {
+                          return "Enter a valid Nigerian number (10 digits)";
+                        }
+                      } else {
+                        return "Unsupported country";
+                      }
+
+                      return null;
+                    },
+                  ),
+                ),
+
                 const SizedBox(height: 16),
+
                 Text("Date of Birth", style: _labelStyle()),
                 const SizedBox(height: 6),
-                GestureDetector(
-                  onTap: () => _selectDate(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
+                TextFormField(
+                  controller: dobController,
+                  decoration: InputDecoration(
+                    hintText: 'Select Date',
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 14,
                       vertical: 16,
                     ),
-                    decoration: _inputDecoration(),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          selectedDate != null
-                              ? DateFormat('MMM dd, yyyy').format(selectedDate!)
-                              : 'Select Date',
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        const Icon(
-                          Icons.calendar_today_outlined,
-                          color: Colors.grey,
-                        ),
-                      ],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFE6E6E6),
+                        width: 1,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFE6E6E6),
+                        width: 1,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFE6E6E6),
+                        width: 1,
+                      ),
+                    ),
+                    suffixIcon: const Icon(
+                      Icons.calendar_today_outlined,
+                      color: Colors.grey,
                     ),
                   ),
+                  readOnly: false,
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate ?? DateTime.now(),
+                      firstDate: DateTime(1950),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        selectedDate = picked;
+                        dobController.text = DateFormat(
+                          'MMM dd, yyyy',
+                        ).format(picked);
+                      });
+                    }
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return "Date of Birth is required";
+                    }
+                    return null;
+                  },
                 ),
+
                 const SizedBox(height: 20),
+
                 Text("Gender", style: _labelStyle()),
                 const SizedBox(height: 8),
                 Row(
@@ -224,25 +368,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     _buildGenderOption("Other"),
                   ],
                 ),
+
                 const SizedBox(height: 20),
+
                 _buildTextField(
                   "License Number",
                   controller: licenseNumberController,
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? "Required" : null,
                 ),
                 const SizedBox(height: 16),
+
                 _buildDropdownField(
                   label: "License Type",
-                  items: ["Select Type", "CDLs", "IDP"],
+                  items: ["CDLs", "IDP"],
                   value: selectedLicenseType,
                   onChanged: (val) => setState(() => selectedLicenseType = val),
                 ),
                 const SizedBox(height: 16),
+
                 Row(
                   children: [
                     Expanded(
                       child: _buildTextField(
                         "Years of Experience",
                         controller: yearsExperienceController,
+                        validator: (v) =>
+                            v == null || v.trim().isEmpty ? "Required" : null,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -257,12 +409,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 16),
+
                 _buildTextField(
                   "License Issuing Authority",
                   controller: licenseAuthorityController,
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? "Required" : null,
                 ),
+
                 const SizedBox(height: 30),
+
                 Container(
                   width: double.infinity,
                   height: 55,
@@ -295,6 +453,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     String label, {
     required TextEditingController controller,
     bool isEmail = false,
+    String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,6 +464,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           controller: controller,
           readOnly: isEmail,
           enabled: !isEmail,
+          validator: validator,
           decoration: InputDecoration(
             hintText: label,
             contentPadding: const EdgeInsets.symmetric(

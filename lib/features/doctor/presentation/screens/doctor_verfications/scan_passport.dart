@@ -5,14 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class ScanPassportScreen extends StatefulWidget {
-  final String screenTitle;
+  final bool isScanPassport;
 
-  const ScanPassportScreen({super.key, required this.screenTitle});
+  const ScanPassportScreen({super.key, required this.isScanPassport});
 
   @override
   State<ScanPassportScreen> createState() => _ScanPassportScreenState();
@@ -60,7 +59,9 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
   }
 
   Future<void> _uploadImage(File file) async {
-    final Map<String, dynamic> data = {"id_document": file};
+    final data = widget.isScanPassport
+        ? {"id_document": file}
+        : {"license_document": file};
 
     await repoLayer.updateDoctorInfo(data);
 
@@ -99,6 +100,14 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final String title = widget.isScanPassport
+        ? "Scan your passport"
+        : "Scan your nursing license";
+
+    final String subText = widget.isScanPassport
+        ? "Please scan your passport"
+        : "Please scan your nursing license";
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -110,7 +119,7 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          widget.screenTitle,
+          title,
           style: const TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -125,9 +134,7 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
           children: [
             const SizedBox(height: 20),
             Text(
-              widget.screenTitle == 'Scan your passport'
-                  ? 'Please scan your passport'
-                  : 'Please scan your nursing license',
+              subText,
               style: const TextStyle(fontSize: 16, color: Colors.grey),
             ),
 

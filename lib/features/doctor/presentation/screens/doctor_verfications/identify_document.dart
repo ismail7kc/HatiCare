@@ -3,7 +3,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/scan_passport.dart';
 
 class IdentifyDocumentScreen extends StatefulWidget {
-  const IdentifyDocumentScreen({super.key});
+  final bool isValidID;
+  const IdentifyDocumentScreen({super.key, required this.isValidID});
 
   @override
   State<IdentifyDocumentScreen> createState() => _IdentifyDocumentScreenState();
@@ -58,20 +59,27 @@ class _IdentifyDocumentScreenState extends State<IdentifyDocumentScreen> {
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 8),
-            _buildDocumentOption(
-              icon: 'assets/icons/passport_alt.svg',
-              label: 'Passport',
-            ),
-            const SizedBox(height: 12),
-            _buildDocumentOption(
-              icon: 'assets/icons/id_card.svg',
-              label: 'ID Card',
-            ),
-            const SizedBox(height: 12),
-            _buildDocumentOption(
-              icon: 'assets/icons/id_card.svg',
-              label: "Driver's License",
-            ),
+            if (widget.isValidID) ...[
+              _buildDocumentOption(
+                icon: 'assets/icons/passport_alt.svg',
+                label: 'Passport',
+              ),
+              const SizedBox(height: 12),
+              _buildDocumentOption(
+                icon: 'assets/icons/id_card.svg',
+                label: 'ID Card',
+              ),
+            ] else ...[
+             _buildDocumentOption(
+                icon: 'assets/icons/passport_alt.svg',
+                label: 'Passport',
+              ), 
+              const SizedBox(height: 12),
+              _buildDocumentOption(
+                icon: 'assets/icons/id_card.svg',
+                label: "Driver's License",
+              ),
+            ],
           ],
         ),
       ),
@@ -86,7 +94,7 @@ class _IdentifyDocumentScreenState extends State<IdentifyDocumentScreen> {
             context,
             MaterialPageRoute(
               builder: (_) =>
-                  ScanPassportScreen(screenTitle: 'Scan your passport'),
+                  ScanPassportScreen(isScanPassport: widget.isValidID),
             ),
           );
 
