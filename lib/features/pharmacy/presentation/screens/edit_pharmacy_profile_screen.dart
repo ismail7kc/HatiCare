@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
@@ -71,19 +72,22 @@ class _EditPharmacyProfileView extends StatelessWidget {
 
     return WillPopScope(
       onWillPop: () async {
-        // If force complete mode, prevent back navigation entirely
-        if (isForceComplete) {
-          return false;
-        }
-        // If opened from settings, allow back on step 1
-        if (openedFromSettings && viewModel.currentStep == 1) {
-          return true;
-        }
-        // Otherwise allow back navigation between steps
+        // Allow navigating back to step 1 from step 2
         if (viewModel.currentStep == 2) {
           viewModel.moveBackToPreviousPage();
           return false;
         }
+
+        // If force complete mode, prevent leaving the screen
+        if (isForceComplete) {
+          return false;
+        }
+
+        // If opened from settings on step 1, show confirmation dialog
+        if (openedFromSettings && viewModel.currentStep == 1) {
+          return await _showExitConfirmationDialog(context) ?? false;
+        }
+        
         return true;
       },
       child: Scaffold(
@@ -101,12 +105,18 @@ class _EditPharmacyProfileView extends StatelessWidget {
           ),
           centerTitle: true,
           automaticallyImplyLeading: false,
-          leading: (openedFromSettings || (viewModel.currentStep == 2 && !isForceComplete))
+          leading: (openedFromSettings || viewModel.currentStep == 2)
               ? IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.black),
-                  onPressed: () {
+                  onPressed: () async {
                     if (viewModel.currentStep == 2) {
                       viewModel.moveBackToPreviousPage();
+                    } else if (openedFromSettings) {
+                      // Show confirmation dialog before exiting
+                      final shouldExit = await _showExitConfirmationDialog(context) ?? false;
+                      if (shouldExit && context.mounted) {
+                        Navigator.of(context).pop();
+                      }
                     } else {
                       Navigator.of(context).pop();
                     }
@@ -119,13 +129,44 @@ class _EditPharmacyProfileView extends StatelessWidget {
                 child: CircularProgressIndicator(),
               )
             : SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                // Progress indicator
-                _buildProgressIndicator(viewModel.currentStep),
-                const SizedBox(height: 24),
+          child: Column(
+            children: [
+              // Show "Complete your profile" banner only for first-time users
+              if (isForceComplete && !openedFromSettings)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.only(top: 16, left: 16, right: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryDark.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.primaryDark.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: AppColors.primaryDark, size: 24),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Complete your profile to continue using the app',
+                          style: TextStyle(
+                            color: AppColors.primaryDark,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  children: [
+                    // Progress indicator
+                    _buildProgressIndicator(viewModel.currentStep),
+                    const SizedBox(height: 24),
 
                 // Page content
                 if (viewModel.currentStep == 1)
@@ -140,9 +181,9 @@ class _EditPharmacyProfileView extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.withOpacity(0.3)),
+                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                     ),
                     child: Text(
                       viewModel.errorMessage!,
@@ -170,10 +211,13 @@ class _EditPharmacyProfileView extends StatelessWidget {
                         ? null
                         : () => viewModel.submitProfile(),
                   ),
+                const SizedBox(height: 24),
               ],
             ),
           ),
+          ],
         ),
+      ),
       ),
     );
   }
@@ -262,8 +306,10 @@ class _EditPharmacyProfileView extends StatelessWidget {
           _buildEditableField(
             label: 'Pharmacy Name',
             controller: viewModel.pharmacyNameController,
-            validator: viewModel.validatePharmacyName,
+            validator: (_) => viewModel.getValidationError('pharmacyName') ?? viewModel.validatePharmacyName(viewModel.pharmacyNameController.text),
             hintText: 'Enter pharmacy name',
+            onChanged: () => viewModel.clearValidationError('pharmacyName'),
+            viewModel: viewModel,
           ),
           const SizedBox(height: 16),
 
@@ -330,40 +376,37 @@ class _EditPharmacyProfileView extends StatelessWidget {
           _buildEditableField(
             label: 'Address Line 1',
             controller: viewModel.addressLine1Controller,
-            validator: viewModel.validateAddress,
+            validator: (_) => viewModel.getValidationError('address') ?? viewModel.validateAddress(viewModel.addressLine1Controller.text),
             hintText: 'Enter street address',
+            onChanged: () => viewModel.clearValidationError('address'),
+            viewModel: viewModel,
           ),
           const SizedBox(height: 16),
 
-          _buildEditableField(
-            label: 'City',
-            controller: viewModel.cityController,
-            validator: viewModel.validateCity,
-            hintText: 'Enter city',
-          ),
+          // Country dropdown
+          _buildCountryDropdown(context, viewModel),
           const SizedBox(height: 16),
 
-          _buildEditableField(
-            label: 'State',
-            controller: viewModel.stateController,
-            validator: viewModel.validateState,
-            hintText: 'Enter state',
-          ),
+          // State dropdown
+          _buildStateDropdown(context, viewModel),
           const SizedBox(height: 16),
 
+          // City dropdown
+          _buildCityDropdown(context, viewModel),
+          const SizedBox(height: 16),
+
+          // Zip Code
           _buildEditableField(
             label: 'Zip Code',
             controller: viewModel.zipCodeController,
-            validator: viewModel.validateZipCode,
+            validator: (_) => viewModel.getValidationError('zipCode') ?? viewModel.validateZipCode(viewModel.zipCodeController.text),
             hintText: 'Enter zip code',
-          ),
-          const SizedBox(height: 16),
-
-          _buildEditableField(
-            label: 'Country',
-            controller: viewModel.countryController,
-            validator: viewModel.validateCountry,
-            hintText: 'Enter country',
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+              LengthLimitingTextInputFormatter(20),
+            ],
+            onChanged: () => viewModel.clearValidationError('zipCode'),
+            viewModel: viewModel,
           ),
         ],
       ),
@@ -434,14 +477,28 @@ class _EditPharmacyProfileView extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Center(
-              child: Text(
-                viewModel.profilePicture != null || (viewModel.profilePictureUrl != null && viewModel.profilePictureUrl!.isNotEmpty)
-                    ? 'Tap to change'
-                    : 'Tap to add photo',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
+              child: Column(
+                children: [
+                  Text(
+                    viewModel.profilePicture != null || (viewModel.profilePictureUrl != null && viewModel.profilePictureUrl!.isNotEmpty)
+                        ? 'Tap to change'
+                        : 'Tap to add photo',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  if (viewModel.profilePicture == null && (viewModel.profilePictureUrl == null || viewModel.profilePictureUrl!.isEmpty))
+                    const Text(
+                      'Profile picture required',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.red,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 24),
@@ -487,6 +544,218 @@ class _EditPharmacyProfileView extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Future<bool?> _showExitConfirmationDialog(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Discard Changes?'),
+          content: const Text('Are you sure you want to exit? Any unsaved changes will be lost.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Exit'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCountryDropdown(BuildContext context, PharmacyProfileViewModel viewModel) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Country',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          initialValue: viewModel.selectedCountry,
+          decoration: InputDecoration(
+            hintText: 'Select country',
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+          borderRadius: BorderRadius.circular(8),
+          items: viewModel.getCountryNames().map((country) {
+            return DropdownMenuItem<String>(
+              value: country,
+              child: Text(country),
+            );
+          }).toList(),
+          onChanged: (country) {
+            if (country != null) {
+              viewModel.selectCountry(country);
+              // Clear validation error when user makes selection
+              viewModel.clearValidationError('country');
+              // Trigger form revalidation to clear error display
+              Future.delayed(Duration.zero, () {
+                viewModel.formKeyPage1.currentState?.validate();
+              });
+            }
+          },
+          validator: (_) => viewModel.getValidationError('country') ?? viewModel.validateCountry(viewModel.countryController.text),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStateDropdown(BuildContext context, PharmacyProfileViewModel viewModel) {
+    final isEnabled = viewModel.selectedCountry != null && viewModel.selectedCountry!.isNotEmpty;
+    final states = isEnabled ? viewModel.getStateNames() : [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'State',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          initialValue: isEnabled ? viewModel.selectedState : null,
+          decoration: InputDecoration(
+            hintText: isEnabled ? 'Select state' : 'Select country',
+            filled: true,
+            fillColor: isEnabled ? Colors.white : Colors.grey[100],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+          borderRadius: BorderRadius.circular(8),
+          items: states.map((state) {
+            return DropdownMenuItem<String>(
+              value: state,
+              child: Text(state),
+            );
+          }).toList(),
+          onChanged: isEnabled
+              ? (state) {
+                  if (state != null) {
+                    viewModel.selectState(state);
+                    // Clear validation error when user makes selection
+                    viewModel.clearValidationError('state');
+                    // Trigger form revalidation to clear error display
+                    Future.delayed(Duration.zero, () {
+                      viewModel.formKeyPage1.currentState?.validate();
+                    });
+                  }
+                }
+              : null,
+          validator: (_) => viewModel.getValidationError('state') ?? viewModel.validateState(viewModel.stateController.text),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCityDropdown(BuildContext context, PharmacyProfileViewModel viewModel) {
+    final isEnabled = viewModel.selectedState != null && viewModel.selectedState!.isNotEmpty;
+    final cities = isEnabled ? viewModel.getCityNames() : [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'City',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          initialValue: isEnabled ? viewModel.selectedCity : null,
+          decoration: InputDecoration(
+            hintText: isEnabled ? 'Select city' : 'Select state',
+            filled: true,
+            fillColor: isEnabled ? Colors.white : Colors.grey[100],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+          borderRadius: BorderRadius.circular(8),
+          items: cities.map((city) {
+            return DropdownMenuItem<String>(
+              value: city,
+              child: Text(city),
+            );
+          }).toList(),
+          onChanged: isEnabled
+              ? (city) {
+                  if (city != null) {
+                    viewModel.selectCity(city);
+                    // Clear validation error when user makes selection
+                    viewModel.clearValidationError('city');
+                    // Trigger form revalidation to clear error display
+                    Future.delayed(Duration.zero, () {
+                      viewModel.formKeyPage1.currentState?.validate();
+                    });
+                  }
+                }
+              : null,
+          validator: (_) => viewModel.getValidationError('city') ?? viewModel.validateCity(viewModel.cityController.text),
+        ),
+      ],
     );
   }
 
@@ -544,6 +813,9 @@ class _EditPharmacyProfileView extends StatelessWidget {
     required String? Function(String?) validator,
     required String hintText,
     bool isPhoneNumber = false,
+    List<TextInputFormatter>? inputFormatters,
+    VoidCallback? onChanged,
+    PharmacyProfileViewModel? viewModel,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -557,39 +829,84 @@ class _EditPharmacyProfileView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          validator: validator,
-          keyboardType: isPhoneNumber ? TextInputType.phone : TextInputType.text,
-          decoration: InputDecoration(
-            hintText: hintText,
-            hintStyle: const TextStyle(color: Colors.grey),
-            counterText: isPhoneNumber ? '' : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(
-                color: AppColors.primaryDark,
-                width: 2,
+        if (isPhoneNumber && viewModel != null)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              IntlPhoneField(
+                controller: controller,
+                initialCountryCode: viewModel.countryCode,
+                initialValue: viewModel.initialPhoneNumber,
+                onCountryChanged: (country) {
+                  // Update the country code in the view model
+                  viewModel.updatePhoneNumber(null); // Clear to reset
+                },
+                onChanged: (phone) {
+                  viewModel.updatePhoneNumber(phone);
+                  if (onChanged != null) onChanged();
+                },
+                validator: (phone) {
+                  // Return null for phone validation as it's handled differently
+                  return null;
+                },
+                decoration: InputDecoration(
+                  hintText: hintText,
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ],
+          )
+        else
+          TextFormField(
+            controller: controller,
+            validator: validator,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            onChanged: (value) {
+              // Clear error when user starts typing
+              if (value != null && value.isNotEmpty) {
+                if (onChanged != null) onChanged();
+              }
+            },
+            decoration: InputDecoration(
+              hintText: hintText,
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
               ),
             ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.red),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 12,
-            ),
+            inputFormatters: inputFormatters,
           ),
-        ),
       ],
     );
   }

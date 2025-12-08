@@ -62,7 +62,7 @@ class SignupViewModel extends ChangeNotifier {
 
   UserRole selectedRole = UserRole.doctor;
   bool isSubmitting = false;
-  bool autovalidate = true;
+  bool autovalidate = false;
   String? errorMessage;
   String? successMessage;
   bool _otpReadyForNavigation = false;
@@ -82,7 +82,7 @@ class SignupViewModel extends ChangeNotifier {
     selectedRole = role;
     errorMessage = null;
     successMessage = null;
-    autovalidate = true;
+    autovalidate = false;
     _otpReadyForNavigation = false;
     _doctorPhoneNumber = null;
     _doctorPhoneMeta = null;
@@ -531,6 +531,10 @@ class SignupViewModel extends ChangeNotifier {
 
   Future<void> submit() async {
     _otpReadyForNavigation = false;
+    
+    // Enable autovalidate to show validation errors
+    autovalidate = true;
+    notifyListeners();
     
     if (!formKey.currentState!.validate()) {
       return;

@@ -35,8 +35,16 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            
+            // Configure R8 to keep OkHttp3 classes needed by image_cropper
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
+}
+
+dependencies {
+    // OkHttp3 for image_cropper
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
 }
 
 flutter {

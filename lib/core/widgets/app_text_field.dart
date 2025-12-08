@@ -30,6 +30,7 @@ class AppTextField extends StatefulWidget {
     this.helperText,
     this.inputFormatters,
     this.allowEmptySpaces = false,
+    this.autoClearErrorOnInput = true,
   });
 
   final String label;
@@ -56,6 +57,7 @@ class AppTextField extends StatefulWidget {
   final String? helperText;
   final List<TextInputFormatter>? inputFormatters;
   final bool allowEmptySpaces;
+  final bool autoClearErrorOnInput;
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();
@@ -63,6 +65,8 @@ class AppTextField extends StatefulWidget {
 
 class _AppTextFieldState extends State<AppTextField> {
   late bool _obscure;
+  final GlobalKey<FormFieldState<String>> _fieldKey = GlobalKey<FormFieldState<String>>();
+  bool _suppressValidation = false;
 
   @override
   void initState() {
@@ -109,6 +113,10 @@ class _AppTextFieldState extends State<AppTextField> {
 
     // Combine validators: trim validator + custom validator
     String? _combinedValidator(String? value) {
+      if (_suppressValidation) {
+        return null;
+      }
+
       // First check if empty spaces only (when not allowing empty spaces)
       if (!widget.allowEmptySpaces && value != null) {
         if (value.trim().isEmpty) {
@@ -119,13 +127,40 @@ class _AppTextFieldState extends State<AppTextField> {
       return widget.validator?.call(value);
     }
 
+    // Build input formatters list
+    final formatters = <TextInputFormatter>[];
+    
+    // Add no-leading-spaces formatter when allowEmptySpaces is false
+    if (!widget.allowEmptySpaces) {
+      formatters.add(_NoLeadingSpacesFormatter());
+    }
+    
+    // Add custom formatters if provided
+    if (widget.inputFormatters != null) {
+      formatters.addAll(widget.inputFormatters!);
+    }
+
     return TextFormField(
+      key: _fieldKey,
       controller: widget.controller,
       focusNode: widget.focusNode,
       keyboardType: widget.keyboardType,
       textCapitalization: widget.textCapitalization,
       validator: _combinedValidator,
-      onChanged: widget.onChanged,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      onChanged: (value) {
+        widget.onChanged?.call(value);
+
+        if (!widget.autoClearErrorOnInput || widget.validator == null) {
+          return;
+        }
+
+        if (value.trim().length >= 3) {
+          _suppressValidation = true;
+          _fieldKey.currentState?.validate();
+          _suppressValidation = false;
+        }
+      },
       onFieldSubmitted: widget.onFieldSubmitted,
       textInputAction: widget.textInputAction,
       obscureText: widget.enableObscureToggle ? _obscure : widget.obscureText,
@@ -136,7 +171,7 @@ class _AppTextFieldState extends State<AppTextField> {
       minLines: widget.minLines,
       maxLength: widget.maxLength,
       onTap: widget.onTap,
-      inputFormatters: widget.inputFormatters,
+      inputFormatters: formatters.isNotEmpty ? formatters : null,
       decoration: InputDecoration(
         hintText: widget.hint ?? widget.label,
         helperText: widget.helperText ?? ' ',
@@ -163,5 +198,23 @@ class _AppTextFieldState extends State<AppTextField> {
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
+  }
+}
+
+class _NoLeadingSpacesFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.startsWith(' ') && oldValue.text.isEmpty) {
+      return oldValue;
+    }
+    
+    if (newValue.text.trim().isEmpty && newValue.text.isNotEmpty) {
+      return oldValue;
+    }
+    
+    return newValue;
   }
 }
