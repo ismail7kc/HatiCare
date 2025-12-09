@@ -345,17 +345,52 @@ class SettingsContentState extends State<SettingsContent> {
                     );
 
                     if (shouldLogout == true) {
-                      final success = await viewModel.logout();
-                      if (success && context.mounted) {
-                        Navigator.of(
-                          context,
-                          rootNavigator: true,
-                        ).pushAndRemoveUntil(
-                          MaterialPageRoute(
-                            builder: (_) => const LoginScreen(),
-                          ),
-                          (route) => false,
-                        );
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        },
+                      );
+
+                      try {
+                        final success = await viewModel.logout();
+
+                        if (context.mounted) Navigator.of(context).pop();
+
+                        if (success && context.mounted) {
+                          Navigator.of(
+                            context,
+                            rootNavigator: true,
+                          ).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (_) => const LoginScreen(),
+                            ),
+                            (route) => false,
+                          );
+                        } else if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                "Failed to logout. Please try again.",
+                              ),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) Navigator.of(context).pop();
+
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                "Something went wrong. Please try again.",
+                              ),
+                            ),
+                          );
+                        }
                       }
                     }
                   },

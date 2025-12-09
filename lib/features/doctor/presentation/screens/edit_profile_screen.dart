@@ -1,19 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
+import 'package:haticare/features/doctor/presentation/screens/phone_formatted.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
 import 'package:intl/intl.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
-import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:flutter_libphonenumber/flutter_libphonenumber.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
+}
+
+String countryCodeToEmoji(String countryCode) {
+  return countryCode
+      .toUpperCase()
+      .codeUnits
+      .map((c) => String.fromCharCode(c + 127397))
+      .join();
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
@@ -29,6 +39,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController licenseAuthorityController;
   late TextEditingController dobController;
 
+  late Map<String, dynamic> originalData;
+
   String gender = "Male";
   DateTime? selectedDate = DateTime(1992, 1, 8);
   String? selectedSpecialization;
@@ -41,6 +53,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final apiClient = ApiClient();
     final repository = RepositoryLayer(apiClient);
     editViewModel = EditViewmodel(repository);
+
+    originalData = {
+      'firstName': SaveLoginResponse.loginData?['first_name'],
+      'lastName': SaveLoginResponse.loginData?['last_name'],
+      'email': SaveLoginResponse.loginData?['email'],
+      'phoneNumber': SaveLoginResponse.loginData?['phone_number'],
+      // 'licenseNumber': SaveLoginResponse.loginData?['license_number'],
+      // 'licenseType': SaveLoginResponse.loginData?['license_type'],
+      // 'specialization': SaveLoginResponse.loginData?['specialization'],
+      // 'yearsExperience': SaveLoginResponse.loginData?['years_experience'],
+      // 'licenseAuthority': SaveLoginResponse.loginData?['license_authority'],
+      // 'gender': SaveLoginResponse.loginData?['gender'],
+      // 'dob': SaveLoginResponse.loginData?['dob'],
+    };
 
     SaveDoctorResponse.loadDoctorModel().then((_) {
       final doctor = SaveDoctorResponse.doctorInstance;
@@ -90,6 +116,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
   }
 
+  bool _isDataChanged() {
+    return firstNameController.text != originalData['firstName'] ||
+        lastNameController.text != originalData['lastName'] ||
+        phoneController.text != originalData['phoneNumber'] ||
+        licenseNumberController.text != originalData['licenseNumber'] ||
+        selectedLicenseType != originalData['licenseType'] ||
+        selectedSpecialization != originalData['specialization'] ||
+        yearsExperienceController.text != originalData['yearsExperience'] ||
+        licenseAuthorityController.text != originalData['licenseAuthority'] ||
+        gender != originalData['gender'] ||
+        selectedDate != originalData['dob'];
+  }
+
+  bool _areAllFieldsFilled() {
+    return firstNameController.text.isNotEmpty &&
+        lastNameController.text.isNotEmpty &&
+        phoneController.text.isNotEmpty &&
+        licenseNumberController.text.isNotEmpty &&
+        selectedLicenseType != null &&
+        selectedSpecialization != null &&
+        yearsExperienceController.text.isNotEmpty &&
+        licenseAuthorityController.text.isNotEmpty &&
+        gender != null &&
+        selectedDate != null;
+  }
+
   void _showError(String msg) {
     showDialog(
       context: context,
@@ -110,18 +162,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _onSavePressed() async {
-    if (!_formKey.currentState!.validate()) {
+    if (!_areAllFieldsFilled()) {
       _showError("Please fill all fields correctly");
       return;
     }
 
-    if (selectedLicenseType == null || selectedLicenseType!.isEmpty) {
-      _showError("Please select License Type");
-      return;
-    }
-
-    if (selectedSpecialization == null || selectedSpecialization!.isEmpty) {
-      _showError("Please select Specialization");
+    if (!_isDataChanged()) {
+      _showError("Nothing changed");
       return;
     }
 
@@ -202,6 +249,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       child: _buildTextField(
                         "First Name",
                         controller: firstNameController,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[a-zA-Z]'),
+                          ),
+                        ],
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return "Required";
@@ -218,6 +270,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       child: _buildTextField(
                         "Last Name",
                         controller: lastNameController,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[a-zA-Z]'),
+                          ),
+                        ],
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return "Required";
@@ -238,60 +295,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   controller: emailController,
                   isEmail: true,
                   validator: (_) => null,
+                  readOnly: true,
                 ),
                 const SizedBox(height: 16),
 
-                Text("Phone Number", style: _labelStyle()),
-                const SizedBox(height: 6),
-                Container(
-                  decoration: _inputDecoration(),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 0,
-                  ),
-                  child: IntlPhoneField(
-                    controller: phoneController,
-                    initialCountryCode: "US",
-                    showDropdownIcon: true,
-                    dropdownIconPosition: IconPosition.trailing,
-                    flagsButtonMargin: const EdgeInsets.only(right: 8),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: "Phone Number",
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    onChanged: (phone) {
-                      phoneController.text = phone.number;
-                    },
-                    validator: (phone) {
-                      if (phone == null || phone.number.isEmpty) {
-                        return "Phone number is required";
-                      }
-
-                      final nationalNumber = phone.number.replaceAll(
-                        RegExp(r'\D'),
-                        '',
-                      );
-                      final country = phone.countryISOCode;
-
-                      if (country == "US") {
-                        if (!RegExp(
-                          r'^[2-9]\d{2}[2-9]\d{2}\d{4}$',
-                        ).hasMatch(nationalNumber)) {
-                          return "Enter a valid US phone number (10 digits)";
-                        }
-                      } else if (country == "NG") {
-                        if (!RegExp(r'^[789]\d{9}$').hasMatch(nationalNumber)) {
-                          return "Enter a valid Nigerian number (10 digits)";
-                        }
-                      } else {
-                        return "Unsupported country";
-                      }
-
-                      return null;
-                    },
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    PhoneInputWidget(phoneController: phoneController),
+                  ],
                 ),
 
                 const SizedBox(height: 16),
@@ -374,9 +386,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 _buildTextField(
                   "License Number",
                   controller: licenseNumberController,
+
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+                    LengthLimitingTextInputFormatter(20),
+                  ],
+
                   validator: (v) =>
                       v == null || v.trim().isEmpty ? "Required" : null,
                 ),
+
                 const SizedBox(height: 16),
 
                 _buildDropdownField(
@@ -387,25 +406,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                Row(
+                Column(
                   children: [
-                    Expanded(
-                      child: _buildTextField(
-                        "Years of Experience",
-                        controller: yearsExperienceController,
-                        validator: (v) =>
-                            v == null || v.trim().isEmpty ? "Required" : null,
-                      ),
+                    _buildTextField(
+                      "Years of Experience",
+                      controller: yearsExperienceController,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        NoZeroInputFormatter(),
+                      ],
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return "Required";
+                        }
+                        final value = int.tryParse(v.trim());
+                        if (value == null || value <= 0 || value > 99) {
+                          return "Enter a value between 1 and 99";
+                        }
+                        return null;
+                      },
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildDropdownField(
-                        label: "Specialization",
-                        items: editViewModel.specializationNames,
-                        value: selectedSpecialization,
-                        onChanged: (val) =>
-                            setState(() => selectedSpecialization = val),
-                      ),
+
+                    const SizedBox(height: 12),
+                    _buildDropdownField(
+                      label: "Specialization",
+                      items: editViewModel.specializationNames,
+                      value: selectedSpecialization,
+                      onChanged: (val) =>
+                          setState(() => selectedSpecialization = val),
                     ),
                   ],
                 ),
@@ -415,6 +443,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 _buildTextField(
                   "License Issuing Authority",
                   controller: licenseAuthorityController,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+                    LengthLimitingTextInputFormatter(20),
+                  ],
                   validator: (v) =>
                       v == null || v.trim().isEmpty ? "Required" : null,
                 ),
@@ -452,37 +484,39 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget _buildTextField(
     String label, {
     required TextEditingController controller,
-    bool isEmail = false,
     String? Function(String?)? validator,
+    bool isEmail = false,
+    bool readOnly = false,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: _labelStyle()),
         const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          readOnly: isEmail,
-          enabled: !isEmail,
-          validator: validator,
-          decoration: InputDecoration(
-            hintText: label,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 14,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFE6E6E6), width: 1),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFE6E6E6), width: 1),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFE6E6E6), width: 1),
-            ),
+        Container(
+          decoration: _inputDecoration(),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: TextFormField(
+            controller: controller,
+            validator: validator,
+            readOnly: readOnly,
+            keyboardType: isEmail
+                ? TextInputType.emailAddress
+                : TextInputType.text,
+
+            inputFormatters:
+                inputFormatters ??
+                (isEmail
+                    ? [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[a-zA-Z0-9@._-]'),
+                        ),
+                        LengthLimitingTextInputFormatter(50),
+                      ]
+                    : null),
+
+            decoration: const InputDecoration(border: InputBorder.none),
           ),
         ),
       ],
@@ -548,5 +582,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       color: Colors.black54,
       fontWeight: FontWeight.w500,
     );
+  }
+}
+
+
+// TO PREVETN NON ZERO VALUE 🥹
+class NoZeroInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+
+    if (text == "0" || text == "00") {
+      return oldValue;
+    }
+
+    if (text.length > 2) {
+      return oldValue;
+    }
+
+    return newValue;
   }
 }
