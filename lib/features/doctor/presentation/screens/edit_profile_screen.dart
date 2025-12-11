@@ -9,7 +9,6 @@ import 'package:haticare/features/doctor/presentation/screens/phone_formatted.da
 import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
 import 'package:intl/intl.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
-import 'package:flutter_libphonenumber/flutter_libphonenumber.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});

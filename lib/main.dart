@@ -12,11 +12,11 @@ import 'package:haticare/features/auth/domain/repositories/auth_repository.dart'
 import 'package:flutter_libphonenumber/flutter_libphonenumber.dart';
 
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize libphonenumber
-  FlutterLibphonenumber().init();
+  await init();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.white,

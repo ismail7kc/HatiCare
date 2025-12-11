@@ -18,6 +18,7 @@ class _PhoneInputWidgetState extends State<PhoneInputWidget> {
   void initState() {
     super.initState();
 
+    // Default to US for example (change as needed)
     _selectedCountry = CountryManager().countries.firstWhere(
       (c) => c.countryCode == 'US',
     );
@@ -26,24 +27,25 @@ class _PhoneInputWidgetState extends State<PhoneInputWidget> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _applyFullFormatting();
-      updatePhoneFormat(widget.phoneController.text);
+      _updatePhoneFormat(widget.phoneController.text);
     });
   }
 
   LibPhonenumberTextFormatter _buildFormatter(CountryWithPhoneCode c) {
     return LibPhonenumberTextFormatter(
-      country: c,
+      country: c, // correct API field
+      phoneNumberType: PhoneNumberType.mobile,
       phoneNumberFormat: PhoneNumberFormat.national,
     );
   }
 
-  void updatePhoneFormat(String raw) {
+  void _updatePhoneFormat(String raw) {
     if (raw.isEmpty) return;
 
     try {
-      final formatted = FlutterLibphonenumber().formatNumberSync(
+      final formatted = formatNumberSync(
         raw,
-        country: _selectedCountry,
+        country: _selectedCountry, // correct API usage
         phoneNumberFormat: PhoneNumberFormat.national,
       );
 
@@ -59,7 +61,7 @@ class _PhoneInputWidgetState extends State<PhoneInputWidget> {
     if (text.isEmpty) return;
 
     try {
-      final formatted = FlutterLibphonenumber().formatNumberSync(
+      final formatted = formatNumberSync(
         text,
         country: _selectedCountry,
         phoneNumberFormat: PhoneNumberFormat.national,
@@ -80,7 +82,7 @@ class _PhoneInputWidgetState extends State<PhoneInputWidget> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _applyFullFormatting();
-      updatePhoneFormat(widget.phoneController.text);
+      _updatePhoneFormat(widget.phoneController.text);
     });
   }
 
@@ -98,7 +100,6 @@ class _PhoneInputWidgetState extends State<PhoneInputWidget> {
         const Text("Phone Number",
             style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
-
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
@@ -112,7 +113,6 @@ class _PhoneInputWidgetState extends State<PhoneInputWidget> {
                   value: _selectedCountry,
                   isDense: true,
                   icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 16),
-
                   selectedItemBuilder: (_) {
                     return CountryManager().countries.map((c) {
                       return Row(
@@ -126,7 +126,6 @@ class _PhoneInputWidgetState extends State<PhoneInputWidget> {
                       );
                     }).toList();
                   },
-
                   items: CountryManager().countries.map((c) {
                     return DropdownMenuItem(
                       value: c,
@@ -141,21 +140,18 @@ class _PhoneInputWidgetState extends State<PhoneInputWidget> {
                       ),
                     );
                   }).toList(),
-
                   onChanged: (c) {
                     if (c != null) _changeCountry(c);
                   },
                 ),
               ),
-
               const SizedBox(width: 6),
-
               Expanded(
                 child: TextFormField(
                   controller: widget.phoneController,
                   keyboardType: TextInputType.phone,
                   inputFormatters: [_formatter],
-                  onChanged: (value) => updatePhoneFormat(value),
+                  onChanged: (value) => _updatePhoneFormat(value),
                   decoration: const InputDecoration(
                     border: InputBorder.none,
                     hintText: "123-456-7890",

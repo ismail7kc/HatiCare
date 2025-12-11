@@ -53,7 +53,7 @@ dependencies:
   phone_numbers_parser: ^9.0.9  # For advanced phone number parsing
   intl_phone_number_input: ^0.7.3  # For the phone input field
   image_cropper: 11.0.0
-  flutter_libphonenumber: ^1.1.1
+  flutter_libphonenumber: ^2.7.0
 
 
 dev_dependencies:
