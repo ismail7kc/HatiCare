@@ -10,6 +10,7 @@ import 'package:haticare/features/pharmacy/presentation/widgets/prescription_req
 import 'package:haticare/features/pharmacy/presentation/screens/prescription_details_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/pharmacy_user_provider.dart';
+import 'package:haticare/features/pharmacy/domain/entities/prescription_request.dart' show Medication, PrescriptionStatus;
 
 class PharmacyHomeScreen extends StatefulWidget {
   const PharmacyHomeScreen({super.key});
@@ -48,16 +49,16 @@ class PharmacyHomeTabScreen extends StatefulWidget {
 
 class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     with AutomaticKeepAliveClientMixin {
-  late List<PrescriptionRequest> prescriptionRequests;
-
   @override
   bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    prescriptionRequests = PrescriptionRequest.getDummyRequests();
-    // Provider already fetches on initialization
+    // Fetch prescriptions on init
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PharmacyUserProvider>().fetchPrescriptions();
+    });
   }
 
   @override
@@ -116,7 +117,9 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                                 )
                               : Text(
                                   pharmacyProvider.pharmacyName.isNotEmpty
-                                      ? pharmacyProvider.pharmacyName
+                                      ? (pharmacyProvider.pharmacyName.length > 15
+                                          ? '${pharmacyProvider.pharmacyName.substring(0, 15)}...'
+                                          : pharmacyProvider.pharmacyName)
                                       : 'Pharmacy',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
@@ -268,7 +271,20 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                       const SizedBox(height: 12),
 
                       // Prescription Requests List
-                      if (prescriptionRequests.isEmpty)
+                      if (pharmacyProvider.prescriptionsLoading)
+                        Container(
+                          padding: const EdgeInsets.all(40),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                            ),
+                          ),
+                        )
+                      else if (pharmacyProvider.prescriptions.isEmpty)
                         Container(
                           padding: const EdgeInsets.all(40),
                           decoration: BoxDecoration(
@@ -277,11 +293,12 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                           ),
                           child: Center(
                             child: Text(
-                              'No New Requests Yet.',
+                              pharmacyProvider.errorMessage ?? 'No New Requests Yet.',
                               style: TextStyle(
                                 color: Colors.grey[600],
                                 fontSize: 14,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
                         )
@@ -289,9 +306,54 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                         ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: prescriptionRequests.length,
+                          itemCount: pharmacyProvider.prescriptions.length,
                           itemBuilder: (context, index) {
-                            final request = prescriptionRequests[index];
+                            final prescriptionData = pharmacyProvider.prescriptions[index];
+                            
+                            // Parse medications list from API response structure
+                            List<Medication> medications = [];
+                            if (prescriptionData['medications'] is List) {
+                              medications = (prescriptionData['medications'] as List)
+                                  .map((med) => Medication(
+                                    name: med['name'] ?? 'Unknown',
+                                    dosage: med['dose'] ?? 'N/A', // API uses 'dose' not 'dosage'
+                                    instructions: '${med['frequency'] ?? ''} ${med['duration'] ?? ''} ${med['notes'] ?? ''}'.trim(),
+                                  ))
+                                  .toList();
+                            }
+                            
+                            // Parse status from availability field
+                            PrescriptionStatus status = PrescriptionStatus.issued;
+                            final statusStr = prescriptionData['availability']?.toString().toLowerCase() ?? 'pending';
+                            if (statusStr.contains('fully')) {
+                              status = PrescriptionStatus.fullyDispensed;
+                            } else if (statusStr.contains('partial')) {
+                              status = PrescriptionStatus.partiallyDispensed;
+                            }
+                            
+                            // Parse date (using current date since API doesn't provide date)
+                            DateTime dateIssued = DateTime.now();
+                            
+                            // Convert API response to PrescriptionRequest
+                            final request = PrescriptionRequest(
+                              id: prescriptionData['prescription_id']?.toString() ?? 'N/A',
+                              rxCode: 'RX...${prescriptionData['rex_code_last4'] ?? 'N/A'}',
+                              patientName: prescriptionData['patient_name'] ?? 'Unknown Patient',
+                              patientAge: int.tryParse(prescriptionData['patient_age']?.toString() ?? '0') ?? 0, // API might provide age, default to 0
+                              patientGender: prescriptionData['patient_gender'] ?? 'Male',
+                              patientDob: '1992-11-15',
+                              doctorName: prescriptionData['doctor_name'] ?? 'Dr. Unknown',
+                              doctorSpecialty: prescriptionData['doctor_specialty'] ?? 'General Physician',
+                              dateIssued: dateIssued,
+                              status: status,
+                              medications: medications,
+                            );
+                            
+                            // Store additional data for details screen
+                            request.patientPhone = prescriptionData['patient_phone'] ?? '';
+                            request.notes = prescriptionData['notes'] ?? '';
+                            request.fulfillmentScore = prescriptionData['fulfillment_score'] ?? 0.0;
+                            
                             return PrescriptionRequestCard(
                               request: request,
                               onTap: () {

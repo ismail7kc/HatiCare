@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl_phone_field/phone_number.dart';
@@ -47,11 +48,43 @@ class PharmacyProfileViewModel extends ChangeNotifier {
   final GlobalKey<FormState> formKeyPage1 = GlobalKey<FormState>();
   final GlobalKey<FormState> formKeyPage2 = GlobalKey<FormState>();
 
+  // Country/State/City data
+  List<Map<String, dynamic>> countries = [];
+  List<Map<String, dynamic>> states = [];
+  List<String> cities = [];
+  bool isCountriesLoading = true;
+  
+  String? selectedCountry;
+  String? selectedState;
+  String? selectedCity;
+  
+  // Validation error management
+  final Map<String, String?> _validationErrors = {};
+
   PharmacyProfileViewModel({
     required this.pharmacyId,
     this.openedFromSettings = false,
   }) {
-    _initializeProfile();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await _loadCountriesData();
+    await _initializeProfile();
+  }
+
+  Future<void> _loadCountriesData() async {
+    try {
+      final jsonString = await rootBundle.loadString('assets/json/countries.json');
+      final jsonData = jsonDecode(jsonString) as List;
+      countries = List<Map<String, dynamic>>.from(jsonData);
+      debugPrint('Loaded ${countries.length} countries');
+    } catch (e) {
+      debugPrint('Error loading countries data: $e');
+    } finally {
+      isCountriesLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _initializeProfile() async {
@@ -79,7 +112,6 @@ class PharmacyProfileViewModel extends ChangeNotifier {
         final countryCode = parsedPhone['countryCode'] ?? 'US';
         final numberOnly = parsedPhone['number'] ?? '';
 
-        // Don't set phoneNumberController.text, let IntlPhoneField handle formatting
         _initialPhoneNumber = numberOnly;
         _phoneNumber = phoneNumber;
         _countryCode = countryCode;
@@ -113,13 +145,11 @@ class PharmacyProfileViewModel extends ChangeNotifier {
     String countryCode = 'US';
     String numberOnly = phoneNumber;
 
-    // Remove all formatting characters (spaces, parentheses, hyphens, etc.) except + and digits
     String cleanedNumber = phoneNumber.replaceAll(RegExp(r'[^+\d]'), '');
 
     for (final entry in countryCodeMap.entries) {
       if (cleanedNumber.startsWith(entry.key)) {
         countryCode = entry.value;
-        // Remove country code and keep only digits
         numberOnly = cleanedNumber.replaceFirst(entry.key, '').trim();
         break;
       }
@@ -214,13 +244,19 @@ class PharmacyProfileViewModel extends ChangeNotifier {
         addressLine1Controller.text = addressLine1;
         debugPrint('address_line1: $addressLine1');
 
-        final city = data['city'] ?? '';
-        cityController.text = city;
-        debugPrint('city: $city');
-
         final state = data['state'] ?? '';
         stateController.text = state;
+        if (state.isNotEmpty) {
+          selectState(state);
+        }
         debugPrint('state: $state');
+
+        final city = data['city'] ?? '';
+        cityController.text = city;
+        if (city.isNotEmpty) {
+          selectCity(city);
+        }
+        debugPrint('city: $city');
 
         final zipCode = data['zip_code'] ?? '';
         zipCodeController.text = zipCode;
@@ -228,6 +264,9 @@ class PharmacyProfileViewModel extends ChangeNotifier {
 
         final country = data['country'] ?? '';
         countryController.text = country;
+        if (country.isNotEmpty) {
+          selectCountry(country);
+        }
         debugPrint('country: $country');
 
         // Populate contact person from API response
@@ -313,6 +352,73 @@ class PharmacyProfileViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void selectCountry(String? countryName) {
+    if (countryName == null) return;
+    
+    selectedCountry = countryName;
+    selectedState = null;
+    selectedCity = null;
+    states = [];
+    cities = [];
+    
+    // Find the country and load its states
+    final country = countries.firstWhere(
+      (c) => c['Country_name'] == countryName,
+      orElse: () => {},
+    );
+    
+    if (country.isNotEmpty && country['states'] != null) {
+      states = List<Map<String, dynamic>>.from(country['states']);
+    }
+    
+    countryController.text = countryName;
+    stateController.clear();
+    cityController.clear();
+    notifyListeners();
+  }
+
+  void selectState(String? stateName) {
+    if (stateName == null || selectedCountry == null) return;
+    
+    selectedState = stateName;
+    selectedCity = null;
+    cities = [];
+    
+    // Find the state and load its cities
+    final state = states.firstWhere(
+      (s) => s['state_name'] == stateName,
+      orElse: () => {},
+    );
+    
+    if (state.isNotEmpty && state['cities'] != null) {
+      cities = List<String>.from(state['cities']);
+    }
+    
+    stateController.text = stateName;
+    cityController.clear();
+    notifyListeners();
+  }
+
+  void selectCity(String? cityName) {
+    if (cityName == null) return;
+    
+    selectedCity = cityName;
+    cityController.text = cityName;
+    notifyListeners();
+  }
+
+  List<String> getCountryNames() {
+    return countries.map((c) => c['Country_name'] as String).toList();
+  }
+
+  List<String> getStateNames() {
+    return states.map((s) => s['state_name'] as String).toList();
+  }
+
+  List<String> getCityNames() {
+    return cities;
+  }
+
   String? validatePharmacyName(String? value) {
     if (value == null || value.isEmpty) {
       return 'Pharmacy name is required';
@@ -327,9 +433,9 @@ class PharmacyProfileViewModel extends ChangeNotifier {
     return null;
   }
 
-  String? validateCity(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'City is required';
+  String? validateCity(String value) {
+    if (value.isEmpty) {
+      return 'Please select a city';
     }
     return null;
   }
@@ -407,7 +513,19 @@ class PharmacyProfileViewModel extends ChangeNotifier {
   }
 
   Future<void> submitProfile() async {
+    // Validate all fields and show errors if any
+    if (!validateAllFields()) {
+      return;
+    }
+    
     if (!formKeyPage2.currentState!.validate()) {
+      return;
+    }
+
+    // Check if profile picture exists (either newly uploaded or from API)
+    if (profilePicture == null && (profilePictureUrl == null || profilePictureUrl!.isEmpty)) {
+      errorMessage = 'Profile picture is required';
+      notifyListeners();
       return;
     }
 
@@ -532,6 +650,71 @@ class PharmacyProfileViewModel extends ChangeNotifier {
 
   void resetNavigation() {
     _shouldNavigateToHome = false;
+  }
+
+  // Validation error management methods
+  void setValidationError(String field, String? error) {
+    _validationErrors[field] = error;
+    notifyListeners();
+  }
+
+  void clearValidationError(String field) {
+    _validationErrors[field] = null;
+    notifyListeners();
+  }
+
+  String? getValidationError(String field) {
+    return _validationErrors[field];
+  }
+
+  void clearAllValidationErrors() {
+    _validationErrors.clear();
+    notifyListeners();
+  }
+
+  // Validate all fields and set errors
+  bool validateAllFields() {
+    clearAllValidationErrors();
+    bool hasErrors = false;
+
+    // Validate country
+    final countryError = validateCountry(countryController.text);
+    if (countryError != null) {
+      setValidationError('country', countryError);
+      hasErrors = true;
+    }
+
+    // Validate state
+    final stateError = validateState(stateController.text);
+    if (stateError != null) {
+      setValidationError('state', stateError);
+      hasErrors = true;
+    }
+
+    // Validate city
+    final cityError = validateCity(cityController.text);
+    if (cityError != null) {
+      setValidationError('city', cityError);
+      hasErrors = true;
+    }
+
+    // Validate other required fields
+    if (pharmacyNameController.text.isEmpty) {
+      setValidationError('pharmacyName', 'Pharmacy name is required');
+      hasErrors = true;
+    }
+
+    if (addressLine1Controller.text.isEmpty) {
+      setValidationError('address', 'Address is required');
+      hasErrors = true;
+    }
+
+    if (zipCodeController.text.isEmpty) {
+      setValidationError('zipCode', 'Zip code is required');
+      hasErrors = true;
+    }
+
+    return !hasErrors;
   }
 
   @override

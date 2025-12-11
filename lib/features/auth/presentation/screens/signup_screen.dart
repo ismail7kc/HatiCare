@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/core/widgets/app_dropdown_field.dart';
 import 'package:haticare/core/widgets/app_primary_button.dart';
 import 'package:haticare/core/widgets/app_text_field.dart';
 import 'package:haticare/features/auth/domain/entities/user_role.dart';
@@ -94,6 +95,31 @@ class _SignupViewState extends State<_SignupView> {
           });
         }
 
+        // Show error as toast
+        if (state.errorMessage != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.white),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(state.errorMessage!)),
+                    ],
+                  ),
+                  duration: const Duration(seconds: 4),
+                  behavior: SnackBarBehavior.floating,
+                  margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
+                  backgroundColor: Colors.red[700],
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 6,
+                ),
+              );
+            }
+          });
+        }
+
         return Scaffold(
           backgroundColor: Colors.white,
           body: SafeArea(
@@ -109,7 +135,7 @@ class _SignupViewState extends State<_SignupView> {
                   child: Form(
                     key: viewModel.formKey,
                     autovalidateMode: state.autovalidate
-                        ? AutovalidateMode.onUserInteraction
+                        ? AutovalidateMode.onUnfocus
                         : AutovalidateMode.disabled,
                     child: SingleChildScrollView(
                       child: Column(
@@ -131,21 +157,27 @@ class _SignupViewState extends State<_SignupView> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          _LabeledField(
-                            label: 'Select Role',
-                            child: Selector<SignupViewModel, UserRole>(
-                              selector: (_, vm) => vm.selectedRole,
-                              builder: (context, selectedRole, _) {
-                                return _RoleDropdown(
-                                  value: selectedRole,
-                                  onChanged: (role) {
-                                    if (role != null && viewModel.selectedRole != role) {
-                                      viewModel.selectRole(role);
-                                    }
-                                  },
-                                );
-                              },
-                            ),
+                          Selector<SignupViewModel, UserRole>(
+                            selector: (_, vm) => vm.selectedRole,
+                            builder: (context, selectedRole, _) {
+                              return AppDropdownField<UserRole>(
+                                label: 'Select Role',
+                                items: const [
+                                  DropdownMenuItem(value: UserRole.doctor, child: Text('Doctor')),
+                                  DropdownMenuItem(value: UserRole.pharmacy, child: Text('Pharmacy')),
+                                  DropdownMenuItem(value: UserRole.laboratory, child: Text('Laboratory')),
+                                ],
+                                value: selectedRole,
+                                onChanged: (role) {
+                                  if (role != null && viewModel.selectedRole != role) {
+                                    viewModel.selectRole(role);
+                                  }
+                                },
+                                validator: (value) => value == null ? 'Please select a role' : null,
+                                hint: 'Select role',
+                                prefixIcon: const Icon(Icons.business_outlined, color: AppColors.primary),
+                              );
+                            },
                           ),
                           const SizedBox(height: 24),
                           Selector<SignupViewModel, UserRole>(
@@ -162,16 +194,6 @@ class _SignupViewState extends State<_SignupView> {
                               );
                             },
                           ),
-                        if (state.errorMessage != null) ...[
-                          const SizedBox(height: 16),
-                          Text(
-                            state.errorMessage!,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.error,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
                           if (state.successMessage != null) ...[
                             const SizedBox(height: 16),
                             Container(
@@ -374,7 +396,6 @@ class _PhoneFieldWrapperState extends State<_PhoneFieldWrapper> {
             return IntlPhoneField(
               controller: widget.controller,
               initialCountryCode: widget.initialCountryCode,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               dropdownIcon: const Icon(
                 Icons.arrow_drop_down,
                 color: AppColors.primary,
@@ -385,6 +406,7 @@ class _PhoneFieldWrapperState extends State<_PhoneFieldWrapper> {
               flagsButtonPadding: const EdgeInsets.only(left: 12),
               dropdownTextStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary),
               style: Theme.of(context).textTheme.bodyMedium,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: _phoneFieldDecoration(context, hint: widget.hint, hasError: _errorText != null),
               onChanged: (phone) {
                 _phoneNumber = phone;
@@ -487,24 +509,23 @@ class _DoctorSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _LabeledField(
-                  label: 'Gender',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Selector<SignupViewModel, String>(
-                        selector: (_, vm) => vm.genderController.text,
-                        builder: (context, genderValue, _) {
-                          return _GenderDropdown(
-                            value: genderValue.isEmpty ? null : genderValue,
-                            onChanged: viewModel.setDoctorGender,
-                            validator: viewModel.validateDoctorGender,
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 4),
-                    ],
-                  ),
+                child: Selector<SignupViewModel, String>(
+                  selector: (_, vm) => vm.genderController.text,
+                  builder: (context, genderValue, _) {
+                    return AppDropdownField<String>(
+                      label: 'Gender',
+                      items: const [
+                        DropdownMenuItem(value: 'Male', child: Text('Male')),
+                        DropdownMenuItem(value: 'Female', child: Text('Female')),
+                        DropdownMenuItem(value: 'Other', child: Text('Other')),
+                      ],
+                      value: genderValue.isEmpty ? null : genderValue,
+                      onChanged: viewModel.setDoctorGender,
+                      validator: viewModel.validateDoctorGender,
+                      hint: 'Gender',
+                      prefixIcon: const Icon(Icons.person_2_outlined, color: AppColors.primary),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 12),
@@ -628,7 +649,7 @@ class _PharmacySection extends StatelessWidget {
             child: AppTextField(
               controller: viewModel.ownerNameController,
               label: 'Contact Person',
-              hint: 'Dr. Ali Khan',
+              hint: 'Enter Contact Person Name',
               textCapitalization: TextCapitalization.words,
               prefixIcon: const Icon(Icons.person_outline),
               validator: viewModel.validateOwnerName,
@@ -748,7 +769,7 @@ class _LaboratorySection extends StatelessWidget {
           child: AppTextField(
             controller: viewModel.laboratoryContactPersonController,
             label: 'Contact Person',
-            hint: 'Dr. Ali Khan',
+            hint: 'Enter Contact Person Name',
             textCapitalization: TextCapitalization.words,
             prefixIcon: const Icon(Icons.person_outline),
             validator: viewModel.validateLaboratoryContactPerson,
@@ -1024,268 +1045,6 @@ class _DatePickerField extends StatelessWidget {
       style: Theme.of(context).textTheme.bodyMedium,
       validator: validator,
       onTap: () => _selectDate(context),
-    );
-  }
-}
-
-class _RoleDropdown extends StatefulWidget {
-  const _RoleDropdown({
-    required this.value,
-    required this.onChanged,
-  });
-
-  final UserRole value;
-  final ValueChanged<UserRole?> onChanged;
-
-  @override
-  State<_RoleDropdown> createState() => _RoleDropdownState();
-}
-
-class _RoleDropdownState extends State<_RoleDropdown> {
-  late FocusNode _focusNode;
-
-  @override
-  void initState() {
-    super.initState();
-    _focusNode = FocusNode();
-  }
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  void _showRoleMenu() {
-    final RenderBox renderBox = context.findRenderObject() as RenderBox;
-    final Offset offset = renderBox.localToGlobal(Offset.zero);
-    final Size size = renderBox.size;
-
-    showMenu<UserRole>(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        offset.dx,
-        offset.dy + size.height - 1,
-        offset.dx,
-        offset.dy + size.height + 300,
-      ),
-      items: const [
-        PopupMenuItem(value: UserRole.doctor, child: Text('Doctor')),
-        PopupMenuItem(value: UserRole.pharmacy, child: Text('Pharmacy')),
-        PopupMenuItem(value: UserRole.laboratory, child: Text('Laboratory')),
-      ],
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-      ),
-      color: Colors.white,
-      constraints: BoxConstraints(
-        minWidth: size.width,
-        maxWidth: size.width,
-      ),
-    ).then((value) {
-      if (value != null) {
-        widget.onChanged(value);
-      }
-    });
-  }
-
-  String _getRoleLabel(UserRole role) {
-    switch (role) {
-      case UserRole.doctor:
-        return 'Doctor';
-      case UserRole.pharmacy:
-        return 'Pharmacy';
-      case UserRole.laboratory:
-        return 'Laboratory';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _showRoleMenu,
-      child: InputDecorator(
-        isFocused: false,
-        isEmpty: false,
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: AppColors.surface,
-          prefixIcon: const Icon(
-            Icons.business_outlined,
-            color: AppColors.primary,
-          ),
-          suffixIcon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(
-              color: AppColors.primary,
-              width: 1.4,
-            ),
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
-        ),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            _getRoleLabel(widget.value),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GenderDropdown extends StatefulWidget {
-  const _GenderDropdown({
-    required this.value,
-    required this.onChanged,
-    this.validator,
-  });
-
-  final String? value;
-  final ValueChanged<String?> onChanged;
-  final String? Function(String?)? validator;
-
-  @override
-  State<_GenderDropdown> createState() => _GenderDropdownState();
-}
-
-class _GenderDropdownState extends State<_GenderDropdown> {
-  late FocusNode _focusNode;
-
-  @override
-  void initState() {
-    super.initState();
-    _focusNode = FocusNode();
-  }
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  void _showGenderMenu() {
-    final RenderBox renderBox = context.findRenderObject() as RenderBox;
-    final Offset offset = renderBox.localToGlobal(Offset.zero);
-    final Size size = renderBox.size;
-
-    showMenu<String>(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        offset.dx,
-        offset.dy + size.height - 1,
-        offset.dx,
-        offset.dy + size.height + 300,
-      ),
-      items: const [
-        PopupMenuItem(value: 'Male', child: Text('Male')),
-        PopupMenuItem(value: 'Female', child: Text('Female')),
-        PopupMenuItem(value: 'Other', child: Text('Other')),
-      ],
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-      ),
-      color: Colors.white,
-      constraints: BoxConstraints(
-        minWidth: size.width,
-        maxWidth: size.width,
-      ),
-    ).then((value) {
-      if (value != null) {
-        // Call the onChanged callback which will trigger FormField.onChanged
-        widget.onChanged(value);
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _showGenderMenu,
-      child: FormField<String>(
-        initialValue: widget.value,
-        validator: widget.validator,
-        builder: (FormFieldState<String> state) {
-          // Update the form field value when widget.value changes
-          if (widget.value != state.value) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              state.didChange(widget.value);
-            });
-          }
-          
-          return InputDecorator(
-            isFocused: false,
-            isEmpty: widget.value == null,
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: AppColors.surface,
-              prefixIcon: const Icon(
-                Icons.person_2_outlined,
-                color: AppColors.primary,
-              ),
-              suffixIcon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(
-                  color: state.hasError ? Theme.of(context).colorScheme.error : Colors.grey.shade300,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(
-                  color: state.hasError ? Theme.of(context).colorScheme.error : AppColors.primary,
-                  width: 1.4,
-                ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(
-                  color: Theme.of(context).colorScheme.error,
-                  width: 1.4,
-                ),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-              errorText: state.errorText,
-              errorStyle: const TextStyle(height: 0),
-            ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                widget.value ?? 'Gender',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: widget.value != null ? AppColors.textPrimary : AppColors.textSecondary,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
     );
   }
 }

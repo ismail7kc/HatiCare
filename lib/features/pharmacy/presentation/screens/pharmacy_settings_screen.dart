@@ -559,7 +559,11 @@ class _PharmacySettingsScreenState extends State<PharmacySettingsScreen>
                   child: LinearProgressIndicator(),
                 )
               : Text(
-                  provider.pharmacyName.isNotEmpty ? provider.pharmacyName : 'User',
+                  provider.pharmacyName.isNotEmpty
+                      ? (provider.pharmacyName.length > 15
+                          ? '${provider.pharmacyName.substring(0, 15)}...'
+                          : provider.pharmacyName)
+                      : 'User',
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,

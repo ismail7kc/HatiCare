@@ -82,6 +82,7 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/json/
 
 flutter_launcher_icons:
   android: true

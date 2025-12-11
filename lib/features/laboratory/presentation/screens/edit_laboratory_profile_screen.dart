@@ -145,7 +145,7 @@ class _EditLaboratoryProfileScreenState extends State<EditLaboratoryProfileScree
             child: AppTextField(
               controller: viewModel.contactPersonController,
               label: 'Contact Person',
-              hint: 'Dr. Ali Khan',
+              hint: 'Enter Contact Person Name',
               enabled: false,
               prefixIcon: const Icon(Icons.person_outline),
             ),
@@ -184,6 +184,7 @@ class _EditLaboratoryProfileScreenState extends State<EditLaboratoryProfileScree
             child: IntlPhoneField(
               controller: viewModel.phoneNumberController,
               initialCountryCode: viewModel.countryCode.replaceAll('+', ''),
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               onChanged: viewModel.updatePhone,
               onCountryChanged: (country) {
                 viewModel.updateCountryCode(country.dialCode);
@@ -243,7 +244,7 @@ class _EditLaboratoryProfileScreenState extends State<EditLaboratoryProfileScree
             child: AppTextField(
               controller: viewModel.stateController,
               label: 'State',
-              hint: 'Punjab',
+              hint: 'Sindh',
               textCapitalization: TextCapitalization.words,
               prefixIcon: const Icon(Icons.location_city_outlined),
             ),
@@ -256,14 +257,14 @@ class _EditLaboratoryProfileScreenState extends State<EditLaboratoryProfileScree
             child: AppTextField(
               controller: viewModel.cityController,
               label: 'City',
-              hint: 'Lahore',
+              hint: 'Karachi',
               textCapitalization: TextCapitalization.words,
-              prefixIcon: const Icon(Icons.location_city_outlined),
+              prefixIcon: const Icon(Icons.location_on_outlined),
             ),
           ),
           const SizedBox(height: 16),
 
-          // ZIP Code (Editable)
+          // ZIP Code
           _LabeledField(
             label: 'ZIP Code',
             child: AppTextField(
@@ -273,6 +274,33 @@ class _EditLaboratoryProfileScreenState extends State<EditLaboratoryProfileScree
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               prefixIcon: const Icon(Icons.local_post_office_outlined),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Tax ID
+          _LabeledField(
+            label: 'Tax ID',
+            child: AppTextField(
+              controller: viewModel.taxIdentificationNumberController,
+              label: 'Tax ID',
+              hint: '12345678',
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              prefixIcon: const Icon(Icons.receipt_outlined),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // License Number
+          _LabeledField(
+            label: 'License Number',
+            child: AppTextField(
+              controller: viewModel.licenseNumberController,
+              label: 'License Number',
+              hint: 'LAB-2024-001',
+              textCapitalization: TextCapitalization.characters,
+              prefixIcon: const Icon(Icons.card_membership_outlined),
             ),
           ),
           const SizedBox(height: 24),
@@ -515,7 +543,7 @@ class _EditLaboratoryProfileScreenState extends State<EditLaboratoryProfileScree
             child: AppTextField(
               controller: viewModel.contactPersonController,
               label: 'Contact Person',
-              hint: 'Dr. Ali Khan',
+              hint: 'Enter Contact Person Name',
               enabled: false,
               prefixIcon: const Icon(Icons.person_outline),
             ),
@@ -554,6 +582,7 @@ class _EditLaboratoryProfileScreenState extends State<EditLaboratoryProfileScree
             child: IntlPhoneField(
               controller: viewModel.phoneNumberController,
               initialCountryCode: viewModel.countryCode.replaceAll('+', ''),
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               onChanged: viewModel.updatePhone,
               onCountryChanged: (country) {
                 viewModel.updateCountryCode(country.dialCode);

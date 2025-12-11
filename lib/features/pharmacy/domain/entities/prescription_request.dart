@@ -16,6 +16,11 @@ class PrescriptionRequest {
   final DateTime dateIssued;
   final PrescriptionStatus status;
   final List<Medication> medications;
+  
+  // Additional fields for API data
+  late String patientPhone;
+  late String notes;
+  late double fulfillmentScore;
 
   PrescriptionRequest({
     required this.id,
