@@ -147,21 +147,17 @@ class _AppTextFieldState extends State<AppTextField> {
       keyboardType: widget.keyboardType,
       textCapitalization: widget.textCapitalization,
       validator: _combinedValidator,
-      autovalidateMode: AutovalidateMode.onUserInteraction,
+      autovalidateMode: AutovalidateMode.onUnfocus,
       onChanged: (value) {
         widget.onChanged?.call(value);
-
-        if (!widget.autoClearErrorOnInput || widget.validator == null) {
-          return;
-        }
-
-        if (value.trim().length >= 3) {
-          _suppressValidation = true;
-          _fieldKey.currentState?.validate();
-          _suppressValidation = false;
-        }
       },
-      onFieldSubmitted: widget.onFieldSubmitted,
+      onFieldSubmitted: (value) {
+        // Trim trailing spaces on submit
+        if (widget.controller != null) {
+          widget.controller!.text = value.trim();
+        }
+        widget.onFieldSubmitted?.call(value.trim());
+      },
       textInputAction: widget.textInputAction,
       obscureText: widget.enableObscureToggle ? _obscure : widget.obscureText,
       enabled: effectiveEnabled,
@@ -207,12 +203,24 @@ class _NoLeadingSpacesFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
+    // Prevent leading spaces
     if (newValue.text.startsWith(' ') && oldValue.text.isEmpty) {
       return oldValue;
     }
     
+    // Prevent only spaces (empty field with spaces)
     if (newValue.text.trim().isEmpty && newValue.text.isNotEmpty) {
       return oldValue;
+    }
+    
+    // Prevent multiple consecutive spaces
+    final newText = newValue.text.replaceAll(RegExp(r' +'), ' ');
+    
+    if (newText != newValue.text) {
+      return TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: newText.length),
+      );
     }
     
     return newValue;

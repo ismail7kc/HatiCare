@@ -13,6 +13,8 @@ class PharmacyUserProvider extends ChangeNotifier {
   String _licenseNumber = '';
   bool _isLoading = true;
   String? _errorMessage;
+  List<dynamic> _prescriptions = [];
+  bool _prescriptionsLoading = false;
 
   String get pharmacyName => _pharmacyName;
   String get profilePictureUrl => _profilePictureUrl;
@@ -20,6 +22,8 @@ class PharmacyUserProvider extends ChangeNotifier {
   String get licenseNumber => _licenseNumber;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  List<dynamic> get prescriptions => _prescriptions;
+  bool get prescriptionsLoading => _prescriptionsLoading;
 
   PharmacyUserProvider() {
     _loadInitialData();
@@ -103,5 +107,62 @@ class PharmacyUserProvider extends ChangeNotifier {
   void updateProfilePicture(String newUrl) {
     _profilePictureUrl = newUrl;
     notifyListeners();
+  }
+
+  Future<void> fetchPrescriptions() async {
+    try {
+      _prescriptionsLoading = true;
+      notifyListeners();
+
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token') ?? '';
+
+      if (accessToken.isEmpty) {
+        _errorMessage = 'No authentication token found';
+        _prescriptionsLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/');
+      final client = ChuckerHttpClient(http.Client());
+      final response = await client.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = jsonDecode(response.body);
+        
+        if (jsonResponse is Map<String, dynamic>) {
+          if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
+            _prescriptions = jsonResponse['data'] as List<dynamic>;
+          } else if (jsonResponse.containsKey('results') && jsonResponse['results'] is List) {
+            _prescriptions = jsonResponse['results'] as List<dynamic>;
+          } else {
+            _prescriptions = [];
+          }
+        } else if (jsonResponse is List) {
+          _prescriptions = jsonResponse as List<dynamic>;
+        } else {
+          _prescriptions = [];
+        }
+        
+        _errorMessage = null;
+      } else {
+        _prescriptions = [];
+        _errorMessage = 'Failed to load prescriptions: ${response.statusCode}';
+      }
+    } catch (e) {
+      _prescriptions = [];
+      _errorMessage = 'Error loading prescriptions: $e';
+      debugPrint('Error fetching prescriptions: $e');
+    } finally {
+      _prescriptionsLoading = false;
+      notifyListeners();
+    }
   }
 }

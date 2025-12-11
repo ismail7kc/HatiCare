@@ -112,7 +112,6 @@ class PharmacyProfileViewModel extends ChangeNotifier {
         final countryCode = parsedPhone['countryCode'] ?? 'US';
         final numberOnly = parsedPhone['number'] ?? '';
 
-        // Don't set phoneNumberController.text, let IntlPhoneField handle formatting
         _initialPhoneNumber = numberOnly;
         _phoneNumber = phoneNumber;
         _countryCode = countryCode;
@@ -146,13 +145,11 @@ class PharmacyProfileViewModel extends ChangeNotifier {
     String countryCode = 'US';
     String numberOnly = phoneNumber;
 
-    // Remove all formatting characters (spaces, parentheses, hyphens, etc.) except + and digits
     String cleanedNumber = phoneNumber.replaceAll(RegExp(r'[^+\d]'), '');
 
     for (final entry in countryCodeMap.entries) {
       if (cleanedNumber.startsWith(entry.key)) {
         countryCode = entry.value;
-        // Remove country code and keep only digits
         numberOnly = cleanedNumber.replaceFirst(entry.key, '').trim();
         break;
       }

@@ -5,7 +5,9 @@ import 'package:haticare/features/auth/domain/repositories/auth_repository.dart'
 
 class ForgotPasswordViewModel extends ChangeNotifier {
   ForgotPasswordViewModel(this._repository, {String? initialEmail})
-      : emailController = TextEditingController(text: initialEmail);
+      : emailController = TextEditingController(text: initialEmail) {
+    _setupEmailListener();
+  }
 
   final AuthRepository _repository;
 
@@ -16,6 +18,22 @@ class ForgotPasswordViewModel extends ChangeNotifier {
   String? errorMessage;
   String? successMessage;
   bool _shouldNavigateToOtp = false;
+  bool _showValidation = false;
+
+  void _setupEmailListener() {
+    emailController.addListener(_onEmailChanged);
+  }
+
+  void _onEmailChanged() {
+    // If error is showing and user types a valid email, clear the error
+    if (errorMessage != null) {
+      final validationError = validateEmail(emailController.text);
+      if (validationError == null) {
+        errorMessage = null;
+        notifyListeners();
+      }
+    }
+  }
 
   bool get shouldNavigateToOtp => _shouldNavigateToOtp;
 
