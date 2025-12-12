@@ -187,7 +187,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     final response = await editViewModel.updateDoctorInfo();
 
-    if (!context.mounted) return;
+    // if (!context.mounted) return;
 
     if (response['success'] == true) {
       showDialog(
@@ -211,7 +211,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ],
         ),
       );
+    } else {
+      final errorMessage = response['message'] ?? "Something went wrong. Please try again.";
+      showErrorDialog(context, errorMessage);
     }
+  }
+
+  void showErrorDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Error"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -583,7 +602,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 }
-
 
 // TO PREVETN NON ZERO VALUE 🥹
 class NoZeroInputFormatter extends TextInputFormatter {

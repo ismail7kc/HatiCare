@@ -37,6 +37,7 @@ class RepositoryLayer {
   ) async {
     final docID = SaveLoginResponse.loginData?['id'] ?? '';
     final url = '${AppConfig.baseUrl}doc/doctors/$docID/';
+    debugPrint('updated Doctor URL Is $url');
     return await _apiClient.updateDocRequest(url, body: body);
   }
 

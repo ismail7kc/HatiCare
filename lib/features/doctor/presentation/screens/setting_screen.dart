@@ -102,8 +102,7 @@ class SettingsContentState extends State<SettingsContent> {
     final viewModel = context.watch<AuthDViewModel>();
     final firstName = SaveLoginResponse.loginData?['first_name'] ?? '';
     final lastName = SaveLoginResponse.loginData?['last_name'] ?? '';
-    final profileImageUrl =
-        SaveLoginResponse.loginData?['profile_picture'] ?? '';
+    final profileImageUrl = SaveLoginResponse.loginData?['profile_picture'] ?? '';
     final docName = '$firstName $lastName';
 
     return Scaffold(
