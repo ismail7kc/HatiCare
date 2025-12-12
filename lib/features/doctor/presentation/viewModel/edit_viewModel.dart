@@ -74,28 +74,32 @@ class EditViewmodel extends ChangeNotifier {
     addIfValid('license_type', doctorInstance?.licenseType);
     addIfValid('specialization', doctorInstance?.specialization);
     addIfValid('years_of_experience', doctorInstance?.yearsOfExperience);
-    addIfValid('license_issuing_authority', doctorInstance?.licenseIssuingAuthority);
+    addIfValid(
+      'license_issuing_authority',
+      doctorInstance?.licenseIssuingAuthority,
+    );
 
     if (doctorInstance?.gender != null) {
       body['gender'] = doctorInstance!.gender == "Male"
           ? "M"
           : doctorInstance!.gender == "Female"
-              ? "F"
-              : "O";
+          ? "F"
+          : "O";
     }
 
     if (doctorInstance?.dob != null) {
-      body['date_of_birth'] = DateFormat('yyyy-MM-dd').format(doctorInstance!.dob!);
+      body['date_of_birth'] = DateFormat(
+        'yyyy-MM-dd',
+      ).format(doctorInstance!.dob!);
     }
 
     final safeBody = sanitizeForJson(body);
-
 
     final response = await repositoryLayer.updateDoctorInfo(safeBody);
 
     if (response['success'] == true && response['data'] != null) {
       doctorInstance = Doctor.fromJson(response['data']);
-      await SaveDoctorResponse.saveDoctorModel(response['data']);
+      // await SaveDoctorResponse.saveDoctorModel(response['data']);
       notifyListeners();
     }
 
@@ -125,6 +129,14 @@ class EditViewmodel extends ChangeNotifier {
   Future<Map<String, dynamic>> sendProfileImageToServr(File image) async {
     final response = await repositoryLayer.sendProfileImageToServer(image);
     debugPrint('📥 ViewModel Response: $response');
+    return response;
+  }
+
+  Future<Map<String, dynamic>> getSignleDocResponse() async {
+    final response = await repositoryLayer.getSingleDoctor();
+     debugPrint('📥 ViewModel Single Doctor Response: $response');
+     doctorInstance = Doctor.fromJson(response['data']);
+     
     return response;
   }
 }

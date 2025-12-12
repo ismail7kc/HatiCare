@@ -29,21 +29,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late final EditViewmodel editViewModel;
 
-  late TextEditingController firstNameController;
-  late TextEditingController lastNameController;
-  late TextEditingController emailController;
-  late TextEditingController phoneController;
-  late TextEditingController licenseNumberController;
-  late TextEditingController yearsExperienceController;
-  late TextEditingController licenseAuthorityController;
-  late TextEditingController dobController;
+  TextEditingController firstNameController = TextEditingController();
+  TextEditingController lastNameController = TextEditingController();
+  TextEditingController emailController = TextEditingController();
+  TextEditingController phoneController = TextEditingController();
+
+  TextEditingController licenseNumberController = TextEditingController();
+  TextEditingController yearsExperienceController = TextEditingController();
+  TextEditingController licenseAuthorityController = TextEditingController();
+  TextEditingController dobController = TextEditingController();
+
+  DateTime? selectedDate;
+  String? gender;
+  String? selectedSpecialization;
+  String? selectedLicenseType;
 
   late Map<String, dynamic> originalData;
 
-  String gender = "Male";
-  DateTime? selectedDate = DateTime(1992, 1, 8);
-  String? selectedSpecialization;
-  String? selectedLicenseType;
+  // String gender = "Male";
+  // DateTime? selectedDate = DateTime(1992, 1, 8);
+  // String? selectedSpecialization;
+  // String? selectedLicenseType;
 
   @override
   void initState() {
@@ -53,66 +59,70 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final repository = RepositoryLayer(apiClient);
     editViewModel = EditViewmodel(repository);
 
+    _loadDoctor();
+
     originalData = {
       'firstName': SaveLoginResponse.loginData?['first_name'],
       'lastName': SaveLoginResponse.loginData?['last_name'],
       'email': SaveLoginResponse.loginData?['email'],
       'phoneNumber': SaveLoginResponse.loginData?['phone_number'],
-      // 'licenseNumber': SaveLoginResponse.loginData?['license_number'],
-      // 'licenseType': SaveLoginResponse.loginData?['license_type'],
-      // 'specialization': SaveLoginResponse.loginData?['specialization'],
-      // 'yearsExperience': SaveLoginResponse.loginData?['years_experience'],
-      // 'licenseAuthority': SaveLoginResponse.loginData?['license_authority'],
-      // 'gender': SaveLoginResponse.loginData?['gender'],
-      // 'dob': SaveLoginResponse.loginData?['dob'],
     };
-
-    SaveDoctorResponse.loadDoctorModel().then((_) {
-      final doctor = SaveDoctorResponse.doctorInstance;
-
-      firstNameController = TextEditingController(
-        text: SaveLoginResponse.loginData?['first_name'] ?? '',
-      );
-      lastNameController = TextEditingController(
-        text: SaveLoginResponse.loginData?['last_name'] ?? '',
-      );
-      emailController = TextEditingController(
-        text: SaveLoginResponse.loginData?['email'] ?? '',
-      );
-      phoneController = TextEditingController(
-        text: SaveLoginResponse.loginData?['phone_number'] ?? '',
-      );
-
-      licenseNumberController = TextEditingController(
-        text: doctor?.licenseNumber ?? '',
-      );
-      yearsExperienceController = TextEditingController(
-        text: doctor?.yearsOfExperience.toString() ?? '',
-      );
-      licenseAuthorityController = TextEditingController(
-        text: doctor?.licenseIssuingAuthority ?? '',
-      );
-
-      gender = (doctor?.gender ?? 'M') == 'M'
-          ? 'Male'
-          : (doctor?.gender ?? 'F') == 'F'
-          ? 'Female'
-          : 'Other';
-
-      selectedDate = doctor?.dob ?? DateTime(1992, 1, 8);
-      dobController = TextEditingController(
-        text: DateFormat('MMM dd, yyyy').format(selectedDate!),
-      );
-
-      selectedSpecialization = doctor?.specialization;
-      selectedLicenseType = doctor?.licenseType;
-
-      setState(() {});
-    });
 
     editViewModel.fetchSpecialization().then((_) {
       setState(() {});
     });
+  }
+
+  Future<void> _loadDoctor() async {
+    try {
+      final response = await editViewModel.getSignleDocResponse();
+      debugPrint("SINGLE DOCTOR RES: $response");
+
+      if (response['success'] == true) {
+        setInitialData();
+      } else {
+        debugPrint("Error fetching doctor");
+      }
+    } catch (e) {
+      debugPrint("Exception: $e");
+    }
+  }
+
+  void setInitialData() {
+    final doc = editViewModel.doctorInstance;
+    if (doc == null) return;
+
+    firstNameController = TextEditingController(text: doc.firstName ?? '');
+    lastNameController = TextEditingController(text: doc.lastName ?? '');
+    emailController = TextEditingController(text: doc.email ?? '');
+    phoneController = TextEditingController(text: doc.phoneNumber ?? '');
+
+    licenseNumberController = TextEditingController(
+      text: doc.licenseNumber ?? '',
+    );
+    yearsExperienceController = TextEditingController(
+      text: doc.yearsOfExperience?.toString() ?? '',
+    );
+    licenseAuthorityController = TextEditingController(
+      text: doc.licenseIssuingAuthority ?? '',
+    );
+
+    gender = doc.gender == 'M'
+        ? 'Male'
+        : doc.gender == 'F'
+        ? 'Female'
+        : 'Other';
+
+    selectedDate = doc.dob ?? DateTime(1992, 1, 8);
+
+    dobController = TextEditingController(
+      text: DateFormat('MMM dd, yyyy').format(selectedDate!),
+    );
+
+    selectedSpecialization = doc.specialization;
+    selectedLicenseType = doc.licenseType;
+
+    setState(() {});
   }
 
   bool _isDataChanged() {
@@ -187,8 +197,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     final response = await editViewModel.updateDoctorInfo();
 
-    // if (!context.mounted) return;
-
     if (response['success'] == true) {
       showDialog(
         context: context,
@@ -212,7 +220,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
       );
     } else {
-      final errorMessage = response['message'] ?? "Something went wrong. Please try again.";
+      final errorMessage =
+          response['message'] ?? "Something went wrong. Please try again.";
       showErrorDialog(context, errorMessage);
     }
   }
