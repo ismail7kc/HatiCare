@@ -192,10 +192,35 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     final meds = getMedicationsFromControllers();
-                    widget.appointmentDetailvm.createPrescription(medications: meds);
+                    final response = await widget.appointmentDetailvm
+                        .createPrescription(medications: meds);
+                        
+                    if (!mounted) return;
+
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: Text(
+                          response['success'] == true ? 'Success' : 'Error',
+                        ),
+                        content: Text(
+                          response['message'] ??
+                              (response['success'] == true
+                                  ? 'Prescription sent successfully!'
+                                  : 'Something went wrong'),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      ),
+                    );
                   },
+
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.all(14),
                     backgroundColor: Colors.transparent,

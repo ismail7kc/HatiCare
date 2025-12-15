@@ -30,17 +30,17 @@ class EditViewmodel extends ChangeNotifier {
   }
 
   void updateDoctorInstanceFromControllers({
-    required String firstName,
-    required String lastName,
-    required String email,
-    required String phoneNumber,
-    required String licenseNumber,
-    required String? licenseType,
-    required String? specialization,
-    required String yearsExperience,
-    required String licenseAuthority,
-    required String gender,
-    required DateTime? dob,
+    String? firstName,
+    String? lastName,
+    String? email,
+    String? phoneNumber,
+    String? licenseNumber,
+    String? licenseType,
+    String? specialization,
+    String? yearsExperience,
+    String? licenseAuthority,
+    String? gender,
+    DateTime? dob,
   }) {
     doctorInstance = Doctor(
       firstName: firstName,
@@ -50,7 +50,7 @@ class EditViewmodel extends ChangeNotifier {
       licenseNumber: licenseNumber,
       licenseType: licenseType ?? "",
       specialization: specialization ?? "",
-      yearsOfExperience: int.tryParse(yearsExperience) ?? 0,
+      yearsOfExperience: int.tryParse(yearsExperience!) ?? 0,
       licenseIssuingAuthority: licenseAuthority,
       gender: gender,
       dob: dob,
@@ -58,44 +58,85 @@ class EditViewmodel extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> updateDoctorInfo() async {
-    final body = {
-      'first_name': doctorInstance?.firstName ?? '',
-      'last_name': doctorInstance?.lastName ?? '',
-      'user_email': doctorInstance?.email ?? '',
-      'phone_number': doctorInstance?.phoneNumber ?? '',
-      'license_number': doctorInstance?.licenseNumber ?? '',
-      'license_type': doctorInstance?.licenseType ?? '',
-      'specialization': doctorInstance?.specialization ?? '',
-      'years_of_experience': doctorInstance?.yearsOfExperience ?? '',
-      'license_issuing_authority':
-          doctorInstance?.licenseIssuingAuthority ?? '',
-      'gender': doctorInstance?.gender == "Male"
-          ? "M"
-          : doctorInstance?.gender == "Female"
-          ? "F"
-          : "O",
-      'date_of_birth': doctorInstance?.dob != null
-          ? DateFormat('yyyy-MM-dd').format(doctorInstance!.dob!)
-          : null,
-    };
+    final body = <String, dynamic>{};
 
-    final response = await repositoryLayer.updateDoctorInfo(body);
+    void addIfValid(String key, dynamic value) {
+      if (value != null && value.toString().trim().isNotEmpty) {
+        body[key] = value;
+      }
+    }
+
+    addIfValid('first_name', doctorInstance?.firstName);
+    addIfValid('last_name', doctorInstance?.lastName);
+    addIfValid('user_email', doctorInstance?.email);
+    addIfValid('phone_number', doctorInstance?.phoneNumber);
+    addIfValid('license_number', doctorInstance?.licenseNumber);
+    addIfValid('license_type', doctorInstance?.licenseType);
+    addIfValid('specialization', doctorInstance?.specialization);
+    addIfValid('years_of_experience', doctorInstance?.yearsOfExperience);
+    addIfValid(
+      'license_issuing_authority',
+      doctorInstance?.licenseIssuingAuthority,
+    );
+
+    if (doctorInstance?.gender != null) {
+      body['gender'] = doctorInstance!.gender == "Male"
+          ? "M"
+          : doctorInstance!.gender == "Female"
+          ? "F"
+          : "O";
+    }
+
+    if (doctorInstance?.dob != null) {
+      body['date_of_birth'] = DateFormat(
+        'yyyy-MM-dd',
+      ).format(doctorInstance!.dob!);
+    }
+
+    final safeBody = sanitizeForJson(body);
+
+    final response = await repositoryLayer.updateDoctorInfo(safeBody);
 
     if (response['success'] == true && response['data'] != null) {
       doctorInstance = Doctor.fromJson(response['data']);
-      await SaveDoctorResponse.saveDoctorModel(response['data']);
-
-      print(doctorInstance);
-
+      // await SaveDoctorResponse.saveDoctorModel(response['data']);
       notifyListeners();
     }
 
     return response;
   }
 
+  Map<String, dynamic> sanitizeForJson(Map<String, dynamic> data) {
+    final Map<String, dynamic> result = {};
+
+    data.forEach((key, value) {
+      if (value == null) return;
+
+      if (value is String && value.trim().isEmpty) return;
+
+      if (value is DateTime) {
+        result[key] = DateFormat('yyyy-MM-dd').format(value);
+      } else if (value is int || value is double || value is bool) {
+        result[key] = value;
+      } else {
+        result[key] = value.toString().trim();
+      }
+    });
+
+    return result;
+  }
+
   Future<Map<String, dynamic>> sendProfileImageToServr(File image) async {
     final response = await repositoryLayer.sendProfileImageToServer(image);
     debugPrint('📥 ViewModel Response: $response');
+    return response;
+  }
+
+  Future<Map<String, dynamic>> getSignleDocResponse() async {
+    final response = await repositoryLayer.getSingleDoctor();
+     debugPrint('📥 ViewModel Single Doctor Response: $response');
+     doctorInstance = Doctor.fromJson(response['data']);
+     
     return response;
   }
 }

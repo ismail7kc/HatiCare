@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/doctor_requiredInfo.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/identify_document.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/take_selfi.dart';
 
@@ -17,8 +18,10 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
   bool idCardChecked = false;
   bool selfieChecked = false;
   bool licenseChecked = false;
+  bool isRequiredInfoFilled = false;
 
-  bool get isAllChecked => idCardChecked && selfieChecked && licenseChecked;
+  bool get isAllChecked =>
+      idCardChecked && selfieChecked && licenseChecked && isRequiredInfoFilled;
 
   @override
   Widget build(BuildContext context) {
@@ -70,8 +73,9 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                               final completed = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      const IdentifyDocumentScreen(),
+                                  builder: (_) => const IdentifyDocumentScreen(
+                                    isValidID: true,
+                                  ),
                                 ),
                               );
 
@@ -123,8 +127,9 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                               final completed = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      const IdentifyDocumentScreen(),
+                                  builder: (_) => const IdentifyDocumentScreen(
+                                    isValidID: false,
+                                  ),
                                 ),
                               );
 
@@ -138,6 +143,30 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                         subtitle:
                             'To check if you have a valid nursing license.',
                         isChecked: licenseChecked,
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+
+                    GestureDetector(
+                      onTap: isRequiredInfoFilled
+                          ? null
+                          : () async {
+                              final completed = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const DoctorRequiredInfo(),
+                                ),
+                              );
+
+                              if (completed == true) {
+                                setState(() => isRequiredInfoFilled = true);
+                              }
+                            },
+                      child: _VerificationOption(
+                        icon: 'assets/icons/id_card.svg',
+                        title: 'Doctor Required Information',
+                        subtitle: 'Please fill doctor Required Information',
+                        isChecked: isRequiredInfoFilled,
                       ),
                     ),
 
@@ -188,12 +217,14 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                             ),
                             onPressed: isAllChecked
                                 ? () {
+                                    // if (isAllChecked) {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (_) => DoctorHomeScreen(),
                                       ),
                                     );
+                                    // }
                                   }
                                 : null,
                             child: const Text(

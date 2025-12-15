@@ -71,23 +71,23 @@ class ApiClient {
     }
   }
 
-  // Future<Map<String, dynamic>> getSingleDoctor(String url) async {
-  //   final uri = Uri.parse(url);
+  Future<Map<String, dynamic>> getSingleDoctor(String url) async {
+    final uri = Uri.parse(url);
 
-  //   final response = await http.get(
-  //     uri,
-  //     headers: {
-  //       'Authorization':
-  //           'Bearer ${SaveLoginResponse.loginData?['access_token']}',
-  //     },
-  //   );
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization':
+            'Bearer ${SaveLoginResponse.loginData?['access_token']}',
+      },
+    );
 
-  //   debugPrint('✅ PATCH URL: $uri');
-  //   debugPrint('✅ Status Code: ${response.statusCode}');
-  //   debugPrint('✅ Response Body: ${response.body}');
+    debugPrint('✅ PATCH URL: $uri');
+    debugPrint('✅ Status Code: ${response.statusCode}');
+    debugPrint('✅ Response Body: ${response.body}');
 
-  //   return _handleResponse(response);
-  // }
+    return _handleResponse(response);
+  }
 
   Future<Map<String, dynamic>> updateDocRequest(
     String url, {
@@ -95,34 +95,42 @@ class ApiClient {
   }) async {
     try {
       final uri = Uri.parse(url);
-
       final request = http.MultipartRequest('PATCH', uri);
 
       request.headers.addAll({
         'Authorization':
             'Bearer ${SaveLoginResponse.loginData?['access_token']}',
         'Accept': 'application/json',
+        'Content-Type': 'multipart/form-data',
       });
 
-      body.forEach((key, value) {
-        if (value != null) {
-          request.fields[key] = value is DateTime
-              ? value.toIso8601String()
-              : value.toString();
+      for (var entry in body.entries) {
+        final key = entry.key;
+        final value = entry.value;
+
+        if (value is File) {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              key,
+              value.path,
+              filename: value.path.split('/').last,
+            ),
+          );
+        } else if (value != null) {
+          request.fields[key] = value.toString();
         }
-      });
+      }
 
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
 
-      debugPrint('✅ PATCH URL: $uri');
-      debugPrint('✅ Status Code: ${response.statusCode}');
-      debugPrint('✅ Response Body: ${response.body}');
+      debugPrint('PATCH $url');
+      debugPrint(response.body);
 
       return _handleResponse(response);
     } catch (e) {
-      debugPrint('updateDocRequest Exception: $e');
-      return {'success': false, 'message': e.toString(), 'data': {}};
+      debugPrint("ERROR: $e");
+      return {'success': false};
     }
   }
 

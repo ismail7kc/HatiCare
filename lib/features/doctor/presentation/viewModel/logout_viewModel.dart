@@ -11,7 +11,7 @@ class AuthDViewModel extends ChangeNotifier {
   bool logoutSuccess = false;
 
   Future<bool> logout() async {
-    notifyListeners();
+    // notifyListeners();
     debugPrint(await DeviceIdProvider().getDeviceId());
     try {
       final deviceId = await DeviceIdProvider().getDeviceId();

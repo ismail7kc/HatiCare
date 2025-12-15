@@ -144,7 +144,6 @@ class LoginViewModel extends ChangeNotifier {
 
       /// Not Corrected way to do all stuff below 😅
 
-
       // Try to get access token from different possible locations
       String? accessToken;
       String? refreshToken;
@@ -160,7 +159,7 @@ class LoginViewModel extends ChangeNotifier {
         // Extract ID based on role
         final id = response['data']['id'];
         final role = roleFromResponse;
-        
+
         if (id != null) {
           if (role == 'laboratory') {
             laboratoryId = id.toString();
@@ -172,28 +171,20 @@ class LoginViewModel extends ChangeNotifier {
             debugPrint('Pharmacy ID saved: $pharmacyId');
           }
         }
-        
-        // Check profile completion status from response
-        // Try multiple possible field names
-        bool profileCompleted = false;
-        if (response['data']['is_profile_complete'] == true) {
-          profileCompleted = true;
-        } else if (response['data']['profile_completed'] == true) {
-          profileCompleted = true;
-        } else if (response['data']['profile_complete'] == true) {
-          profileCompleted = true;
-        }
-        
-        isProfileCompleted = profileCompleted;
-        
-        // Save profile completion status based on role
+
+        isProfileCompleted = (response['data']['is_profile_complete'] == true);
+        debugPrint('is CompletedProfile is $isProfileCompleted');
+
         if (role == 'laboratory') {
-          await prefs.setBool('laboratory_profile_completed', profileCompleted);
+          await prefs.setBool(
+            'laboratory_profile_completed',
+            isProfileCompleted,
+          );
         } else {
-          await prefs.setBool('pharmacy_profile_completed', profileCompleted);
+          await prefs.setBool('pharmacy_profile_completed', isProfileCompleted);
         }
-        
-        debugPrint('Profile completed status: $profileCompleted');
+
+        debugPrint('Profile completed status: $isProfileCompleted');
       }
 
       if (response['success'] == true && response['data'] != null) {
@@ -201,7 +192,6 @@ class LoginViewModel extends ChangeNotifier {
         await SaveLoginResponse.saveLoginModel(lastResponse);
         print('Saved loginData: ${SaveLoginResponse.loginData}');
       }
-
 
       // Check at root level
       accessToken ??= response['access_token'] ?? response['access'];
@@ -234,7 +224,6 @@ class LoginViewModel extends ChangeNotifier {
         await prefs.setString('user_type', userType);
       }
 
-
       // Save user name and phone number if available
       String? firstName;
       String? lastName;
@@ -252,26 +241,32 @@ class LoginViewModel extends ChangeNotifier {
       // In 'response' object
       final responseObj2 = response['response'];
       if (responseObj2 is Map<String, dynamic>) {
-        if (responseObj2['first_name'] is String && (firstName == null || firstName.isEmpty)) {
+        if (responseObj2['first_name'] is String &&
+            (firstName == null || firstName.isEmpty)) {
           firstName = responseObj2['first_name'] as String;
         }
-        if (responseObj2['last_name'] is String && (lastName == null || lastName.isEmpty)) {
+        if (responseObj2['last_name'] is String &&
+            (lastName == null || lastName.isEmpty)) {
           lastName = responseObj2['last_name'] as String;
         }
-        if (responseObj2['phone_number'] is String && (phoneNumber == null || phoneNumber.isEmpty)) {
+        if (responseObj2['phone_number'] is String &&
+            (phoneNumber == null || phoneNumber.isEmpty)) {
           phoneNumber = responseObj2['phone_number'] as String;
         }
       }
       // In 'data' object
       final dataObj = response['data'];
       if (dataObj is Map<String, dynamic>) {
-        if (dataObj['first_name'] is String && (firstName == null || firstName.isEmpty)) {
+        if (dataObj['first_name'] is String &&
+            (firstName == null || firstName.isEmpty)) {
           firstName = dataObj['first_name'] as String;
         }
-        if (dataObj['last_name'] is String && (lastName == null || lastName.isEmpty)) {
+        if (dataObj['last_name'] is String &&
+            (lastName == null || lastName.isEmpty)) {
           lastName = dataObj['last_name'] as String;
         }
-        if (dataObj['phone_number'] is String && (phoneNumber == null || phoneNumber.isEmpty)) {
+        if (dataObj['phone_number'] is String &&
+            (phoneNumber == null || phoneNumber.isEmpty)) {
           phoneNumber = dataObj['phone_number'] as String;
         }
       }

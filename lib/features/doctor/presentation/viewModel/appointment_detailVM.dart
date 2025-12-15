@@ -33,7 +33,7 @@ class AppointmentDetailvm extends ChangeNotifier {
     }
   }
 
-  Future<void> createPrescription({
+  Future<Map<String, dynamic>> createPrescription({
     required List<DoctorMedication> medications,
     String? notes,
   }) async {
@@ -48,15 +48,14 @@ class AppointmentDetailvm extends ChangeNotifier {
         notes: notes,
       );
 
-      if (response['success'] == true && response['data'] != null) {
-        debugPrint('Create Prescription Response Got Correctly');
-        debugPrint(response['message']);
-      } else {
+      if (response['success'] != true) {
         _errorMessage = response['message'] ?? 'Unknown error';
       }
+
+      return response;
     } catch (error) {
-      debugPrint('Create Prescription $error');
       _errorMessage = error.toString();
+      return {'success': false, 'message': _errorMessage};
     } finally {
       _isLoading = false;
       notifyListeners();

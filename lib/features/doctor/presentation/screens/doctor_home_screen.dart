@@ -108,7 +108,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool isOnline = false;
-  bool hasAdminApproval = true;
+  bool hasAdminApproval = SaveLoginResponse.loginData?['is_approved'] == true;
 
   late DoctorViewModel doctorViewModel;
 
@@ -161,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                       ),
                     ),
 
-                  // if (hasAdminApproval) const SizedBox(height: 2),
+                  if (hasAdminApproval) const SizedBox(height: 2),
                 ],
               ),
             ),
@@ -184,6 +184,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     BuildContext context,
     List<AppointmentModel> appointments,
   ) {
+    if (!hasAdminApproval) {
+      return waitingMessageView();
+    }
+
     if (!isOnline) {
       return patientQueueView();
     }
@@ -231,8 +235,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   radius: 25,
                   backgroundImage: profileImageUrl.isNotEmpty
                       ? NetworkImage(profileImageUrl)
-                      : const AssetImage('assets/images/haticare_logo.png')
-                            as ImageProvider,
+                      : null,
+                  child: profileImageUrl.isEmpty 
+                      ? SvgPicture.asset('assets/icons/person_icon.svg',
+                          width: 80,
+                          height: 80,
+                        )
+                      : null,
                 ),
                 const SizedBox(width: 10),
                 Column(
@@ -304,7 +313,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     isOnline = value;
                   });
                   await doctorViewModel.isDoctorOnline(isOnline: value);
-                  await doctorViewModel.fetchPatientQueue(); // wait until not get response from PATCH Requst.
+                  await doctorViewModel
+                      .fetchPatientQueue(); // wait until not get response from PATCH Requst.
                 },
               ),
             ),

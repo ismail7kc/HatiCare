@@ -37,6 +37,7 @@ class RepositoryLayer {
   ) async {
     final docID = SaveLoginResponse.loginData?['id'] ?? '';
     final url = '${AppConfig.baseUrl}doc/doctors/$docID/';
+    debugPrint('updated Doctor URL Is $url');
     return await _apiClient.updateDocRequest(url, body: body);
   }
 
@@ -69,9 +70,9 @@ class RepositoryLayer {
     return await _apiClient.acceptPatientResponse(url);
   }
 
-  // Future<Map<String, dynamic>> getSingleDoctor() async {
-  //   final docID = SaveLoginResponse.loginData?['id'] ?? '';
-  //   final url = '${AppConfig.baseUrl}doc/doctors/$docID/';
-  //   return await _apiClient.getSingleDoctor(url);
-  // }
+  Future<Map<String, dynamic>> getSingleDoctor() async {
+    final docID = SaveLoginResponse.loginData?['id'] ?? '';
+    final url = '${AppConfig.baseUrl}doc/doctors/$docID/';
+    return await _apiClient.getSingleDoctor(url);
+  }
 }
