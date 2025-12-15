@@ -100,11 +100,8 @@ class SettingsContentState extends State<SettingsContent> {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<AuthDViewModel>();
-    final firstName = SaveLoginResponse.loginData?['first_name'] ?? '';
-    final lastName = SaveLoginResponse.loginData?['last_name'] ?? '';
     final profileImageUrl =
         SaveLoginResponse.loginData?['profile_picture'] ?? '';
-    final docName = '$firstName $lastName';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),

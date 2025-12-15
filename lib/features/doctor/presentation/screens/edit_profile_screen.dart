@@ -43,13 +43,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? gender;
   String? selectedSpecialization;
   String? selectedLicenseType;
+  bool isLoading = true;
 
   late Map<String, dynamic> originalData;
-
-  // String gender = "Male";
-  // DateTime? selectedDate = DateTime(1992, 1, 8);
-  // String? selectedSpecialization;
-  // String? selectedLicenseType;
 
   @override
   void initState() {
@@ -85,6 +81,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     } catch (e) {
       debugPrint("Exception: $e");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -257,6 +257,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
