@@ -197,6 +197,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     final response = await editViewModel.updateDoctorInfo();
 
+    final firstName = response['data']['first_name'];
+    final lastName = response['data']['last_name'];
+
+    SaveLoginResponse.loginData?['first_name'] = firstName;
+    SaveLoginResponse.loginData?['last_name'] = lastName;
+
+    ProfileNotifier.doctorName.value = '$firstName $lastName';
+
     if (response['success'] == true) {
       showDialog(
         context: context,
@@ -206,6 +214,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           actions: [
             TextButton(
               onPressed: () {
+                SaveLoginResponse.loginData?['first_name'] =
+                    response['data']['firsName'];
+                SaveLoginResponse.loginData?['last_name'] =
+                    response['data']['lastName'];
+
                 Navigator.pop(context);
                 PersistentNavBarNavigator.pushNewScreen(
                   context,
