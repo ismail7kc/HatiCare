@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
+import 'package:haticare/features/auth/presentation/viewmodels/login_view_model.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/doctor_verification.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/edit_pharmacy_profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,20 +37,11 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 1500),
     );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeOutCubic,
-      ),
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
     );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
         curve: const Interval(0.2, 1.0, curve: Curves.easeIn),
@@ -79,9 +72,18 @@ class _SplashScreenState extends State<SplashScreen>
 
       if (isLoggedIn && accessToken != null && accessToken.isNotEmpty) {
         if (userType == 'doctor') {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => DoctorHomeScreen()),
-          );
+          final prefs = await SharedPreferences.getInstance();
+          final bool isProfileCompleted = prefs.getBool(CacheKeys.isProfileCompleted) ?? false;
+
+          if (isProfileCompleted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => DoctorHomeScreen()),
+            );
+          } else {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => DoctorVerificationScreen()),
+            );
+          }
         } else if (userType == 'pharmacy') {
           // PHARMACY: Check if profile is completed
           final profileCompleted = prefs.getBool('pharmacy_profile_completed') ?? false;

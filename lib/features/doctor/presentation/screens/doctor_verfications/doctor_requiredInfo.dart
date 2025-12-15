@@ -16,6 +16,7 @@ class DoctorRequiredInfo extends StatefulWidget {
 class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final EditViewmodel editViewModel;
+  late final ValueNotifier<bool> isFormComplete = ValueNotifier(false);
 
   final TextEditingController licenseNumberController = TextEditingController();
   final TextEditingController licenseAuthorityController =
@@ -30,6 +31,14 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
 
   void initState() {
     super.initState();
+
+    void listener() {
+      isFormComplete.value = _areAllFieldsFilled();
+    }
+
+    licenseNumberController.addListener(listener);
+    yearsExperienceController.addListener(listener);
+    licenseAuthorityController.addListener(listener);
 
     final apiClient = ApiClient();
     final repository = RepositoryLayer(apiClient);
@@ -48,6 +57,16 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
         licenseAuthorityController.text.isNotEmpty;
   }
 
+  void _onLicenseTypeChanged(String? val) {
+    setState(() => selectedLicenseType = val);
+    isFormComplete.value = _areAllFieldsFilled();
+  }
+
+  void _onSpecializationChanged(String? val) {
+    setState(() => selectedSpecialization = val);
+    isFormComplete.value = _areAllFieldsFilled();
+  }
+
   Future<void> _onSavePressed() async {
     if (!_areAllFieldsFilled()) {
       _showError("Please fill all fields correctly");
@@ -64,12 +83,11 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
 
     final response = await editViewModel.updateDoctorInfo();
 
-    // if (!context.mounted) return;
-
     if (response['success'] == true) {
       Navigator.pop(context, true);
     } else {
-      final errorMessage = response['message'] ?? "Something went wrong. Please try again.";
+      final errorMessage =
+          response['message'] ?? "Something went wrong. Please try again.";
       showErrorDialog(context, errorMessage);
     }
   }
@@ -136,13 +154,14 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
                   label: "License Type",
                   items: licenseTypes,
                   value: selectedLicenseType,
-                  onChanged: (val) => setState(() => selectedLicenseType = val),
+                  onChanged: _onLicenseTypeChanged,
                 ),
                 const SizedBox(height: 18),
 
                 _buildTextField(
                   "Years of Experience",
                   controller: yearsExperienceController,
+                  keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
                     NoZeroInputFormatter(),
@@ -162,8 +181,7 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
                   label: "Specialization",
                   items: editViewModel.specializationNames,
                   value: selectedSpecialization,
-                  onChanged: (val) =>
-                      setState(() => selectedSpecialization = val),
+                  onChanged: _onSpecializationChanged,
                 ),
                 const SizedBox(height: 18),
 
@@ -180,24 +198,36 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
 
                 const SizedBox(height: 40),
 
-                Container(
-                  width: double.infinity,
-                  height: 55,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
-                    gradient: AppColors.primaryGradient,
-                  ),
-                  child: TextButton(
-                    onPressed: _onSavePressed,
-                    child: const Text(
-                      "Submit",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                ValueListenableBuilder<bool>(
+                  valueListenable: isFormComplete,
+                  builder: (context, isEnabled, _) {
+                    return Opacity(
+                      opacity: isEnabled ? 1.0 : 0.4,
+                      child: Container(
+                        width: double.infinity,
+                        height: 55,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(30),
+                          gradient: isEnabled
+                              ? AppColors.primaryGradient
+                              : const LinearGradient(
+                                  colors: [Colors.grey, Colors.grey],
+                                ),
+                        ),
+                        child: TextButton(
+                          onPressed: isEnabled ? _onSavePressed : null,
+                          child: const Text(
+                            "Submit",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 20),
@@ -218,6 +248,7 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
     required TextEditingController controller,
     String? Function(String?)? validator,
     List<TextInputFormatter>? inputFormatters,
+    TextInputType keyboardType = TextInputType.text,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,6 +262,7 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
             controller: controller,
             validator: validator,
             inputFormatters: inputFormatters,
+            keyboardType: keyboardType,
             decoration: const InputDecoration(border: InputBorder.none),
           ),
         ),

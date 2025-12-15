@@ -100,10 +100,8 @@ class SettingsContentState extends State<SettingsContent> {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<AuthDViewModel>();
-    final firstName = SaveLoginResponse.loginData?['first_name'] ?? '';
-    final lastName = SaveLoginResponse.loginData?['last_name'] ?? '';
-    final profileImageUrl = SaveLoginResponse.loginData?['profile_picture'] ?? '';
-    final docName = '$firstName $lastName';
+    final profileImageUrl =
+        SaveLoginResponse.loginData?['profile_picture'] ?? '';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -206,12 +204,24 @@ class SettingsContentState extends State<SettingsContent> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      docName.trim().isNotEmpty ? docName : 'Loading...',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    ValueListenableBuilder<String?>(
+                      valueListenable: ProfileNotifier.doctorName,
+                      builder: (context, updatedName, _) {
+                        final fallbackName =
+                            '${SaveLoginResponse.loginData?['first_name'] ?? ''} '
+                            '${SaveLoginResponse.loginData?['last_name'] ?? ''}';
+                        final docName = updatedName?.isNotEmpty == true
+                            ? updatedName
+                            : fallbackName;
+
+                        return Text(
+                          docName!.trim().isNotEmpty ? docName : 'Loading...',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        );
+                      },
                     ),
                     const Text(
                       'General Physician',

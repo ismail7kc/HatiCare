@@ -16,6 +16,7 @@ import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 
 class ProfileNotifier {
   static final ValueNotifier<String?> profileImageUrl = ValueNotifier(null);
+  static final ValueNotifier<String?> doctorName = ValueNotifier(null);
 }
 
 class DoctorHomeScreen extends StatefulWidget {
@@ -216,63 +217,51 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   Widget headerView() {
     return ValueListenableBuilder<String?>(
-      valueListenable: ProfileNotifier.profileImageUrl,
-      builder: (context, updatedUrl, _) {
-        final loginDataUrl =
-            SaveLoginResponse.loginData?['profile_picture'] ?? '';
-        final profileImageUrl = updatedUrl ?? loginDataUrl;
+      valueListenable: ProfileNotifier.doctorName,
+      builder: (context, updatedName, _) {
+        final fallbackName =
+            '${SaveLoginResponse.loginData?['first_name'] ?? ''} '
+            '${SaveLoginResponse.loginData?['last_name'] ?? ''}';
 
-        final firstName = SaveLoginResponse.loginData?['first_name'] ?? '';
-        final lastName = SaveLoginResponse.loginData?['last_name'] ?? '';
-        final docName = '$firstName $lastName';
+        final docName = updatedName?.isNotEmpty == true
+            ? updatedName
+            : fallbackName;
 
         return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 25,
-                  backgroundImage: profileImageUrl.isNotEmpty
-                      ? NetworkImage(profileImageUrl)
-                      : null,
-                  child: profileImageUrl.isEmpty 
-                      ? SvgPicture.asset('assets/icons/person_icon.svg',
-                          width: 80,
-                          height: 80,
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Welcome Back,",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    Text(
-                      docName.trim().isNotEmpty ? docName : 'Loading...',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            CircleAvatar(
+              radius: 25,
+              backgroundImage:
+                  (SaveLoginResponse.loginData?['profile_picture'] ?? '')
+                      .isNotEmpty
+                  ? NetworkImage(
+                      SaveLoginResponse.loginData!['profile_picture'],
+                    )
+                  : null,
+              child:
+                  (SaveLoginResponse.loginData?['profile_picture'] ?? '')
+                      .isEmpty
+                  ? SvgPicture.asset(
+                      'assets/icons/person_icon.svg',
+                      width: 80,
+                      height: 80,
+                    )
+                  : null,
             ),
-            Stack(
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SvgPicture.asset(
-                  'assets/icons/notification.svg',
-                  height: 26,
-                  color: Colors.black87,
+                const Text(
+                  "Welcome Back,",
+                  style: TextStyle(color: Colors.grey),
                 ),
-                const Positioned(
-                  right: 0,
-                  top: 0,
-                  child: CircleAvatar(radius: 4, backgroundColor: Colors.red),
+                Text(
+                  docName!.trim().isNotEmpty ? docName : 'Loading...',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
               ],
             ),

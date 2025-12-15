@@ -6,6 +6,11 @@ import 'package:haticare/features/auth/domain/repositories/auth_repository.dart'
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 
+
+class CacheKeys {
+  static const isProfileCompleted = 'is_profile_completed';
+}
+
 class LoginViewModel extends ChangeNotifier {
   LoginViewModel(this._repository) {
     _loadSavedCredentials();
@@ -173,6 +178,7 @@ class LoginViewModel extends ChangeNotifier {
         }
 
         isProfileCompleted = (response['data']['is_profile_complete'] == true);
+        prefs.setBool(CacheKeys.isProfileCompleted, isProfileCompleted);
         debugPrint('is CompletedProfile is $isProfileCompleted');
 
         if (role == 'laboratory') {

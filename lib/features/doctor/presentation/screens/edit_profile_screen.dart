@@ -43,13 +43,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? gender;
   String? selectedSpecialization;
   String? selectedLicenseType;
+  bool isLoading = true;
 
   late Map<String, dynamic> originalData;
-
-  // String gender = "Male";
-  // DateTime? selectedDate = DateTime(1992, 1, 8);
-  // String? selectedSpecialization;
-  // String? selectedLicenseType;
 
   @override
   void initState() {
@@ -85,6 +81,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     } catch (e) {
       debugPrint("Exception: $e");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -197,6 +197,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     final response = await editViewModel.updateDoctorInfo();
 
+    final firstName = response['data']['first_name'];
+    final lastName = response['data']['last_name'];
+
+    SaveLoginResponse.loginData?['first_name'] = firstName;
+    SaveLoginResponse.loginData?['last_name'] = lastName;
+
+    ProfileNotifier.doctorName.value = '$firstName $lastName';
+
     if (response['success'] == true) {
       showDialog(
         context: context,
@@ -206,6 +214,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           actions: [
             TextButton(
               onPressed: () {
+                SaveLoginResponse.loginData?['first_name'] =
+                    response['data']['firsName'];
+                SaveLoginResponse.loginData?['last_name'] =
+                    response['data']['lastName'];
+
                 Navigator.pop(context);
                 PersistentNavBarNavigator.pushNewScreen(
                   context,
@@ -244,6 +257,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
