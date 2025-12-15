@@ -9,6 +9,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/core/widgets/app_dropdown_field.dart';
 import 'package:haticare/core/widgets/app_primary_button.dart';
+import 'package:haticare/core/widgets/custom_dropdown_dialog.dart';
 import 'package:haticare/features/pharmacy/presentation/viewmodels/pharmacy_profile_view_model.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
 
@@ -64,7 +65,7 @@ class _EditPharmacyProfileView extends StatelessWidget {
             // Navigate to home screen
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const PharmacyHomeScreen()),
-              (route) => false,
+                  (route) => false,
             );
           }
         }
@@ -91,7 +92,7 @@ class _EditPharmacyProfileView extends StatelessWidget {
           }
           return true;
         }
-        
+
         return true;
       },
       child: Scaffold(
@@ -111,34 +112,34 @@ class _EditPharmacyProfileView extends StatelessWidget {
           automaticallyImplyLeading: false,
           leading: (openedFromSettings || viewModel.currentStep == 2)
               ? IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.black),
-                  onPressed: () async {
-                    if (viewModel.currentStep == 2) {
-                      viewModel.moveBackToPreviousPage();
-                    } else if (openedFromSettings) {
-                      // Show confirmation dialog only if changes were made
-                      if (viewModel.hasChanges) {
-                        final shouldExit = await _showExitConfirmationDialog(context) ?? false;
-                        if (shouldExit && context.mounted) {
-                          Navigator.of(context).pop();
-                        }
-                      } else {
-                        // No changes, just exit
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                        }
-                      }
-                    } else {
-                      Navigator.of(context).pop();
-                    }
-                  },
-                )
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () async {
+              if (viewModel.currentStep == 2) {
+                viewModel.moveBackToPreviousPage();
+              } else if (openedFromSettings) {
+                // Show confirmation dialog only if changes were made
+                if (viewModel.hasChanges) {
+                  final shouldExit = await _showExitConfirmationDialog(context) ?? false;
+                  if (shouldExit && context.mounted) {
+                    Navigator.of(context).pop();
+                  }
+                } else {
+                  // No changes, just exit
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
+                }
+              } else {
+                Navigator.of(context).pop();
+              }
+            },
+          )
               : null,
         ),
         body: viewModel.isLoading
             ? const Center(
-                child: CircularProgressIndicator(),
-              )
+          child: CircularProgressIndicator(),
+        )
             : SingleChildScrollView(
           child: Column(
             children: [
@@ -179,56 +180,56 @@ class _EditPharmacyProfileView extends StatelessWidget {
                     _buildProgressIndicator(viewModel.currentStep),
                     const SizedBox(height: 24),
 
-                // Page content
-                if (viewModel.currentStep == 1)
-                  _buildPage1(context, viewModel)
-                else
-                  _buildPage2(context, viewModel),
+                    // Page content
+                    if (viewModel.currentStep == 1)
+                      _buildPage1(context, viewModel)
+                    else
+                      _buildPage2(context, viewModel),
 
-                const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                // Error message
-                if (viewModel.errorMessage != null)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                    ),
-                    child: Text(
-                      viewModel.errorMessage!,
-                      style: const TextStyle(
-                        color: Colors.red,
-                        fontSize: 14,
+                    // Error message
+                    if (viewModel.errorMessage != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                        ),
+                        child: Text(
+                          viewModel.errorMessage!,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 14,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
 
-                const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                // Action buttons
-                if (viewModel.currentStep == 1)
-                  AppPrimaryButton(
-                    label: 'Next',
-                    onPressed: viewModel.isSubmitting
-                        ? null
-                        : () => viewModel.moveToNextPage(),
-                  )
-                else
-                  AppPrimaryButton(
-                    label: viewModel.isSubmitting ? 'Submitting...' : 'Submit',
-                    onPressed: viewModel.isSubmitting
-                        ? null
-                        : () => viewModel.submitProfile(),
-                  ),
-                const SizedBox(height: 24),
-              ],
-            ),
+                    // Action buttons
+                    if (viewModel.currentStep == 1)
+                      AppPrimaryButton(
+                        label: 'Next',
+                        onPressed: viewModel.isSubmitting
+                            ? null
+                            : () => viewModel.moveToNextPage(),
+                      )
+                    else
+                      AppPrimaryButton(
+                        label: viewModel.isSubmitting ? 'Submitting...' : 'Submit',
+                        onPressed: viewModel.isSubmitting
+                            ? null
+                            : () => viewModel.submitProfile(),
+                      ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ],
           ),
-          ],
         ),
-      ),
       ),
     );
   }
@@ -468,30 +469,30 @@ class _EditPharmacyProfileView extends StatelessWidget {
                   ),
                   child: viewModel.profilePicture != null
                       ? ClipOval(
-                          child: Image.file(
-                            viewModel.profilePicture!,
-                            fit: BoxFit.cover,
-                          ),
-                        )
+                    child: Image.file(
+                      viewModel.profilePicture!,
+                      fit: BoxFit.cover,
+                    ),
+                  )
                       : viewModel.profilePictureUrl != null && viewModel.profilePictureUrl!.isNotEmpty
-                          ? ClipOval(
-                              child: Image.network(
-                                viewModel.profilePictureUrl!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return const Icon(
-                                    Icons.camera_alt,
-                                    size: 40,
-                                    color: AppColors.primaryDark,
-                                  );
-                                },
-                              ),
-                            )
-                          : const Icon(
-                              Icons.camera_alt,
-                              size: 40,
-                              color: AppColors.primaryDark,
-                            ),
+                      ? ClipOval(
+                    child: Image.network(
+                      viewModel.profilePictureUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.camera_alt,
+                          size: 40,
+                          color: AppColors.primaryDark,
+                        );
+                      },
+                    ),
+                  )
+                      : const Icon(
+                    Icons.camera_alt,
+                    size: 40,
+                    color: AppColors.primaryDark,
+                  ),
                 ),
               ),
             ),
@@ -509,7 +510,7 @@ class _EditPharmacyProfileView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  if (viewModel.profilePicture == null && (viewModel.profilePictureUrl == null || viewModel.profilePictureUrl!.isEmpty))
+                  if (viewModel.attemptedSubmit && viewModel.profilePicture == null && (viewModel.profilePictureUrl == null || viewModel.profilePictureUrl!.isEmpty))
                     const Text(
                       'Profile picture required',
                       style: TextStyle(
@@ -565,8 +566,8 @@ class _EditPharmacyProfileView extends StatelessWidget {
             label: viewModel.licenseDocument1 != null
                 ? 'License Document (Selected)'
                 : (viewModel.licenseDocument1Url != null && viewModel.licenseDocument1Url!.isNotEmpty)
-                    ? 'License Document (Uploaded)'
-                    : 'Upload License Document',
+                ? 'License Document (Uploaded)'
+                : 'Upload License Document',
             onPressed: () => _pickFile(context, viewModel, 1),
             isSelected: viewModel.licenseDocument1 != null || (viewModel.licenseDocument1Url != null && viewModel.licenseDocument1Url!.isNotEmpty),
           ),
@@ -611,28 +612,44 @@ class _EditPharmacyProfileView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        AppDropdownField<String>(
-          items: viewModel.getCountryNames().map((country) {
-            return DropdownMenuItem<String>(
-              value: country,
-              child: Text(country),
+        TextFormField(
+          controller: viewModel.countryController,
+          readOnly: true,
+          decoration: InputDecoration(
+            hintText: 'Select country',
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
+            suffixIcon: Icon(Icons.arrow_drop_down, color: Colors.grey[400]),
+          ),
+          onTap: () async {
+            final selected = await showCustomDropdownDialog(
+              context: context,
+              title: 'Select Country',
+              items: viewModel.getCountryNames(),
+              selectedValue: viewModel.selectedCountry,
+              searchHint: 'Search countries...',
             );
-          }).toList(),
-          value: viewModel.selectedCountry,
-          onChanged: (String? country) {
-            if (country != null) {
-              viewModel.selectCountry(country);
+            if (selected != null) {
+              viewModel.selectCountry(selected);
               viewModel.clearValidationError('country');
             }
           },
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please select a country';
-            }
-            return null;
-          },
-          hint: 'Select country',
-          prefixIcon: const Icon(Icons.public_outlined, color: AppColors.primary),
         ),
       ],
     );
@@ -654,30 +671,49 @@ class _EditPharmacyProfileView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        AppDropdownField<String>(
-          items: states.map((state) {
-            return DropdownMenuItem<String>(
-              value: state,
-              child: Text(state),
-            );
-          }).toList(),
-          value: isEnabled ? viewModel.selectedState : null,
-          onChanged: (String? state) {
-            if (!isEnabled) return;
-            if (state != null) {
-              viewModel.selectState(state);
-              viewModel.clearValidationError('state');
-            }
-          },
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please select a state';
-            }
-            return null;
-          },
-          hint: 'Select state',
-          enabled: isEnabled,
-          prefixIcon: const Icon(Icons.location_city_outlined, color: AppColors.primary),
+        TextFormField(
+          controller: viewModel.stateController,
+          readOnly: true,
+          decoration: InputDecoration(
+            hintText: 'Select state',
+            filled: true,
+            fillColor: isEnabled ? Colors.white : Colors.grey[100],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
+            suffixIcon: Icon(
+              Icons.arrow_drop_down,
+              color: isEnabled ? Colors.grey[400] : Colors.grey[300],
+            ),
+          ),
+          onTap: isEnabled
+              ? () async {
+                  final selected = await showCustomDropdownDialog(
+                    context: context,
+                    title: 'Select State',
+                    items: viewModel.getStateNames(),
+                    selectedValue: viewModel.selectedState,
+                    searchHint: 'Search states...',
+                  );
+                  if (selected != null) {
+                    viewModel.selectState(selected);
+                    viewModel.clearValidationError('state');
+                  }
+                }
+              : null,
         ),
       ],
     );
@@ -699,30 +735,49 @@ class _EditPharmacyProfileView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        AppDropdownField<String>(
-          items: cities.map((city) {
-            return DropdownMenuItem<String>(
-              value: city,
-              child: Text(city),
-            );
-          }).toList(),
-          value: isEnabled ? viewModel.selectedCity : null,
-          onChanged: (String? city) {
-            if (!isEnabled) return;
-            if (city != null) {
-              viewModel.selectCity(city);
-              viewModel.clearValidationError('city');
-            }
-          },
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please select a city';
-            }
-            return null;
-          },
-          hint: 'Select city',
-          enabled: isEnabled,
-          prefixIcon: const Icon(Icons.location_city_outlined, color: AppColors.primary),
+        TextFormField(
+          controller: viewModel.cityController,
+          readOnly: true,
+          decoration: InputDecoration(
+            hintText: 'Select city',
+            filled: true,
+            fillColor: isEnabled ? Colors.white : Colors.grey[100],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
+            suffixIcon: Icon(
+              Icons.arrow_drop_down,
+              color: isEnabled ? Colors.grey[400] : Colors.grey[300],
+            ),
+          ),
+          onTap: isEnabled
+              ? () async {
+                  final selected = await showCustomDropdownDialog(
+                    context: context,
+                    title: 'Select City',
+                    items: viewModel.getCityNames(),
+                    selectedValue: viewModel.selectedCity,
+                    searchHint: 'Search cities...',
+                  );
+                  if (selected != null) {
+                    viewModel.selectCity(selected);
+                    viewModel.clearValidationError('city');
+                  }
+                }
+              : null,
         ),
       ],
     );
@@ -943,64 +998,66 @@ class _EditPharmacyProfileView extends StatelessWidget {
   }
 
   void _showImagePickerBottomSheet(
-    BuildContext context,
-    PharmacyProfileViewModel viewModel,
-  ) {
+      BuildContext context,
+      PharmacyProfileViewModel viewModel,
+      ) {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Select Profile Picture',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+        return SafeArea(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Select Profile Picture',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('Take Picture'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final picker = ImagePicker();
-                  final pickedFile = await picker.pickImage(
-                    source: ImageSource.camera,
-                    imageQuality: 85,
-                    maxWidth: 800,
-                  );
-                  if (pickedFile != null) {
-                    final croppedFile = await _cropImage(File(pickedFile.path));
-                    if (croppedFile != null) {
-                      viewModel.setProfilePicture(croppedFile);
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Take Picture'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final picker = ImagePicker();
+                    final pickedFile = await picker.pickImage(
+                      source: ImageSource.camera,
+                      imageQuality: 85,
+                      maxWidth: 800,
+                    );
+                    if (pickedFile != null) {
+                      final croppedFile = await _cropImage(File(pickedFile.path));
+                      if (croppedFile != null) {
+                        viewModel.setProfilePicture(croppedFile);
+                      }
                     }
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.image),
-                title: const Text('Select From Gallery'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final picker = ImagePicker();
-                  final pickedFile = await picker.pickImage(
-                    source: ImageSource.gallery,
-                    imageQuality: 85,
-                    maxWidth: 800,
-                  );
-                  if (pickedFile != null) {
-                    final croppedFile = await _cropImage(File(pickedFile.path));
-                    if (croppedFile != null) {
-                      viewModel.setProfilePicture(croppedFile);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.image),
+                  title: const Text('Select From Gallery'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final picker = ImagePicker();
+                    final pickedFile = await picker.pickImage(
+                      source: ImageSource.gallery,
+                      imageQuality: 85,
+                      maxWidth: 800,
+                    );
+                    if (pickedFile != null) {
+                      final croppedFile = await _cropImage(File(pickedFile.path));
+                      if (croppedFile != null) {
+                        viewModel.setProfilePicture(croppedFile);
+                      }
                     }
-                  }
-                },
-              ),
-            ],
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -1008,10 +1065,10 @@ class _EditPharmacyProfileView extends StatelessWidget {
   }
 
   Future<void> _pickFile(
-    BuildContext context,
-    PharmacyProfileViewModel viewModel,
-    int documentNumber,
-  ) async {
+      BuildContext context,
+      PharmacyProfileViewModel viewModel,
+      int documentNumber,
+      ) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],

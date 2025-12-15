@@ -709,7 +709,7 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  if (viewModel.profilePicture == null && (viewModel.profilePictureUrl == null || viewModel.profilePictureUrl!.isEmpty))
+                  if (viewModel.attemptedSubmit && viewModel.profilePicture == null && (viewModel.profilePictureUrl == null || viewModel.profilePictureUrl!.isEmpty))
                     const Text(
                       'Profile picture required',
                       style: TextStyle(
@@ -725,27 +725,111 @@ class _EditLaboratoryProfileView extends StatelessWidget {
           ],
 
           // Tax Identification Number
-          _buildEditableField(
-            label: 'Tax Identification Number',
-            controller: viewModel.taxIdentificationNumberController,
-            validator: viewModel.validateTaxId,
-            hintText: 'Enter tax identification number',
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-              LengthLimitingTextInputFormatter(20),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Tax Identification Number',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: viewModel.taxIdentificationNumberController,
+                decoration: InputDecoration(
+                  hintText: 'Enter tax identification number',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+                  LengthLimitingTextInputFormatter(20),
+                ],
+              ),
+              const SizedBox(height: 4),
+              if (viewModel.attemptedSubmit && viewModel.taxIdentificationNumberController.text.isEmpty)
+                const Text(
+                  'Tax identification number is required',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 16),
 
           // License Number
-          _buildEditableField(
-            label: 'License Number',
-            controller: viewModel.licenseNumberController,
-            validator: viewModel.validateLicenseNumber,
-            hintText: 'Enter license number',
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-              LengthLimitingTextInputFormatter(20),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'License Number',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: viewModel.licenseNumberController,
+                decoration: InputDecoration(
+                  hintText: 'Enter license number',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+                  LengthLimitingTextInputFormatter(20),
+                ],
+              ),
+              const SizedBox(height: 4),
+              if (viewModel.attemptedSubmit && viewModel.licenseNumberController.text.isEmpty)
+                const Text(
+                  'License number is required',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 24),
@@ -1120,69 +1204,72 @@ class _EditLaboratoryProfileView extends StatelessWidget {
   }
 
   static void _showImagePickerBottomSheet(
-    BuildContext context,
-    LaboratoryProfileViewModel viewModel,
-  ) {
+      BuildContext context,
+      LaboratoryProfileViewModel viewModel,
+      ) {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Select Profile Picture',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+        return SafeArea(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Select Profile Picture',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('Take Picture'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final picker = ImagePicker();
-                  final pickedFile = await picker.pickImage(
-                    source: ImageSource.camera,
-                    imageQuality: 85,
-                    maxWidth: 800,
-                  );
-                  if (pickedFile != null) {
-                    final croppedFile = await _cropImage(File(pickedFile.path));
-                    if (croppedFile != null) {
-                      viewModel.setProfilePicture(croppedFile);
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Take Picture'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final picker = ImagePicker();
+                    final pickedFile = await picker.pickImage(
+                      source: ImageSource.camera,
+                      imageQuality: 85,
+                      maxWidth: 800,
+                    );
+                    if (pickedFile != null) {
+                      final croppedFile = await _cropImage(File(pickedFile.path));
+                      if (croppedFile != null) {
+                        viewModel.setProfilePicture(croppedFile);
+                      }
                     }
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.image),
-                title: const Text('Select From Gallery'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final picker = ImagePicker();
-                  final pickedFile = await picker.pickImage(
-                    source: ImageSource.gallery,
-                    imageQuality: 85,
-                    maxWidth: 800,
-                  );
-                  if (pickedFile != null) {
-                    final croppedFile = await _cropImage(File(pickedFile.path));
-                    if (croppedFile != null) {
-                      viewModel.setProfilePicture(croppedFile);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.image),
+                  title: const Text('Select From Gallery'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final picker = ImagePicker();
+                    final pickedFile = await picker.pickImage(
+                      source: ImageSource.gallery,
+                      imageQuality: 85,
+                      maxWidth: 800,
+                    );
+                    if (pickedFile != null) {
+                      final croppedFile = await _cropImage(File(pickedFile.path));
+                      if (croppedFile != null) {
+                        viewModel.setProfilePicture(croppedFile);
+                      }
                     }
-                  }
-                },
-              ),
-            ],
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },
     );
   }
+
 
   static Future<void> _pickFile(
     BuildContext context,

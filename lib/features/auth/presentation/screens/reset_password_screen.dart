@@ -265,8 +265,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
-          children: [
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: Column(
+            children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
               child: AuthTopBar(
@@ -391,6 +393,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

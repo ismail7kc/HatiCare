@@ -210,18 +210,20 @@ class _LoginView extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: Form(
-              key: viewModel.formKey,
-              autovalidateMode: AutovalidateMode.disabled,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Form(
+                key: viewModel.formKey,
+                autovalidateMode: AutovalidateMode.disabled,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                     const SizedBox(height: 24),
                     Text(
                       'Login to Your Account',
@@ -357,6 +359,7 @@ class _LoginView extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
                 ),
               ),
             ),

@@ -42,6 +42,7 @@ class PharmacyProfileViewModel extends ChangeNotifier {
   String? errorMessage;
   String? successMessage;
   bool _shouldNavigateToHome = false;
+  bool _attemptedSubmit = false;
 
   final String pharmacyId;
   final bool openedFromSettings;
@@ -66,11 +67,13 @@ class PharmacyProfileViewModel extends ChangeNotifier {
   bool _hasChanges = false;
 
   bool get hasChanges => _hasChanges;
+  bool get attemptedSubmit => _attemptedSubmit;
 
   PharmacyProfileViewModel({
     required this.pharmacyId,
     this.openedFromSettings = false,
   }) {
+    isLoading = openedFromSettings; // Only show loader if opened from settings
     _addTextControllerListeners();
     _initialize();
   }
@@ -448,8 +451,17 @@ class PharmacyProfileViewModel extends ChangeNotifier {
     }
     
     countryController.text = countryName;
-    stateController.clear();
-    cityController.clear();
+    
+    // If no states available, auto-populate state with country name
+    if (states.isEmpty) {
+      selectedState = countryName;
+      stateController.text = countryName;
+      cityController.text = countryName;
+    } else {
+      stateController.clear();
+      cityController.clear();
+    }
+    
     notifyListeners();
   }
 
@@ -467,11 +479,20 @@ class PharmacyProfileViewModel extends ChangeNotifier {
     );
     
     if (state.isNotEmpty && state['cities'] != null) {
-      cities = List<String>.from(state['cities']);
+      final citiesList = state['cities'] as List<dynamic>;
+      cities = citiesList.map((c) => c.toString()).toList();
     }
     
     stateController.text = stateName;
-    cityController.clear();
+    
+    // If no cities available, auto-populate city with state name
+    if (cities.isEmpty) {
+      selectedCity = stateName;
+      cityController.text = stateName;
+    } else {
+      cityController.clear();
+    }
+    
     notifyListeners();
   }
 
@@ -589,6 +610,9 @@ class PharmacyProfileViewModel extends ChangeNotifier {
   }
 
   Future<void> submitProfile() async {
+    _attemptedSubmit = true;
+    notifyListeners();
+    
     // Validate all fields and show errors if any
     if (!validateAllFields()) {
       return;
@@ -735,8 +759,10 @@ class PharmacyProfileViewModel extends ChangeNotifier {
   }
 
   void clearValidationError(String field) {
-    _validationErrors[field] = null;
-    notifyListeners();
+    if (_validationErrors.containsKey(field)) {
+      _validationErrors[field] = null;
+      notifyListeners();
+    }
   }
 
   String? getValidationError(String field) {

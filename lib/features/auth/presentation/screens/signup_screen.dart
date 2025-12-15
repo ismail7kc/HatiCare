@@ -123,24 +123,26 @@ class _SignupViewState extends State<_SignupView> {
         return Scaffold(
           backgroundColor: Colors.white,
           body: SafeArea(
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 520),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 32,
-                  ),
-                  child: Form(
-                    key: viewModel.formKey,
-                    autovalidateMode: state.autovalidate
-                        ? AutovalidateMode.onUnfocus
-                        : AutovalidateMode.disabled,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
+            child: GestureDetector(
+              onTap: () => FocusScope.of(context).unfocus(),
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 32,
+                    ),
+                    child: Form(
+                      key: viewModel.formKey,
+                      autovalidateMode: state.autovalidate
+                          ? AutovalidateMode.onUnfocus
+                          : AutovalidateMode.disabled,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
                           const SizedBox(height: 24),
                           Text(
                             'Create New Account',
@@ -225,6 +227,7 @@ class _SignupViewState extends State<_SignupView> {
                           ],
                         ],
                       ),
+                    ),
                     ),
                   ),
                 ),

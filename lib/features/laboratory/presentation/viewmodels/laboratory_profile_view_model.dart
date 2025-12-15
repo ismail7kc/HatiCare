@@ -58,6 +58,7 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
   String? successMessage;
   bool _shouldNavigateToHome = false;
   int _currentStep = 1;
+  bool _attemptedSubmit = false;
 
   // Change tracking
   late Map<String, String> _initialValues;
@@ -81,6 +82,7 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
   bool get hasChanges => _hasChanges;
   bool get shouldNavigateToHome => _shouldNavigateToHome;
   int get currentStep => _currentStep;
+  bool get attemptedSubmit => _attemptedSubmit;
   
   String? get taxIdController => taxIdentificationNumberController.text;
   set taxIdController(String? value) {
@@ -483,6 +485,7 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
   }
 
   Future<void> submitProfile() async {
+    _attemptedSubmit = true;
     isSubmitting = true;
     errorMessage = null;
     successMessage = null;
@@ -668,14 +671,25 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
     selectedCountry = country;
     countryController.text = country ?? '';
     selectedState = null;
-    stateController.text = '';
     selectedCity = null;
-    cityController.text = '';
     states = [];
     cities = [];
 
     if (country != null && country.isNotEmpty) {
       _loadStatesForCountry(country);
+      
+      // If no states available, auto-populate state with country name
+      if (states.isEmpty) {
+        selectedState = country;
+        stateController.text = country;
+        cityController.text = country;
+      } else {
+        stateController.text = '';
+        cityController.text = '';
+      }
+    } else {
+      stateController.text = '';
+      cityController.text = '';
     }
 
     _checkForChanges();
@@ -686,11 +700,20 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
     selectedState = state;
     stateController.text = state ?? '';
     selectedCity = null;
-    cityController.text = '';
     cities = [];
 
     if (state != null && state.isNotEmpty && selectedCountry != null) {
       _loadCitiesForState(selectedCountry!, state);
+      
+      // If no cities available, auto-populate city with state name
+      if (cities.isEmpty) {
+        selectedCity = state;
+        cityController.text = state;
+      } else {
+        cityController.text = '';
+      }
+    } else {
+      cityController.text = '';
     }
 
     _checkForChanges();
