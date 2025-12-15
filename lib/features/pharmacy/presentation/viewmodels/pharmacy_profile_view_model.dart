@@ -61,11 +61,29 @@ class PharmacyProfileViewModel extends ChangeNotifier {
   // Validation error management
   final Map<String, String?> _validationErrors = {};
 
+  // Change tracking
+  late Map<String, String> _initialValues;
+  bool _hasChanges = false;
+
+  bool get hasChanges => _hasChanges;
+
   PharmacyProfileViewModel({
     required this.pharmacyId,
     this.openedFromSettings = false,
   }) {
+    _addTextControllerListeners();
     _initialize();
+  }
+
+  void _addTextControllerListeners() {
+    pharmacyNameController.addListener(_checkForChanges);
+    addressLine1Controller.addListener(_checkForChanges);
+    cityController.addListener(_checkForChanges);
+    stateController.addListener(_checkForChanges);
+    zipCodeController.addListener(_checkForChanges);
+    countryController.addListener(_checkForChanges);
+    taxIdController.addListener(_checkForChanges);
+    licenseNumberController.addListener(_checkForChanges);
   }
 
   Future<void> _initialize() async {
@@ -117,10 +135,48 @@ class PharmacyProfileViewModel extends ChangeNotifier {
         _countryCode = countryCode;
       }
 
+      // Initialize change tracking after loading data
+      _initializeChangeTracking();
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading pharmacy data: $e');
     }
+  }
+
+  void _initializeChangeTracking() {
+    _initialValues = {
+      'pharmacyName': pharmacyNameController.text,
+      'addressLine1': addressLine1Controller.text,
+      'city': cityController.text,
+      'state': stateController.text,
+      'zipCode': zipCodeController.text,
+      'country': countryController.text,
+      'contactPerson': contactPersonController.text,
+      'email': emailController.text,
+      'phoneNumber': _phoneNumber ?? '',
+      'taxId': taxIdController.text,
+      'licenseNumber': licenseNumberController.text,
+    };
+    _hasChanges = false;
+  }
+
+  void _checkForChanges() {
+    final currentValues = {
+      'pharmacyName': pharmacyNameController.text,
+      'addressLine1': addressLine1Controller.text,
+      'city': cityController.text,
+      'state': stateController.text,
+      'zipCode': zipCodeController.text,
+      'country': countryController.text,
+      'contactPerson': contactPersonController.text,
+      'email': emailController.text,
+      'phoneNumber': _phoneNumber ?? '',
+      'taxId': taxIdController.text,
+      'licenseNumber': licenseNumberController.text,
+    };
+
+    _hasChanges = currentValues != _initialValues;
+    notifyListeners();
   }
 
   Map<String, String> _parsePhoneNumber(String phoneNumber) {
@@ -244,30 +300,47 @@ class PharmacyProfileViewModel extends ChangeNotifier {
         addressLine1Controller.text = addressLine1;
         debugPrint('address_line1: $addressLine1');
 
+        final country = data['country'] ?? '';
+        if (country.isNotEmpty) {
+          // Check if country exists in the list
+          final countryExists = countries.any((c) => c['Country_name'] == country);
+          if (countryExists) {
+            selectCountry(country);
+            debugPrint('Country selected: $country');
+          } else {
+            // If country doesn't exist in list, just set the text
+            countryController.text = country;
+            selectedCountry = country;
+            debugPrint('Country not found in list, set as text: $country');
+          }
+        }
+        debugPrint('country: $country');
+
         final state = data['state'] ?? '';
-        stateController.text = state;
         if (state.isNotEmpty) {
-          selectState(state);
+          // First ensure country is selected
+          if (selectedCountry != null && selectedCountry!.isNotEmpty) {
+            selectState(state);
+            debugPrint('State selected: $state');
+          } else {
+            // If country not selected, just set the text
+            stateController.text = state;
+            selectedState = state;
+            debugPrint('State not selected due to missing country, set as text: $state');
+          }
         }
         debugPrint('state: $state');
 
         final city = data['city'] ?? '';
-        cityController.text = city;
         if (city.isNotEmpty) {
           selectCity(city);
+          debugPrint('City selected: $city');
         }
         debugPrint('city: $city');
 
         final zipCode = data['zip_code'] ?? '';
         zipCodeController.text = zipCode;
         debugPrint('zip_code: $zipCode');
-
-        final country = data['country'] ?? '';
-        countryController.text = country;
-        if (country.isNotEmpty) {
-          selectCountry(country);
-        }
-        debugPrint('country: $country');
 
         // Populate contact person from API response
         final contactPerson = data['contact_person'] ?? '';
@@ -328,6 +401,9 @@ class PharmacyProfileViewModel extends ChangeNotifier {
         }
 
         debugPrint('Form fields populated successfully');
+        
+        // Reinitialize change tracking after populating all fields
+        _initializeChangeTracking();
         notifyListeners(); // Notify listeners after populating fields
       } else {
         debugPrint('Data is not a Map: ${data.runtimeType}');

@@ -123,8 +123,8 @@ class SignupViewModel extends ChangeNotifier {
   void _clearErrorOnChange() {
     if (errorMessage != null) {
       errorMessage = null;
-      notifyListeners();
     }
+    notifyListeners();
   }
 
   int? _expectedNationalLength(String? isoCode) {

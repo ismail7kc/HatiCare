@@ -280,6 +280,34 @@ class _SignupState {
       autovalidate.hashCode;
 }
 
+Future<void> _selectDateForField(BuildContext context, TextEditingController controller) async {
+  final DateTime? picked = await showDatePicker(
+    context: context,
+    initialDate: DateTime(2000),
+    firstDate: DateTime(1900),
+    lastDate: DateTime.now(),
+    builder: (context, child) {
+      return Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: AppColors.primary,
+            onPrimary: Colors.white,
+            onSurface: AppColors.textPrimary,
+          ),
+        ),
+        child: child!,
+      );
+    },
+  );
+
+  if (picked != null) {
+    // Format date as YYYY-MM-DD
+    final formattedDate =
+        '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+    controller.text = formattedDate;
+  }
+}
+
 InputDecoration _phoneFieldDecoration(BuildContext context, {String? hint, bool hasError = false}) {
   final border = OutlineInputBorder(
     borderRadius: BorderRadius.circular(14),
@@ -530,25 +558,31 @@ class _DoctorSection extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _LabeledField(
-                  label: 'Date of Birth',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _DatePickerField(
-                        controller: viewModel.dateOfBirthController,
-                        validator: viewModel.validateDoctorDob,
-                      ),
-                      const SizedBox(height: 4),
-                    ],
-                  ),
+                child: Selector<SignupViewModel, String>(
+                  selector: (_, vm) => vm.dateOfBirthController.text,
+                  builder: (context, dobValue, _) {
+                    return AppDropdownField<String>(
+                      label: 'Date of Birth',
+                      items: const [], // Empty items since we use custom onTap
+                      value: dobValue.isEmpty ? null : dobValue,
+                      onChanged: (value) {
+                        // No-op since we use onTap for date picker
+                      },
+                      validator: viewModel.validateDoctorDob,
+                      hint: 'YYYY-MM-DD',
+                      prefixIcon: const Icon(Icons.calendar_month_outlined, color: AppColors.primary),
+                      isFormField: true,
+                      onTap: () => _selectDateForField(context, viewModel.dateOfBirthController),
+                    );
+                  },
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           _LabeledField(
             label: 'Email',
+            spacing: 4,
             child: AppTextField(
               controller: viewModel.doctorEmailController,
               label: 'Email',
@@ -561,6 +595,7 @@ class _DoctorSection extends StatelessWidget {
           const SizedBox(height: 4),
           _LabeledField(
             label: 'Password',
+            spacing: 4,
             child: AppTextField(
               controller: viewModel.doctorPasswordController,
               label: 'Password',
@@ -574,6 +609,7 @@ class _DoctorSection extends StatelessWidget {
           const SizedBox(height: 4),
           _LabeledField(
             label: 'Confirm Password',
+            spacing: 4,
             child: AppTextField(
               controller: viewModel.doctorConfirmPasswordController,
               label: 'Confirm Password',
@@ -646,6 +682,7 @@ class _PharmacySection extends StatelessWidget {
         children: [
           _LabeledField(
             label: 'Contact Person',
+            spacing: 4,
             child: AppTextField(
               controller: viewModel.ownerNameController,
               label: 'Contact Person',
@@ -672,6 +709,7 @@ class _PharmacySection extends StatelessWidget {
           const SizedBox(height: 4),
           _LabeledField(
             label: 'Email',
+            spacing: 4,
             child: AppTextField(
               controller: viewModel.pharmacyEmailController,
               label: 'Email',
@@ -684,6 +722,7 @@ class _PharmacySection extends StatelessWidget {
           const SizedBox(height: 4),
           _LabeledField(
             label: 'Password',
+            spacing: 4,
             child: AppTextField(
               controller: viewModel.pharmacyPasswordController,
               label: 'Password',
@@ -697,6 +736,7 @@ class _PharmacySection extends StatelessWidget {
           const SizedBox(height: 4),
           _LabeledField(
             label: 'Confirm Password',
+            spacing: 4,
             child: AppTextField(
               controller: viewModel.pharmacyConfirmPasswordController,
               label: 'Confirm Password',
@@ -766,6 +806,7 @@ class _LaboratorySection extends StatelessWidget {
       children: [
         _LabeledField(
           label: 'Contact Person',
+          spacing: 4,
           child: AppTextField(
             controller: viewModel.laboratoryContactPersonController,
             label: 'Contact Person',
@@ -792,6 +833,7 @@ class _LaboratorySection extends StatelessWidget {
         const SizedBox(height: 4),
         _LabeledField(
           label: 'Email',
+          spacing: 4,
           child: AppTextField(
             controller: viewModel.laboratoryEmailController,
             label: 'Email',
@@ -804,6 +846,7 @@ class _LaboratorySection extends StatelessWidget {
         const SizedBox(height: 4),
         _LabeledField(
           label: 'Password',
+          spacing: 4,
           child: AppTextField(
             controller: viewModel.laboratoryPasswordController,
             label: 'Password',
@@ -817,6 +860,7 @@ class _LaboratorySection extends StatelessWidget {
         const SizedBox(height: 4),
         _LabeledField(
           label: 'Confirm Password',
+          spacing: 4,
           child: AppTextField(
             controller: viewModel.laboratoryConfirmPasswordController,
             label: 'Confirm Password',

@@ -13,7 +13,7 @@ import 'package:haticare/features/common/presentation/screens/help_center_screen
 import 'package:haticare/features/common/presentation/screens/contact_support_screen.dart';
 import 'package:haticare/features/common/presentation/screens/privacy_policy_screen.dart';
 import 'package:haticare/features/common/presentation/screens/notifications_screen.dart';
-import 'package:haticare/features/laboratory/presentation/screens/edit_laboratory_profile_screen.dart';
+import 'package:haticare/features/laboratory/presentation/screens/edit_laboratory_profile_screen.dart' hide WillPopScope;
 import 'package:http/http.dart' as http;
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';

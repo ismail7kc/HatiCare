@@ -15,6 +15,7 @@ class AppDropdownField<T> extends StatefulWidget {
     this.enabled = true,
     this.prefixIcon,
     this.isFormField = true,
+    this.onTap,
   });
 
   final String? label;
@@ -26,6 +27,7 @@ class AppDropdownField<T> extends StatefulWidget {
   final bool enabled;
   final Widget? prefixIcon;
   final bool isFormField;
+  final VoidCallback? onTap;
 
   @override
   State<AppDropdownField<T>> createState() => _AppDropdownFieldState<T>();
@@ -48,6 +50,12 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
 
   void _showDropdownMenu() {
     if (!widget.enabled) return;
+
+    // If custom onTap is provided (for date picker), use it instead
+    if (widget.onTap != null) {
+      widget.onTap!();
+      return;
+    }
 
     final RenderBox renderBox = context.findRenderObject() as RenderBox;
     final Offset offset = renderBox.localToGlobal(Offset.zero);
@@ -122,16 +130,21 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Colors.red, width: 1.5),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       errorText: null,
       errorStyle: const TextStyle(height: 0),
     );
   }
 
   String _getDisplayValue() {
-    // If a value is selected, show it
+    
     if (widget.value != null) {
-      // Find the matching item to get its label
+      
+      if (widget.items.isEmpty) {
+        return widget.value.toString();
+      }
+      
+      
       for (var item in widget.items) {
         if (item.value == widget.value) {
           if (item.child is Text) {
@@ -142,9 +155,8 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
       return widget.value.toString();
     }
 
-    // No value selected - show hint or disabled message
+    
     if (!widget.enabled) {
-      // Show disabled message based on hint
       if (widget.hint.contains('state')) {
         return 'Select country first';
       } else if (widget.hint.contains('city')) {
@@ -152,7 +164,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
       }
     }
     
-    // Field is enabled or no special disabled message - show hint
+  
     return widget.hint;
   }
 
@@ -168,7 +180,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Colors.black,
+                color: Color(0xFF6C7278),
               ),
             ),
             const SizedBox(height: 8),
@@ -178,7 +190,6 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
             initialValue: widget.value,
             validator: widget.validator,
             builder: (FormFieldState<T> state) {
-              // Update the field value when widget value changes
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (state.value != widget.value) {
                   state.didChange(widget.value);
@@ -210,6 +221,8 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
                                   ? AppColors.textPrimary
                                   : AppColors.textSecondary,
                             ),
+                            overflow: TextOverflow.clip,
+                            maxLines: 1,
                           ),
                         ),
                       ),
@@ -245,7 +258,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Colors.black,
+                color: Color(0xFF6C7278),
               ),
             ),
             const SizedBox(height: 8),
@@ -269,6 +282,8 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
                           ? AppColors.textPrimary
                           : AppColors.textSecondary,
                     ),
+                    overflow: TextOverflow.clip,
+                    maxLines: 1,
                   ),
                 ),
               ),

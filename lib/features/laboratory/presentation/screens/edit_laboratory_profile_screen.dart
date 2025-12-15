@@ -1,16 +1,21 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl_phone_field/intl_phone_field.dart';
-import 'package:intl_phone_field/phone_number.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
-
+import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/core/widgets/app_dropdown_field.dart';
 import 'package:haticare/core/widgets/app_primary_button.dart';
-import 'package:haticare/core/widgets/app_text_field.dart';
+import 'package:haticare/core/widgets/custom_dropdown_dialog.dart';
 import 'package:haticare/features/laboratory/presentation/viewmodels/laboratory_profile_view_model.dart';
+import 'package:haticare/features/laboratory/presentation/screens/laboratory_home_screen.dart';
 
-class EditLaboratoryProfileScreen extends StatefulWidget {
+import '../../../../core/widgets/app_text_field.dart';
+
+class EditLaboratoryProfileScreen extends StatelessWidget {
   final String laboratoryId;
   final bool isForceComplete;
   final bool openedFromSettings;
@@ -23,113 +28,81 @@ class EditLaboratoryProfileScreen extends StatefulWidget {
   });
 
   @override
-  State<EditLaboratoryProfileScreen> createState() => _EditLaboratoryProfileScreenState();
-}
-
-class _EditLaboratoryProfileScreenState extends State<EditLaboratoryProfileScreen> {
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => LaboratoryProfileViewModel(
-        laboratoryId: widget.laboratoryId,
-        openedFromSettings: !widget.isForceComplete,
+      create: (_) => LaboratoryProfileViewModel(
+        laboratoryId: laboratoryId,
+        openedFromSettings: openedFromSettings,
       ),
-      child: Consumer<LaboratoryProfileViewModel>(
-        builder: (context, viewModel, child) {
-          viewModel.setContext(context);
-          return WillPopScope(
-            onWillPop: () async {
-              if (widget.isForceComplete) {
-                return false;
-              }
-              if (_currentPage > 0) {
-                _pageController.previousPage(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-                return false;
-              }
-              return true;
-            },
-            child: Scaffold(
-              backgroundColor: Colors.white,
-              appBar: AppBar(
-                backgroundColor: Colors.white,
-                elevation: 0,
-                leading: widget.isForceComplete
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
-                        onPressed: () {
-                          if (!widget.openedFromSettings && _currentPage > 0) {
-                            _pageController.previousPage(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
-                            );
-                          } else {
-                            Navigator.pop(context);
-                          }
-                        },
-                      ),
-                title: Text(
-                  'Edit Laboratory Profile',
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                centerTitle: false,
-              ),
-              body: viewModel.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : widget.openedFromSettings
-                      ? _buildSinglePageForm(viewModel)
-                      : Column(
-                          children: [
-                            // Progress indicator
-                            _buildProgressIndicator(viewModel),
-
-                            // Form pages
-                            Expanded(
-                              child: PageView(
-                                controller: _pageController,
-                                onPageChanged: (index) {
-                                  setState(() {
-                                    _currentPage = index;
-                                  });
-                                },
-                                children: [
-                                  _buildPage1(viewModel),
-                                  _buildPage2(viewModel),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-            ),
-          );
-        },
+      child: _EditLaboratoryProfileView(
+        isForceComplete: isForceComplete,
+        openedFromSettings: openedFromSettings,
       ),
     );
   }
+}
 
-  Widget _buildSinglePageForm(LaboratoryProfileViewModel viewModel) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
+class _EditLaboratoryProfileView extends StatelessWidget {
+  final bool isForceComplete;
+  final bool openedFromSettings;
+
+  const _EditLaboratoryProfileView({
+    this.isForceComplete = false,
+    this.openedFromSettings = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final viewModel = context.watch<LaboratoryProfileViewModel>();
+
+    if (viewModel.shouldNavigateToHome) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          viewModel.resetNavigation();
+
+          if (openedFromSettings) {
+            // Return to settings screen
+            Navigator.of(context).pop();
+          } else {
+            // Navigate to home screen
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const LaboratoryHomeScreen()),
+              (route) => false,
+            );
+          }
+        }
+      });
+    }
+
+    return WillPopScope(
+      onWillPop: () async {
+        // Allow navigating back to step 1 from step 2
+        if (viewModel.currentStep == 2) {
+          viewModel.moveBackToPreviousPage();
+          return false;
+        }
+
+        // If force complete mode, prevent leaving the screen
+        if (isForceComplete) {
+          return false;
+        }
+
+        // If opened from settings on step 1, show confirmation dialog only if changes were made
+        if (openedFromSettings && viewModel.currentStep == 1) {
+          if (viewModel.hasChanges) {
+            return await _showExitConfirmationDialog(context) ?? false;
+          }
+          return true;
+        }
+        
+        return true;
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF9FAFB),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFF9FAFB),
+          elevation: 0,
+          title: const Text(
             'Edit Laboratory Profile',
             style: TextStyle(
               fontSize: 20,
@@ -137,843 +110,1097 @@ class _EditLaboratoryProfileScreenState extends State<EditLaboratoryProfileScree
               color: Colors.black,
             ),
           ),
-          const SizedBox(height: 24),
-
-          // Contact Person (Non-editable)
-          _LabeledField(
-            label: 'Contact Person',
-            child: AppTextField(
-              controller: viewModel.contactPersonController,
-              label: 'Contact Person',
-              hint: 'Enter Contact Person Name',
-              enabled: false,
-              prefixIcon: const Icon(Icons.person_outline),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Email (Non-editable)
-          _LabeledField(
-            label: 'Email',
-            child: AppTextField(
-              controller: viewModel.emailController,
-              label: 'Email',
-              hint: 'laboratory@example.com',
-              enabled: false,
-              prefixIcon: const Icon(Icons.email_outlined),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Laboratory Name (Editable)
-          _LabeledField(
-            label: 'Laboratory Name',
-            child: AppTextField(
-              controller: viewModel.laboratoryNameController,
-              label: 'Laboratory Name',
-              hint: 'Ab Laboratory',
-              textCapitalization: TextCapitalization.words,
-              prefixIcon: const Icon(Icons.business_outlined),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Phone Number (Editable)
-          _LabeledField(
-            label: 'Phone Number',
-            child: IntlPhoneField(
-              controller: viewModel.phoneNumberController,
-              initialCountryCode: viewModel.countryCode.replaceAll('+', ''),
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              onChanged: viewModel.updatePhone,
-              onCountryChanged: (country) {
-                viewModel.updateCountryCode(country.dialCode);
-              },
-              decoration: InputDecoration(
-                hintText: '1234567890',
-                filled: true,
-                fillColor: AppColors.surface,
-                prefixIcon: const Icon(Icons.phone_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Address Section
-          _LabeledField(
-            label: 'Address',
-            child: AppTextField(
-              controller: viewModel.addressLine1Controller,
-              label: 'Address',
-              hint: 'Street 12',
-              textCapitalization: TextCapitalization.words,
-              prefixIcon: const Icon(Icons.location_on_outlined),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Country (Editable)
-          _LabeledField(
-            label: 'Country',
-            child: AppTextField(
-              controller: viewModel.countryController,
-              label: 'Country',
-              hint: 'Pakistan',
-              textCapitalization: TextCapitalization.words,
-              prefixIcon: const Icon(Icons.public_outlined),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // State (Editable)
-          _LabeledField(
-            label: 'State',
-            child: AppTextField(
-              controller: viewModel.stateController,
-              label: 'State',
-              hint: 'Sindh',
-              textCapitalization: TextCapitalization.words,
-              prefixIcon: const Icon(Icons.location_city_outlined),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // City (Editable)
-          _LabeledField(
-            label: 'City',
-            child: AppTextField(
-              controller: viewModel.cityController,
-              label: 'City',
-              hint: 'Karachi',
-              textCapitalization: TextCapitalization.words,
-              prefixIcon: const Icon(Icons.location_on_outlined),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // ZIP Code
-          _LabeledField(
-            label: 'ZIP Code',
-            child: AppTextField(
-              controller: viewModel.zipCodeController,
-              label: 'ZIP Code',
-              hint: '54000',
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              prefixIcon: const Icon(Icons.local_post_office_outlined),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Tax ID
-          _LabeledField(
-            label: 'Tax ID',
-            child: AppTextField(
-              controller: viewModel.taxIdentificationNumberController,
-              label: 'Tax ID',
-              hint: '12345678',
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              prefixIcon: const Icon(Icons.receipt_outlined),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // License Number
-          _LabeledField(
-            label: 'License Number',
-            child: AppTextField(
-              controller: viewModel.licenseNumberController,
-              label: 'License Number',
-              hint: 'LAB-2024-001',
-              textCapitalization: TextCapitalization.characters,
-              prefixIcon: const Icon(Icons.card_membership_outlined),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Profile Picture - Centered and smaller
-          Center(
-            child: Column(
-              children: [
-                const Text(
-                  'Profile Picture',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF6C7278),
+          centerTitle: true,
+          automaticallyImplyLeading: false,
+          leading: (openedFromSettings || viewModel.currentStep == 2)
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.black),
+                  onPressed: () async {
+                    if (viewModel.currentStep == 2) {
+                      viewModel.moveBackToPreviousPage();
+                    } else if (openedFromSettings) {
+                      // Show confirmation dialog only if changes were made
+                      if (viewModel.hasChanges) {
+                        final shouldExit = await _showExitConfirmationDialog(context) ?? false;
+                        if (shouldExit && context.mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      } else {
+                        // No changes, just exit
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      }
+                    } else {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                )
+              : null,
+        ),
+        body: viewModel.isLoading
+            ? const Center(
+                child: CircularProgressIndicator(),
+              )
+            : SingleChildScrollView(
+          child: Column(
+            children: [
+              // Show "Complete your profile" banner only for first-time users
+              if (isForceComplete && !openedFromSettings)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.only(top: 16, left: 16, right: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryDark.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.primaryDark.withValues(alpha: 0.3)),
                   ),
-                ),
-                const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: () => _showImagePicker(context, viewModel, isProfilePicture: true),
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(40),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: viewModel.profilePictureFile != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(40),
-                            child: Image.file(
-                              viewModel.profilePictureFile!,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.camera_alt_outlined,
-                                size: 24,
-                                color: Colors.grey.shade600,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Add',
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ],
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: AppColors.primaryDark, size: 24),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Complete your profile to continue using the app',
+                          style: TextStyle(
+                            color: AppColors.primaryDark,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
                           ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  children: [
+                    // Progress indicator
+                    _buildProgressIndicator(viewModel.currentStep),
+                    const SizedBox(height: 24),
+
+                // Page content
+                if (viewModel.currentStep == 1)
+                  _buildPage1(context, viewModel)
+                else
+                  _buildPage2(context, viewModel, openedFromSettings),
+
+                const SizedBox(height: 24),
+
+                // Error message
+                if (viewModel.errorMessage != null)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      viewModel.errorMessage!,
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(height: 24),
+
+                // Action buttons
+                if (viewModel.currentStep == 1)
+                  AppPrimaryButton(
+                    label: 'Next',
+                    onPressed: viewModel.isSubmitting
+                        ? null
+                        : () => viewModel.moveToNextPage(),
+                  )
+                else
+                  AppPrimaryButton(
+                    label: viewModel.isSubmitting ? 'Submitting...' : 'Submit',
+                    onPressed: viewModel.isSubmitting
+                        ? null
+                        : () => viewModel.submitProfile(),
+                  ),
+                const SizedBox(height: 24),
               ],
             ),
           ),
-          const SizedBox(height: 24),
-
-          // Tax Identification Number
-          _LabeledField(
-            label: 'Tax Identification Number',
-            child: AppTextField(
-              controller: viewModel.taxIdentificationNumberController,
-              label: 'Tax ID',
-              hint: '12345678',
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              prefixIcon: const Icon(Icons.receipt_outlined),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // License Number
-          _LabeledField(
-            label: 'License Number',
-            child: AppTextField(
-              controller: viewModel.licenseNumberController,
-              label: 'License Number',
-              hint: 'LIC-123468',
-              textCapitalization: TextCapitalization.characters,
-              prefixIcon: const Icon(Icons.verified_outlined),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // License Document
-          _LabeledField(
-            label: 'License Document',
-            child: GestureDetector(
-              onTap: () => _showImagePicker(context, viewModel, isProfilePicture: false),
-              child: Container(
-                height: 80,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: viewModel.licenseDocumentFile != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
-                        child: Image.file(
-                          viewModel.licenseDocumentFile!,
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.description_outlined,
-                            size: 32,
-                            color: Colors.grey.shade600,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Add License Document',
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // Error Message
-          if (viewModel.errorMessage != null) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.error_outline, color: Colors.red.shade600, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      viewModel.errorMessage!,
-                      style: TextStyle(color: Colors.red.shade600, fontSize: 14),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
           ],
-
-          // Success Message
-          if (viewModel.successMessage != null) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.check_circle_outline, color: Colors.green.shade600, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      viewModel.successMessage!,
-                      style: TextStyle(color: Colors.green.shade600, fontSize: 14),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // Submit Button
-          AppPrimaryButton(
-            label: 'Save Profile',
-            onPressed: viewModel.isSubmitting ? null : viewModel.submitProfile,
-            isLoading: viewModel.isSubmitting,
-          ),
-        ],
+        ),
+      ),
       ),
     );
   }
 
-  Widget _buildProgressIndicator(LaboratoryProfileViewModel viewModel) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              height: 4,
-              decoration: BoxDecoration(
-                color: _currentPage >= 0 ? AppColors.primary : Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
+  Future<bool?> _showExitConfirmationDialog(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Discard Changes?'),
+          content: const Text('Are you sure you want to exit? Any unsaved changes will be lost.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Container(
-              height: 4,
-              decoration: BoxDecoration(
-                color: _currentPage >= 1 ? AppColors.primary : Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Exit'),
             ),
-          ),
-        ],
-      ),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildPage1(LaboratoryProfileViewModel viewModel) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+  static Widget _buildProgressIndicator(int currentStep) {
+    return Row(
+      children: [
+        // Step 1
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: currentStep >= 1 ? AppColors.primaryDark : Colors.grey[300],
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              '1',
+              style: TextStyle(
+                color: currentStep >= 1 ? Colors.white : Colors.grey,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+        // Connector
+        Expanded(
+          child: Container(
+            height: 2,
+            color: currentStep >= 2 ? AppColors.primaryDark : Colors.grey[300],
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+          ),
+        ),
+        // Step 2
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: currentStep >= 2 ? AppColors.primaryDark : Colors.grey[300],
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              '2',
+              style: TextStyle(
+                color: currentStep >= 2 ? Colors.white : Colors.grey,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  static Widget _buildPage1(BuildContext context, LaboratoryProfileViewModel viewModel) {
+    return Form(
+      key: viewModel.formKeyPage1,
+      autovalidateMode: AutovalidateMode.disabled,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Basic Information',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.w600,
               color: Colors.black,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
-          // Contact Person (Non-editable)
-          _LabeledField(
+          // Non-editable fields
+          _buildNonEditableField(
             label: 'Contact Person',
-            child: AppTextField(
-              controller: viewModel.contactPersonController,
-              label: 'Contact Person',
-              hint: 'Enter Contact Person Name',
-              enabled: false,
-              prefixIcon: const Icon(Icons.person_outline),
-            ),
+            controller: viewModel.contactPersonController,
           ),
           const SizedBox(height: 16),
 
-          // Email (Non-editable)
-          _LabeledField(
+          _buildNonEditableField(
             label: 'Email',
-            child: AppTextField(
-              controller: viewModel.emailController,
-              label: 'Email',
-              hint: 'laboratory@example.com',
-              enabled: false,
-              prefixIcon: const Icon(Icons.email_outlined),
-            ),
+            controller: viewModel.emailController,
           ),
           const SizedBox(height: 16),
 
-          // Laboratory Name (Editable)
-          _LabeledField(
+          // Editable fields
+          _buildEditableField(
             label: 'Laboratory Name',
-            child: AppTextField(
-              controller: viewModel.laboratoryNameController,
-              label: 'Laboratory Name',
-              hint: 'Ab Laboratory',
-              textCapitalization: TextCapitalization.words,
-              prefixIcon: const Icon(Icons.business_outlined),
-            ),
+            controller: viewModel.laboratoryNameController,
+            validator: (_) => viewModel.getValidationError('laboratoryName') ?? viewModel.validateLaboratoryName(viewModel.laboratoryNameController.text),
+            hintText: 'Enter laboratory name',
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
+            ],
+            onChanged: () => viewModel.clearValidationError('laboratoryName'),
+            viewModel: viewModel,
           ),
           const SizedBox(height: 16),
 
-          // Phone Number (Editable)
-          _LabeledField(
-            label: 'Phone Number',
-            child: IntlPhoneField(
-              controller: viewModel.phoneNumberController,
-              initialCountryCode: viewModel.countryCode.replaceAll('+', ''),
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              onChanged: viewModel.updatePhone,
-              onCountryChanged: (country) {
-                viewModel.updateCountryCode(country.dialCode);
-              },
-              decoration: InputDecoration(
-                hintText: '1234567890',
-                filled: true,
-                fillColor: AppColors.surface,
-                prefixIcon: const Icon(Icons.phone_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Phone Number',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
-            ),
+              const SizedBox(height: 8),
+              IntlPhoneField(
+                initialValue: viewModel.initialPhoneNumber,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: InputDecoration(
+                  hintText: 'Enter phone number',
+                  counterText: '',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
+                initialCountryCode: viewModel.countryCode,
+                showCountryFlag: true,
+                showDropdownIcon: true,
+                dropdownIconPosition: IconPosition.trailing,
+                dropdownIcon: const Icon(
+                  Icons.arrow_drop_down,
+                  color: Colors.grey,
+                ),
+                flagsButtonPadding: const EdgeInsets.only(left: 12, right: 8),
+                onChanged: (phone) {
+                  viewModel.updatePhoneNumber(phone);
+                },
+                validator: (value) {
+                  if (value == null || value.number.isEmpty) {
+                    return 'Please enter a valid phone number';
+                  }
+                  return null;
+                },
+              ),
+            ],
           ),
           const SizedBox(height: 16),
 
-          // Address Section
-          _LabeledField(
-            label: 'Address',
-            child: AppTextField(
-              controller: viewModel.addressLine1Controller,
-              label: 'Address',
-              hint: 'Street 12',
-              textCapitalization: TextCapitalization.words,
-              prefixIcon: const Icon(Icons.location_on_outlined),
-            ),
+          _buildEditableField(
+            label: 'Address Line 1',
+            controller: viewModel.addressLine1Controller,
+            validator: (_) => viewModel.getValidationError('address') ?? viewModel.validateAddress(viewModel.addressLine1Controller.text),
+            hintText: 'Enter street address',
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s,.-]')),
+            ],
+            onChanged: () => viewModel.clearValidationError('address'),
+            viewModel: viewModel,
           ),
           const SizedBox(height: 16),
 
-          // Country (Editable)
-          _LabeledField(
-            label: 'Country',
-            child: AppTextField(
-              controller: viewModel.countryController,
-              label: 'Country',
-              hint: 'Pakistan',
-              textCapitalization: TextCapitalization.words,
-              prefixIcon: const Icon(Icons.public_outlined),
-            ),
+          // Country dropdown
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Country',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: viewModel.countryController,
+                readOnly: true,
+                decoration: InputDecoration(
+                  hintText: 'Select country',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  suffixIcon: Icon(Icons.arrow_drop_down, color: Colors.grey[400]),
+                ),
+                onTap: () async {
+                  final selected = await showCustomDropdownDialog(
+                    context: context,
+                    title: 'Select Country',
+                    items: viewModel.getCountryNames(),
+                    selectedValue: viewModel.selectedCountry,
+                    searchHint: 'Search countries...',
+                  );
+                  if (selected != null) {
+                    viewModel.selectCountry(selected);
+                    viewModel.clearValidationError('country');
+                  }
+                },
+              ),
+            ],
           ),
           const SizedBox(height: 16),
 
-          // State (Editable)
-          _LabeledField(
-            label: 'State',
-            child: AppTextField(
-              controller: viewModel.stateController,
-              label: 'State',
-              hint: 'Punjab',
-              textCapitalization: TextCapitalization.words,
-              prefixIcon: const Icon(Icons.location_city_outlined),
-            ),
+          // State dropdown
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'State',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: viewModel.stateController,
+                readOnly: true,
+                decoration: InputDecoration(
+                  hintText: 'Select state',
+                  filled: true,
+                  fillColor: (viewModel.selectedCountry != null && viewModel.selectedCountry!.isNotEmpty)
+                      ? Colors.white
+                      : Colors.grey[100],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  suffixIcon: Icon(
+                    Icons.arrow_drop_down,
+                    color: (viewModel.selectedCountry != null && viewModel.selectedCountry!.isNotEmpty)
+                        ? Colors.grey[400]
+                        : Colors.grey[300],
+                  ),
+                ),
+                onTap: (viewModel.selectedCountry != null && viewModel.selectedCountry!.isNotEmpty)
+                    ? () async {
+                        final selected = await showCustomDropdownDialog(
+                          context: context,
+                          title: 'Select State',
+                          items: viewModel.getStateNames(),
+                          selectedValue: viewModel.selectedState,
+                          searchHint: 'Search states...',
+                        );
+                        if (selected != null) {
+                          viewModel.selectState(selected);
+                          viewModel.clearValidationError('state');
+                        }
+                      }
+                    : null,
+              ),
+            ],
           ),
           const SizedBox(height: 16),
 
-          // City (Editable)
-          _LabeledField(
-            label: 'City',
-            child: AppTextField(
-              controller: viewModel.cityController,
-              label: 'City',
-              hint: 'Lahore',
-              textCapitalization: TextCapitalization.words,
-              prefixIcon: const Icon(Icons.location_city_outlined),
-            ),
+          // City dropdown
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'City',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: viewModel.cityController,
+                readOnly: true,
+                decoration: InputDecoration(
+                  hintText: 'Select city',
+                  filled: true,
+                  fillColor: (viewModel.selectedState != null && viewModel.selectedState!.isNotEmpty)
+                      ? Colors.white
+                      : Colors.grey[100],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  suffixIcon: Icon(
+                    Icons.arrow_drop_down,
+                    color: (viewModel.selectedState != null && viewModel.selectedState!.isNotEmpty)
+                        ? Colors.grey[400]
+                        : Colors.grey[300],
+                  ),
+                ),
+                onTap: (viewModel.selectedState != null && viewModel.selectedState!.isNotEmpty)
+                    ? () async {
+                        final selected = await showCustomDropdownDialog(
+                          context: context,
+                          title: 'Select City',
+                          items: viewModel.getCityNames(),
+                          selectedValue: viewModel.selectedCity,
+                          searchHint: 'Search cities...',
+                        );
+                        if (selected != null) {
+                          viewModel.selectCity(selected);
+                          viewModel.clearValidationError('city');
+                        }
+                      }
+                    : null,
+              ),
+            ],
           ),
           const SizedBox(height: 16),
 
-          // ZIP Code (Editable)
-          _LabeledField(
-            label: 'ZIP Code',
-            child: AppTextField(
-              controller: viewModel.zipCodeController,
-              label: 'ZIP Code',
-              hint: '54000',
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              prefixIcon: const Icon(Icons.local_post_office_outlined),
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // Next Button
-          AppPrimaryButton(
-            label: 'Next',
-            onPressed: () {
-              _pageController.nextPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
-            },
+          // Zip Code
+          _buildEditableField(
+            label: 'Zip Code',
+            controller: viewModel.zipCodeController,
+            validator: (_) => viewModel.getValidationError('zipCode') ?? viewModel.validateZipCode(viewModel.zipCodeController.text),
+            hintText: 'Enter zip code',
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+              LengthLimitingTextInputFormatter(20),
+            ],
+            onChanged: () => viewModel.clearValidationError('zipCode'),
+            viewModel: viewModel,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPage2(LaboratoryProfileViewModel viewModel) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+  static Widget _buildPage2(BuildContext context, LaboratoryProfileViewModel viewModel, bool openedFromSettings) {
+    return Form(
+      key: viewModel.formKeyPage2,
+      autovalidateMode: AutovalidateMode.disabled,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Additional Information',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Colors.black,
+          // Only show profile picture if not opened from settings
+          if (!openedFromSettings) ...[
+            // Profile Picture
+            const Text(
+              'Profile Picture',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 12),
 
-          // Profile Picture - Centered and larger
-          Center(
-            child: Column(
-              children: [
-                const Text(
-                  'Profile Picture',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF6C7278),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: () => _showImagePicker(context, viewModel, isProfilePicture: true),
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(60),
-                      border: Border.all(color: Colors.grey.shade300),
+            Center(
+              child: GestureDetector(
+                onTap: () => _showImagePickerBottomSheet(context, viewModel),
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.primaryDark,
+                      width: 2,
                     ),
-                    child: viewModel.profilePictureFile != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(60),
-                            child: Image.file(
-                              viewModel.profilePictureFile!,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.camera_alt_outlined,
-                                size: 32,
-                                color: Colors.grey.shade600,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Add Photo',
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
                   ),
+                  child: viewModel.profilePicture != null
+                      ? ClipOval(
+                          child: Image.file(
+                            viewModel.profilePicture!,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : viewModel.profilePictureUrl != null && viewModel.profilePictureUrl!.isNotEmpty
+                          ? ClipOval(
+                              child: Image.network(
+                                viewModel.profilePictureUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(
+                                    Icons.camera_alt,
+                                    size: 40,
+                                    color: AppColors.primaryDark,
+                                  );
+                                },
+                              ),
+                            )
+                          : const Icon(
+                              Icons.camera_alt,
+                              size: 40,
+                              color: AppColors.primaryDark,
+                            ),
                 ),
-              ],
+              ),
             ),
-          ),
-          const SizedBox(height: 32),
+            const SizedBox(height: 8),
+            Center(
+              child: Column(
+                children: [
+                  Text(
+                    viewModel.profilePicture != null || (viewModel.profilePictureUrl != null && viewModel.profilePictureUrl!.isNotEmpty)
+                        ? 'Tap to change'
+                        : 'Tap to add photo',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  if (viewModel.profilePicture == null && (viewModel.profilePictureUrl == null || viewModel.profilePictureUrl!.isEmpty))
+                    const Text(
+                      'Profile picture required',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.red,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
 
           // Tax Identification Number
-          _LabeledField(
+          _buildEditableField(
             label: 'Tax Identification Number',
-            child: AppTextField(
-              controller: viewModel.taxIdentificationNumberController,
-              label: 'Tax ID',
-              hint: '12345678',
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              prefixIcon: const Icon(Icons.receipt_outlined),
-            ),
+            controller: viewModel.taxIdentificationNumberController,
+            validator: viewModel.validateTaxId,
+            hintText: 'Enter tax identification number',
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+              LengthLimitingTextInputFormatter(20),
+            ],
           ),
           const SizedBox(height: 16),
 
           // License Number
-          _LabeledField(
+          _buildEditableField(
             label: 'License Number',
-            child: AppTextField(
-              controller: viewModel.licenseNumberController,
-              label: 'License Number',
-              hint: 'LIC-123468',
-              textCapitalization: TextCapitalization.characters,
-              prefixIcon: const Icon(Icons.verified_outlined),
-            ),
+            controller: viewModel.licenseNumberController,
+            validator: viewModel.validateLicenseNumber,
+            hintText: 'Enter license number',
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+              LengthLimitingTextInputFormatter(20),
+            ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
 
           // License Document
-          _LabeledField(
-            label: 'License Document',
-            child: GestureDetector(
-              onTap: () => _showImagePicker(context, viewModel, isProfilePicture: false),
-              child: Container(
-                height: 120,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: viewModel.licenseDocumentFile != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
-                        child: Image.file(
-                          viewModel.licenseDocumentFile!,
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.description_outlined,
-                            size: 40,
-                            color: Colors.grey.shade600,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Tap to add license document',
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
+          const Text(
+            'License Document',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 12),
 
-          // Error Message
-          if (viewModel.errorMessage != null) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.error_outline, color: Colors.red.shade600, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      viewModel.errorMessage!,
-                      style: TextStyle(color: Colors.red.shade600, fontSize: 14),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // Success Message
-          if (viewModel.successMessage != null) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.check_circle_outline, color: Colors.green.shade600, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      viewModel.successMessage!,
-                      style: TextStyle(color: Colors.green.shade600, fontSize: 14),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // Submit Button
-          AppPrimaryButton(
-            label: 'Save Profile',
-            onPressed: viewModel.isSubmitting ? null : viewModel.submitProfile,
-            isLoading: viewModel.isSubmitting,
+          _buildFileUploadButton(
+            label: viewModel.licenseDocument1 != null
+                ? 'License Document (Selected)'
+                : (viewModel.licenseDocument1Url != null && viewModel.licenseDocument1Url!.isNotEmpty)
+                    ? 'License Document (Uploaded)'
+                    : 'Upload License Document',
+            onPressed: () => _pickFile(context, viewModel, 1),
+            isSelected: viewModel.licenseDocument1 != null || (viewModel.licenseDocument1Url != null && viewModel.licenseDocument1Url!.isNotEmpty),
           ),
-
-          // Back Button (only show when not forced)
-          if (!widget.isForceComplete) ...[
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () {
-                _pageController.previousPage(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-              },
-              child: const Text('Back'),
-            ),
-          ],
         ],
       ),
     );
   }
 
-  void _showImagePicker(BuildContext context, LaboratoryProfileViewModel viewModel, {required bool isProfilePicture}) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Take Photo'),
-              onTap: () {
-                Navigator.pop(context);
-                if (isProfilePicture) {
-                  viewModel.pickProfilePicture(ImageSource.camera);
-                } else {
-                  viewModel.pickLicenseDocument(ImageSource.camera);
-                }
-              },
+  static Widget _buildCountryDropdown(BuildContext context, LaboratoryProfileViewModel viewModel) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Country',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 8),
+        AppDropdownField<String>(
+          items: viewModel.getCountryNames().map((country) {
+            return DropdownMenuItem<String>(
+              value: country,
+              child: Text(country),
+            );
+          }).toList(),
+          value: viewModel.selectedCountry,
+          onChanged: (String? country) {
+            if (country != null) {
+              viewModel.selectCountry(country);
+              viewModel.clearValidationError('country');
+            }
+          },
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please select a country';
+            }
+            return null;
+          },
+          hint: 'Select country',
+          prefixIcon: const Icon(Icons.public_outlined, color: AppColors.primary),
+        ),
+      ],
+    );
+  }
+
+  static Widget _buildStateDropdown(BuildContext context, LaboratoryProfileViewModel viewModel) {
+    final isEnabled = viewModel.selectedCountry != null && viewModel.selectedCountry!.isNotEmpty;
+    final states = isEnabled ? viewModel.getStateNames() : [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'State',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 8),
+        AppDropdownField<String>(
+          items: states.map((state) {
+            return DropdownMenuItem<String>(
+              value: state,
+              child: Text(state),
+            );
+          }).toList(),
+          value: isEnabled ? viewModel.selectedState : null,
+          onChanged: (String? state) {
+            if (!isEnabled) return;
+            if (state != null) {
+              viewModel.selectState(state);
+              viewModel.clearValidationError('state');
+            }
+          },
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please select a state';
+            }
+            return null;
+          },
+          hint: 'Select state',
+          enabled: isEnabled,
+          prefixIcon: const Icon(Icons.location_city_outlined, color: AppColors.primary),
+        ),
+      ],
+    );
+  }
+
+  static Widget _buildCityDropdown(BuildContext context, LaboratoryProfileViewModel viewModel) {
+    final isEnabled = viewModel.selectedState != null && viewModel.selectedState!.isNotEmpty;
+    final cities = isEnabled ? viewModel.getCityNames() : [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'City',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 8),
+        AppDropdownField<String>(
+          items: cities.map((city) {
+            return DropdownMenuItem<String>(
+              value: city,
+              child: Text(city),
+            );
+          }).toList(),
+          value: isEnabled ? viewModel.selectedCity : null,
+          onChanged: (String? city) {
+            if (!isEnabled) return;
+            if (city != null) {
+              viewModel.selectCity(city);
+              viewModel.clearValidationError('city');
+            }
+          },
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please select a city';
+            }
+            return null;
+          },
+          hint: 'Select city',
+          enabled: isEnabled,
+          prefixIcon: const Icon(Icons.location_city_outlined, color: AppColors.primary),
+        ),
+      ],
+    );
+  }
+
+  static Widget _buildNonEditableField({
+    required String label,
+    required TextEditingController controller,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          enabled: false,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.grey[100],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
             ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Choose From Gallery'),
-              onTap: () {
-                Navigator.pop(context);
-                if (isProfilePicture) {
-                  viewModel.pickProfilePicture(ImageSource.gallery);
-                } else {
-                  viewModel.pickLicenseDocument(ImageSource.gallery);
-                }
-              },
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
             ),
-          ],
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
+          ),
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 14,
+          ),
+        ),
+      ],
+    );
+  }
+
+  static Widget _buildEditableField({
+    required String label,
+    required TextEditingController controller,
+    required String? Function(String?) validator,
+    required String hintText,
+    bool isPhoneNumber = false,
+    List<TextInputFormatter>? inputFormatters,
+    VoidCallback? onChanged,
+    LaboratoryProfileViewModel? viewModel,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (isPhoneNumber && viewModel != null)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              IntlPhoneField(
+                controller: controller,
+                initialCountryCode: viewModel.countryCode,
+                initialValue: viewModel.initialPhoneNumber,
+                onCountryChanged: (country) {
+                  // Update the country code in the view model
+                  viewModel.updatePhoneNumber(null); // Clear to reset
+                },
+                onChanged: (phone) {
+                  viewModel.updatePhoneNumber(phone);
+                  if (onChanged != null) onChanged();
+                },
+                validator: (phone) {
+                  // Return null for phone validation as it's handled differently
+                  return null;
+                },
+                decoration: InputDecoration(
+                  hintText: hintText,
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ],
+          )
+        else
+          TextFormField(
+            controller: controller,
+            validator: validator,
+            autovalidateMode: AutovalidateMode.onUnfocus,
+            onChanged: (value) {
+              // Trim spaces on change
+              if (value != null && value != value.trim()) {
+                controller.text = value.trim();
+                controller.selection = TextSelection.fromPosition(
+                  TextPosition(offset: value.trim().length),
+                );
+              }
+              if (onChanged != null) onChanged();
+            },
+            decoration: InputDecoration(
+              hintText: hintText,
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
+            ),
+            inputFormatters: inputFormatters,
+          ),
+      ],
+    );
+  }
+
+  static Widget _buildFileUploadButton({
+    required String label,
+    required VoidCallback onPressed,
+    required bool isSelected,
+  }) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(
+        isSelected ? Icons.check_circle : Icons.upload_file,
+        color: Colors.white,
+      ),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isSelected
+            ? Colors.green
+            : AppColors.primaryDark,
+        foregroundColor: Colors.white,
+        minimumSize: const Size(double.infinity, 48),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
         ),
       ),
     );
   }
-}
 
-class _LabeledField extends StatelessWidget {
-  const _LabeledField({
-    required this.label,
-    required this.child,
-    this.spacing = 8,
-  });
-
-  final String label;
-  final Widget child;
-  final double spacing;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          label,
-          style: textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF6C7278),
+  static Future<File?> _cropImage(File imageFile) async {
+    try {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: imageFile.path,
+        compressQuality: 85,
+        maxWidth: 800,
+        maxHeight: 800,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Image',
+            toolbarColor: AppColors.primaryDark,
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: false,
           ),
-        ),
-        SizedBox(height: spacing),
-        child,
-      ],
+          IOSUiSettings(
+            title: 'Crop Image',
+            aspectRatioLockEnabled: false,
+          ),
+        ],
+      );
+
+      if (croppedFile != null) {
+        return File(croppedFile.path);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error cropping image: $e');
+      return null;
+    }
+  }
+
+  static void _showImagePickerBottomSheet(
+    BuildContext context,
+    LaboratoryProfileViewModel viewModel,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Select Profile Picture',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Take Picture'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final picker = ImagePicker();
+                  final pickedFile = await picker.pickImage(
+                    source: ImageSource.camera,
+                    imageQuality: 85,
+                    maxWidth: 800,
+                  );
+                  if (pickedFile != null) {
+                    final croppedFile = await _cropImage(File(pickedFile.path));
+                    if (croppedFile != null) {
+                      viewModel.setProfilePicture(croppedFile);
+                    }
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.image),
+                title: const Text('Select From Gallery'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final picker = ImagePicker();
+                  final pickedFile = await picker.pickImage(
+                    source: ImageSource.gallery,
+                    imageQuality: 85,
+                    maxWidth: 800,
+                  );
+                  if (pickedFile != null) {
+                    final croppedFile = await _cropImage(File(pickedFile.path));
+                    if (croppedFile != null) {
+                      viewModel.setProfilePicture(croppedFile);
+                    }
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
+  }
+
+  static Future<void> _pickFile(
+    BuildContext context,
+    LaboratoryProfileViewModel viewModel,
+    int documentNumber,
+  ) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+    );
+
+    if (result != null && result.files.single.path != null) {
+      final file = File(result.files.single.path!);
+      if (documentNumber == 1) {
+        viewModel.setLicenseDocument1(file);
+      } else if (documentNumber == 2) {
+        viewModel.setLicenseDocument2(file);
+      }
+    }
   }
 }

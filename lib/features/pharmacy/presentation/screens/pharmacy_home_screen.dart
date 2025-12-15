@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
@@ -8,6 +9,7 @@ import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_setting
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_notifications_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/widgets/prescription_request_card.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/prescription_details_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/widgets/verification_dialog.dart';
 import 'package:provider/provider.dart';
 import '../providers/pharmacy_user_provider.dart';
 import 'package:haticare/features/pharmacy/domain/entities/prescription_request.dart' show Medication, PrescriptionStatus;
@@ -49,16 +51,59 @@ class PharmacyHomeTabScreen extends StatefulWidget {
 
 class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     with AutomaticKeepAliveClientMixin {
+  late TextEditingController _rxCodeController;
+
   @override
   bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
+    _rxCodeController = TextEditingController();
     // Fetch prescriptions on init
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PharmacyUserProvider>().fetchPrescriptions();
     });
+  }
+
+  @override
+  void dispose() {
+    _rxCodeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _verifyRxCode(PharmacyUserProvider provider) async {
+    // Check approval status first
+    if (!provider.isApproved) {
+      showVerificationDialog(
+        context: context,
+        title: 'Account Not Approved',
+        message: provider.approvalMessage.isNotEmpty 
+            ? provider.approvalMessage 
+            : 'Your pharmacy account is not approved. Only approved pharmacies can verify prescriptions.',
+        isSuccess: false,
+      );
+      return;
+    }
+
+    await provider.verifyRxCode(_rxCodeController.text);
+    
+    // Show dialog based on verification result
+    if (provider.errorMessage != null) {
+      showVerificationDialog(
+        context: context,
+        title: 'Verification Failed',
+        message: provider.errorMessage!,
+        isSuccess: false,
+      );
+    } else if (provider.verifiedRxCode.isNotEmpty) {
+      showVerificationDialog(
+        context: context,
+        title: 'Verification Successful',
+        message: 'RX Code verified successfully. Prescription details are now displayed below.',
+        isSuccess: true,
+      );
+    }
   }
 
   @override
@@ -190,6 +235,20 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                               children: [
                                 Expanded(
                                   child: TextField(
+                                    controller: _rxCodeController,
+                                    textCapitalization: TextCapitalization.characters,
+                                    keyboardType: TextInputType.text,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
+                                    ],
+                                    onChanged: (value) {
+                                      if (value != value.toUpperCase()) {
+                                        _rxCodeController.text = value.toUpperCase();
+                                        _rxCodeController.selection = TextSelection.fromPosition(
+                                          TextPosition(offset: value.length),
+                                        );
+                                      }
+                                    },
                                     decoration: InputDecoration(
                                       hintText: 'Enter Rx Code (e.g., RX12345)',
                                       hintStyle: const TextStyle(
@@ -213,26 +272,40 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                                       ),
                                       contentPadding: const EdgeInsets.symmetric(
                                         horizontal: 16,
-                                        vertical: 12,
+                                        vertical: 10,
                                       ),
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: 4),
                                 ElevatedButton(
-                                  onPressed: () {},
+                                  onPressed: pharmacyProvider.verifiedRxCode.isNotEmpty
+                                      ? () {
+                                          pharmacyProvider.clearSearch();
+                                          _rxCodeController.clear();
+                                        }
+                                      : () {
+                                          _verifyRxCode(pharmacyProvider);
+                                        },
                                   style: ElevatedButton.styleFrom(
                                     padding: EdgeInsets.zero,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     elevation: 0,
-                                    backgroundColor: Colors.transparent,
+                                    backgroundColor: pharmacyProvider.verifiedRxCode.isNotEmpty
+                                        ? Colors.red
+                                        : Colors.transparent,
                                     shadowColor: Colors.transparent,
                                   ),
                                   child: Ink(
                                     decoration: BoxDecoration(
-                                      gradient: AppColors.primaryGradient,
+                                      gradient: pharmacyProvider.verifiedRxCode.isNotEmpty
+                                          ? null
+                                          : AppColors.primaryGradient,
+                                      color: pharmacyProvider.verifiedRxCode.isNotEmpty
+                                          ? null
+                                          : null,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Container(
@@ -241,14 +314,23 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                                         vertical: 12,
                                       ),
                                       alignment: Alignment.center,
-                                      child: const Text(
-                                        'Verify',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                        ),
-                                      ),
+                                      child: pharmacyProvider.isVerifying
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                              ),
+                                            )
+                                          : Text(
+                                              pharmacyProvider.verifiedRxCode.isNotEmpty ? 'Clear' : 'Verify',
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.white,
+                                              ),
+                                            ),
                                     ),
                                   ),
                                 ),
@@ -258,6 +340,55 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                         ),
                       ),
                       const SizedBox(height: 24),
+
+                      // Approval Status Message (if not approved)
+                      if (!pharmacyProvider.isApproved && pharmacyProvider.approvalMessage.isNotEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber_outlined,
+                                color: Colors.orange[700],
+                                size: 24,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Account Status',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.orange[700],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      pharmacyProvider.approvalMessage,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.orange[600],
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      
+                      if (!pharmacyProvider.isApproved && pharmacyProvider.approvalMessage.isNotEmpty)
+                        const SizedBox(height: 24),
 
                       // New Requests Section
                       const Text(
@@ -284,6 +415,44 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                             ),
                           ),
                         )
+                      else if (!pharmacyProvider.isApproved)
+                        Container(
+                          padding: const EdgeInsets.all(40),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.lock_outline,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Prescriptions Not Available',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Your pharmacy account must be approved to view prescriptions.',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[500],
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
                       else if (pharmacyProvider.prescriptions.isEmpty)
                         Container(
                           padding: const EdgeInsets.all(40),
@@ -293,12 +462,12 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                           ),
                           child: Center(
                             child: Text(
-                              pharmacyProvider.errorMessage ?? 'No New Requests Yet.',
+                              'No New Prescription',
                               style: TextStyle(
                                 color: Colors.grey[600],
-                                fontSize: 14,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
                               ),
-                              textAlign: TextAlign.center,
                             ),
                           ),
                         )

@@ -170,6 +170,9 @@ class _AppTextFieldState extends State<AppTextField> {
       inputFormatters: formatters.isNotEmpty ? formatters : null,
       decoration: InputDecoration(
         hintText: widget.hint ?? widget.label,
+        hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: AppColors.textSecondary,
+        ),
         helperText: widget.helperText ?? ' ',
         helperStyle: widget.helperText != null
             ? null

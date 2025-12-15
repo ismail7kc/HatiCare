@@ -84,9 +84,12 @@ class _EditPharmacyProfileView extends StatelessWidget {
           return false;
         }
 
-        // If opened from settings on step 1, show confirmation dialog
+        // If opened from settings on step 1, show confirmation dialog only if changes were made
         if (openedFromSettings && viewModel.currentStep == 1) {
-          return await _showExitConfirmationDialog(context) ?? false;
+          if (viewModel.hasChanges) {
+            return await _showExitConfirmationDialog(context) ?? false;
+          }
+          return true;
         }
         
         return true;
@@ -113,10 +116,17 @@ class _EditPharmacyProfileView extends StatelessWidget {
                     if (viewModel.currentStep == 2) {
                       viewModel.moveBackToPreviousPage();
                     } else if (openedFromSettings) {
-                      // Show confirmation dialog before exiting
-                      final shouldExit = await _showExitConfirmationDialog(context) ?? false;
-                      if (shouldExit && context.mounted) {
-                        Navigator.of(context).pop();
+                      // Show confirmation dialog only if changes were made
+                      if (viewModel.hasChanges) {
+                        final shouldExit = await _showExitConfirmationDialog(context) ?? false;
+                        if (shouldExit && context.mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      } else {
+                        // No changes, just exit
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                        }
                       }
                     } else {
                       Navigator.of(context).pop();

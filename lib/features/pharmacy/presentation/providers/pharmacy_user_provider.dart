@@ -15,6 +15,11 @@ class PharmacyUserProvider extends ChangeNotifier {
   String? _errorMessage;
   List<dynamic> _prescriptions = [];
   bool _prescriptionsLoading = false;
+  List<dynamic> _filteredPrescriptions = [];
+  String _verifiedRxCode = '';
+  bool _isVerifying = false;
+  bool _isApproved = false;
+  String _approvalMessage = '';
 
   String get pharmacyName => _pharmacyName;
   String get profilePictureUrl => _profilePictureUrl;
@@ -22,8 +27,12 @@ class PharmacyUserProvider extends ChangeNotifier {
   String get licenseNumber => _licenseNumber;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  List<dynamic> get prescriptions => _prescriptions;
+  List<dynamic> get prescriptions => _verifiedRxCode.isNotEmpty ? _filteredPrescriptions : _prescriptions;
   bool get prescriptionsLoading => _prescriptionsLoading;
+  String get verifiedRxCode => _verifiedRxCode;
+  bool get isVerifying => _isVerifying;
+  bool get isApproved => _isApproved;
+  String get approvalMessage => _approvalMessage;
 
   PharmacyUserProvider() {
     _loadInitialData();
@@ -86,11 +95,33 @@ class PharmacyUserProvider extends ChangeNotifier {
           _profilePictureUrl = data['profile_picture'] ?? '';
           _contactPerson = data['contact_person'] ?? '';
           _licenseNumber = data['license_number'] ?? '';
+          
+          // Check approval status - multiple field names for compatibility
+          _isApproved = (data['is_approved'] == true || 
+                        data['approved'] == true || 
+                        data['is_approved_by_admin'] == true ||
+                        data['pharmacy_approved'] == true);
+          
+          // Store approval message if present
+          if (data.containsKey('approval_message')) {
+            _approvalMessage = data['approval_message'] ?? '';
+          } else if (data.containsKey('status_message')) {
+            _approvalMessage = data['status_message'] ?? '';
+          } else if (!_isApproved) {
+            _approvalMessage = 'Your pharmacy account is not approved';
+          } else {
+            _approvalMessage = '';
+          }
+          
           _errorMessage = null;
           
           if (_pharmacyName.isNotEmpty) {
              await prefs.setString('user_first_name', _pharmacyName);
           }
+          
+          // Save approval status to preferences for offline checking
+          await prefs.setBool('pharmacy_is_approved', _isApproved);
+          await prefs.setString('pharmacy_approval_message', _approvalMessage);
         }
       } else {
         _errorMessage = 'Failed to load profile: ${response.statusCode}';
@@ -120,6 +151,16 @@ class PharmacyUserProvider extends ChangeNotifier {
       if (accessToken.isEmpty) {
         _errorMessage = 'No authentication token found';
         _prescriptionsLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      // Check if pharmacy is approved
+      final isApproved = prefs.getBool('pharmacy_is_approved') ?? false;
+      if (!isApproved) {
+        _prescriptions = [];
+        _prescriptionsLoading = false;
+        _approvalMessage = prefs.getString('pharmacy_approval_message') ?? 'Your pharmacy account is not approved';
         notifyListeners();
         return;
       }
@@ -164,5 +205,138 @@ class PharmacyUserProvider extends ChangeNotifier {
       _prescriptionsLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> verifyRxCode(String rxCode) async {
+    try {
+      // Validate RX code length before API call
+      if (rxCode.isEmpty) {
+        _errorMessage = 'Please enter an RX code';
+        notifyListeners();
+        return;
+      }
+
+      if (rxCode.length < 6) {
+        _errorMessage = 'RX code must be at least 6 characters';
+        notifyListeners();
+        return;
+      }
+
+      _isVerifying = true;
+      notifyListeners();
+
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token') ?? '';
+
+      if (accessToken.isEmpty) {
+        _errorMessage = 'No authentication token found';
+        _isVerifying = false;
+        notifyListeners();
+        return;
+      }
+
+      // Check if pharmacy is approved before verifying
+      final isApproved = prefs.getBool('pharmacy_is_approved') ?? false;
+      if (!isApproved) {
+        _errorMessage = 'Your pharmacy account is not approved';
+        _isVerifying = false;
+        notifyListeners();
+        return;
+      }
+
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/verify/');
+      final client = ChuckerHttpClient(http.Client());
+      final response = await client.post(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'rex_code': rxCode}),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = jsonDecode(response.body);
+        
+        if (jsonResponse is Map<String, dynamic>) {
+          if (jsonResponse.containsKey('data') && jsonResponse['data'] is Map) {
+            _filteredPrescriptions = [jsonResponse['data']];
+            _verifiedRxCode = rxCode;
+            _errorMessage = null;
+          } else if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
+            final dataList = jsonResponse['data'] as List<dynamic>;
+            if (dataList.isNotEmpty) {
+              _filteredPrescriptions = dataList;
+              _verifiedRxCode = rxCode;
+              _errorMessage = null;
+            } else {
+              // Empty list - show all prescriptions
+              _filteredPrescriptions = [];
+              _verifiedRxCode = '';
+              _errorMessage = 'No prescription found for this RX code';
+            }
+          } else if (jsonResponse.containsKey('detail')) {
+            // API returned error message
+            _filteredPrescriptions = [];
+            _verifiedRxCode = '';
+            final errorMessage = jsonResponse['detail']?.toString() ?? 'RX Code not found';
+            
+            // Check if it's an approval error and update approval status if needed
+            if (errorMessage.toLowerCase().contains('approved') || 
+                errorMessage.toLowerCase().contains('approval') ||
+                errorMessage.toLowerCase().contains('only approved')) {
+              _isApproved = false;
+              _approvalMessage = errorMessage;
+              await prefs.setBool('pharmacy_is_approved', false);
+              await prefs.setString('pharmacy_approval_message', errorMessage);
+            }
+            
+            _errorMessage = errorMessage;
+          } else {
+            _filteredPrescriptions = [jsonResponse];
+            _verifiedRxCode = rxCode;
+            _errorMessage = null;
+          }
+        } else if (jsonResponse is List) {
+          final dataList = jsonResponse as List<dynamic>;
+          if (dataList.isNotEmpty) {
+            _filteredPrescriptions = dataList;
+            _verifiedRxCode = rxCode;
+            _errorMessage = null;
+          } else {
+            _filteredPrescriptions = [];
+            _verifiedRxCode = '';
+            _errorMessage = 'No prescription found for this RX code';
+          }
+        } else {
+          _filteredPrescriptions = [];
+          _verifiedRxCode = '';
+          _errorMessage = 'Invalid response format';
+        }
+      } else {
+        _filteredPrescriptions = [];
+        _verifiedRxCode = '';
+        if (response.statusCode == 404) {
+          _errorMessage = 'RX Code not found';
+        } else {
+          _errorMessage = 'Error: ${response.statusCode}';
+        }
+      }
+    } catch (e) {
+      _filteredPrescriptions = [];
+      _verifiedRxCode = '';
+      _errorMessage = 'Error verifying RX code: $e';
+      debugPrint('Error verifying RX code: $e');
+    } finally {
+      _isVerifying = false;
+      notifyListeners();
+    }
+  }
+
+  void clearSearch() {
+    _verifiedRxCode = '';
+    _filteredPrescriptions = [];
+    _errorMessage = null;
+    fetchPrescriptions();
   }
 }
