@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/features/common/presentation/screens/notifications_screen.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/appointment_detail.dart';
@@ -228,42 +229,79 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             : fallbackName;
 
         return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            CircleAvatar(
-              radius: 25,
-              backgroundImage:
-                  (SaveLoginResponse.loginData?['profile_picture'] ?? '')
-                      .isNotEmpty
-                  ? NetworkImage(
-                      SaveLoginResponse.loginData!['profile_picture'],
-                    )
-                  : null,
-              child:
-                  (SaveLoginResponse.loginData?['profile_picture'] ?? '')
-                      .isEmpty
-                  ? SvgPicture.asset(
-                      'assets/icons/person_icon.svg',
-                      width: 80,
-                      height: 80,
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
               children: [
-                const Text(
-                  "Welcome Back,",
-                  style: TextStyle(color: Colors.grey),
+                ValueListenableBuilder<String?>(
+                  valueListenable: ProfileNotifier.profileImageUrl,
+                  builder: (context, updatedPicture, _) {
+                    final profileUrl = updatedPicture?.isNotEmpty == true
+                        ? updatedPicture
+                        : SaveLoginResponse.loginData?['profile_picture'] ?? '';
+
+                    return CircleAvatar(
+                      radius: 25,
+                      backgroundImage: profileUrl.isNotEmpty
+                          ? NetworkImage(profileUrl)
+                          : null,
+                      child: profileUrl.isEmpty
+                          ? SvgPicture.asset(
+                              'assets/icons/person_icon.svg',
+                              width: 80,
+                              height: 80,
+                            )
+                          : null,
+                    );
+                  },
                 ),
-                Text(
-                  docName!.trim().isNotEmpty ? docName : 'Loading...',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Welcome Back,",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    Text(
+                      docName!.trim().isNotEmpty ? docName : 'Loading...',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
                 ),
               ],
+            ),
+
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => NotificationsScreen(),
+                  ),
+                );
+              },
+
+              icon: Stack(
+                children: [
+                  const Icon(Icons.notifications_none, size: 30),
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         );
