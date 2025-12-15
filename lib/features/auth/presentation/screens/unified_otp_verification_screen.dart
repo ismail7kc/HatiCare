@@ -148,14 +148,6 @@ class _UnifiedOtpVerificationScreenState
         MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
         (route) => false,
       );
-
-      await Future<void>.delayed(const Duration(milliseconds: 300));
-      if (!mounted) return;
-
-      _showSnackBar(
-        'Account registered successfully',
-        isError: false,
-      );
     } catch (error) {
       if (!mounted) return;
       setState(() => isLoading = false);
