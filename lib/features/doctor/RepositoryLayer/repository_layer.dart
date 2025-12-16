@@ -4,6 +4,7 @@ import 'package:haticare/core/config/app_config.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:haticare/features/doctor/models/prescription_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RepositoryLayer {
   final ApiClient _apiClient;
@@ -25,7 +26,8 @@ class RepositoryLayer {
   }
 
   Future<Map<String, dynamic>> sendProfileImageToServer(File imageFile) async {
-    final docID = SaveLoginResponse.loginData?['id'] ?? '';
+    final dynamic rawDocId = SaveLoginResponse.loginData?['id'];
+    final String docID = rawDocId?.toString() ?? '';
     final url = '${AppConfig.baseUrl}doc/doctors/$docID/';
     final response = await _apiClient.uploadProfileImage(url, imageFile);
     debugPrint("📥 Repository Response: $response");
@@ -35,10 +37,37 @@ class RepositoryLayer {
   Future<Map<String, dynamic>> updateDoctorInfo(
     Map<String, dynamic> body,
   ) async {
-    final docID = SaveLoginResponse.loginData?['id'] ?? '';
+    final prefs = await SharedPreferences.getInstance();
+    // Convert docID to string properly, handling both int and string types
+    final dynamic rawDocId = SaveLoginResponse.loginData?['id'];
+    final String docID = rawDocId?.toString() ?? prefs.getString('doctor_id') ?? '';
+    final accessToken = SaveLoginResponse.loginData?['access_token'] ?? prefs.getString('access_token') ?? '';
     final url = '${AppConfig.baseUrl}doc/doctors/$docID/';
     debugPrint('updated Doctor URL Is $url');
-    return await _apiClient.updateDocRequest(url, body: body);
+    debugPrint('Doctor ID: $docID');
+    debugPrint('Access Token exists: ${accessToken.isNotEmpty}');
+
+    if (docID.isEmpty) {
+      debugPrint('ERROR: Doctor ID is empty');
+      return {'success': false, 'message': 'Doctor ID not found'};
+    }
+    
+    if (accessToken.isEmpty) {
+      debugPrint('ERROR: Access token is empty');
+      return {'success': false, 'message': 'Access token not found'};
+    }
+    
+    debugPrint('Calling updateDocRequest with URL: $url');
+    debugPrint('Request body: $body');
+    try {
+      final response = await _apiClient.updateDocRequest(url, body: body);
+      debugPrint('Repository response: $response');
+      return response;
+    } catch (e) {
+      debugPrint('Error in repository layer: $e');
+      debugPrint('Error type: ${e.runtimeType}');
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>> getPatientQueue() async {
@@ -71,7 +100,8 @@ class RepositoryLayer {
   }
 
   Future<Map<String, dynamic>> getSingleDoctor() async {
-    final docID = SaveLoginResponse.loginData?['id'] ?? '';
+    final dynamic rawDocId = SaveLoginResponse.loginData?['id'];
+    final String docID = rawDocId?.toString() ?? '';
     final url = '${AppConfig.baseUrl}doc/doctors/$docID/';
     return await _apiClient.getSingleDoctor(url);
   }

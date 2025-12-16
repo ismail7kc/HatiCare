@@ -17,6 +17,12 @@ class _LaboratoryHistoryScreenState extends State<LaboratoryHistoryScreen>
   @override
   bool get wantKeepAlive => true;
 
+  Future<void> _onRefresh() async {
+    final provider = context.read<LaboratoryUserProvider>();
+    // Fetch profile to refresh approval status and data
+    await provider.fetchProfile(forceRefresh: true);
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -40,40 +46,57 @@ class _LaboratoryHistoryScreenState extends State<LaboratoryHistoryScreen>
               ),
               const SizedBox(height: 20),
               Expanded(
-                child: laboratoryProvider.isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                        ),
-                      )
-                    : laboratoryProvider.completedTestRequests.isEmpty
-                        ? Center(
-                            child: Text(
-                              'No history available',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
+                child: RefreshIndicator(
+                  onRefresh: _onRefresh,
+                  color: AppColors.primary,
+                  child: laboratoryProvider.isLoading
+                      ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: const [
+                            SizedBox(height: 200),
+                            Center(
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                              ),
                             ),
-                          )
-                        : ListView.builder(
-                            itemCount: laboratoryProvider.completedTestRequests.length,
-                            itemBuilder: (context, index) {
-                              final testRequest = laboratoryProvider.completedTestRequests[index];
-                              return TestRequestCard(
-                                testRequest: testRequest,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => TestRequestDetailScreen(
-                                        testRequest: testRequest,
+                          ],
+                        )
+                      : laboratoryProvider.completedTestRequests.isEmpty
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: [
+                                SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                                Center(
+                                  child: Text(
+                                    'No history available',
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: AppColors.textSecondary,
+                                        ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              itemCount: laboratoryProvider.completedTestRequests.length,
+                              itemBuilder: (context, index) {
+                                final testRequest = laboratoryProvider.completedTestRequests[index];
+                                return TestRequestCard(
+                                  testRequest: testRequest,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => TestRequestDetailScreen(
+                                          testRequest: testRequest,
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                ),
               ),
             ],
           ),

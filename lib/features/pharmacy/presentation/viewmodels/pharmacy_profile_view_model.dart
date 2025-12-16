@@ -110,7 +110,8 @@ class PharmacyProfileViewModel extends ChangeNotifier {
 
   Future<void> _initializeProfile() async {
     await _loadPharmacyData();
-    if (openedFromSettings) {
+    // Always fetch profile from API if pharmacyId exists to get latest data
+    if (pharmacyId.isNotEmpty || openedFromSettings) {
       await fetchPharmacyProfile();
     } else {
       isLoading = false;

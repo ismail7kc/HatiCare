@@ -1,13 +1,16 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/edit_profile_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
+import 'package:haticare/features/doctor/presentation/providers/doctor_user_provider.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_contact_support_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_help_center_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_notifications_screen.dart';
@@ -16,6 +19,11 @@ import 'package:provider/provider.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel.dart';
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:chucker_flutter/chucker_flutter.dart';
+import '../../../../core/config/app_config.dart';
 
 class SettingsContent extends StatefulWidget {
   const SettingsContent({super.key});
@@ -25,83 +33,225 @@ class SettingsContent extends StatefulWidget {
 }
 
 class SettingsContentState extends State<SettingsContent> {
-  File? image;
-  late EditViewmodel editViewModel;
-  bool isUploading = false;
+  bool _isUpdating = false;
+  bool _isUploading = false;
 
   @override
   void initState() {
     super.initState();
-    editViewModel = EditViewmodel(RepositoryLayer(ApiClient()));
   }
 
-  Future<void> pickImage() async {
-    final XFile? pickedFile = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-    );
-    if (pickedFile != null) {
-      final File selectedImage = File(pickedFile.path);
+  Future<File?> _cropImage(File imageFile) async {
+    try {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: imageFile.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        compressQuality: 85,
+        maxWidth: 800,
+        maxHeight: 800,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Profile Picture',
+            toolbarColor: AppColors.primaryDark,
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: 'Crop Profile Picture',
+            aspectRatioLockEnabled: true,
+          ),
+        ],
+      );
+      if (croppedFile != null) {
+        return File(croppedFile.path);
+      }
 
-      setState(() {
-        image = selectedImage;
-        isUploading = true;
-      });
+      return null;
+    } catch (e) {
+      debugPrint('Error cropping image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to crop image: ${e.toString()}')),
+        );
+      }
+      return null;
     }
-    await uploadProfileImage(image!);
+  }
+
+  Future<void> _updateProfilePicture(File imageFile) async {
+    if (!mounted || _isUploading) return;
 
     setState(() {
-      isUploading = false;
+      _isUpdating = true;
+      _isUploading = true;
     });
-  }
 
-  Future<void> uploadProfileImage(File imageFile) async {
     try {
-      final response = await editViewModel.sendProfileImageToServr(imageFile);
+      final prefs = await SharedPreferences.getInstance();
+      final doctorId = SaveLoginResponse.loginData?['id'] ?? '';
+      final accessToken = prefs.getString('access_token') ?? '';
 
-      if (response['success'] == true) {
-        debugPrint("✅ Profile image uploaded successfully!");
+      if (doctorId.toString().isEmpty) {
+        throw Exception('Doctor ID not found');
+      }
 
-        final updatedImageUrl = response['data']['profile_picture'];
+      final uri = Uri.parse('${AppConfig.baseUrl}doc/doctors/$doctorId/');
+      final request = http.MultipartRequest('PATCH', uri);
+      request.headers['Authorization'] = 'Bearer $accessToken';
+      request.files.add(await http.MultipartFile.fromPath(
+        'profile_picture',
+        imageFile.path,
+      ));
 
-        SaveLoginResponse.loginData?['profile_picture'] = updatedImageUrl;
-        ProfileNotifier.profileImageUrl.value = updatedImageUrl;
+      final client = ChuckerHttpClient(http.Client());
+      final response = await client.send(request);
+      final responseBody = await response.stream.bytesToString();
 
-        setState(() {});
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = jsonDecode(responseBody);
+        if (!mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Profile image updated successfully!"),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
+        final dynamic responseData = jsonResponse is Map
+            ? (jsonResponse['data'] ?? jsonResponse)
+            : {};
+        final newImageUrl = responseData['profile_picture']?.toString();
+
+        if (newImageUrl != null && newImageUrl.isNotEmpty) {
+          // Add cache-busting timestamp
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final updatedUrl = newImageUrl.contains('?')
+              ? '$newImageUrl&t=$timestamp'
+              : '$newImageUrl?t=$timestamp';
+
+          // Update provider
+          if (mounted) {
+            context.read<DoctorUserProvider>().updateProfilePicture(updatedUrl);
+          }
+
+          // Update ProfileNotifier for immediate UI update
+          ProfileNotifier.profileImageUrl.value = updatedUrl;
+
+          // Show success message
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Profile picture updated successfully'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        }
       } else {
-        debugPrint("Upload failed: ${response['message'] ?? response}");
+        throw Exception('Failed to update profile picture: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error updating profile picture: $e');
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Upload failed"),
+            content: Text('Error: ${e.toString()}'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
           ),
         );
       }
-    } catch (e) {
-      debugPrint("Error uploading image: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error uploading image"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdating = false;
+          _isUploading = false;
+        });
+      }
+    }
+  }
+
+  void _showImagePickerBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: !_isUploading,
+      enableDrag: !_isUploading,
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_isUploading) ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16.0),
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Uploading image...'),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                const Text(
+                  'Select Profile Picture',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Take Picture'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await _pickImage(ImageSource.camera);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.image),
+                  title: const Text('Select From Gallery'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await _pickImage(ImageSource.gallery);
+                  },
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 800,
       );
+
+      if (pickedFile != null && mounted) {
+        final croppedFile = await _cropImage(File(pickedFile.path));
+        if (croppedFile != null && mounted) {
+          await _updateProfilePicture(croppedFile);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to ${source == ImageSource.camera ? 'take' : 'select'} image. Please try again.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<AuthDViewModel>();
-    final profileImageUrl =
-        SaveLoginResponse.loginData?['profile_picture'] ?? '';
+    final doctorProvider = context.watch<DoctorUserProvider>();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -113,306 +263,370 @@ class SettingsContentState extends State<SettingsContent> {
             children: [
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black12.withOpacity(0.05),
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 1,
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircleAvatar(
-                      radius: 40,
-                      child: Stack(
-                        alignment: Alignment.bottomRight,
-                        children: [
-                          Center(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(50),
-                              child: image != null
-                                  ? Image.file(
-                                      image!,
-                                      width: 100,
-                                      height: 100,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : (profileImageUrl.isNotEmpty
-                                        ? Image.network(
-                                            profileImageUrl,
-                                            width: 100,
-                                            height: 100,
-                                            fit: BoxFit.cover,
-                                          )
-                                        : SvgPicture.asset(
-                                            'assets/icons/person_icon.svg',
-                                            width: 80,
-                                            height: 80,
-                                          )),
-                            ),
-                          ),
-
-                          if (isUploading)
-                            Container(
-                              width: 100,
-                              height: 100,
-                              decoration: BoxDecoration(
-                                color: Colors.black45,
-                                borderRadius: BorderRadius.circular(50),
-                              ),
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 3,
-                                ),
-                              ),
-                            ),
-
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            child: GestureDetector(
-                              onTap: pickImage,
-                              child: Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
+                    Stack(
+                      children: [
+                        doctorProvider.isLoading
+                            ? Container(
+                                width: 80,
+                                height: 80,
+                                decoration: const BoxDecoration(
+                                  gradient: AppColors.primaryGradient,
                                   shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 2,
+                                ),
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
                                   ),
                                 ),
-                                child: CircleAvatar(
-                                  backgroundColor: Color(0xFF243E8A),
-                                  child: Icon(
-                                    Icons.edit,
-                                    size: 14,
-                                    color: Colors.white,
+                              )
+                            : _isUpdating
+                            ? Container(
+                                width: 80,
+                                height: 80,
+                                decoration: const BoxDecoration(
+                                  gradient: AppColors.primaryGradient,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
                                   ),
+                                ),
+                              )
+                            : doctorProvider.profilePictureUrl.isNotEmpty
+                            ? ClipOval(
+                                child: Image.network(
+                                  doctorProvider.profilePictureUrl,
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: 80,
+                                      height: 80,
+                                      decoration: const BoxDecoration(
+                                        gradient: AppColors.primaryGradient,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.person,
+                                        color: Colors.white,
+                                        size: 40,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              )
+                            : Container(
+                                width: 80,
+                                height: 80,
+                                decoration: const BoxDecoration(
+                                  gradient: AppColors.primaryGradient,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.person,
+                                  color: Colors.white,
+                                  size: 40,
+                                ),
+                              ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: GestureDetector(
+                            onTap: _isUpdating ? null : _showImagePickerBottomSheet,
+                            child: Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: const BoxDecoration(
+                                  gradient: AppColors.primaryGradient,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.edit,
+                                  color: Colors.white,
+                                  size: 12,
                                 ),
                               ),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    ValueListenableBuilder<String?>(
-                      valueListenable: ProfileNotifier.doctorName,
-                      builder: (context, updatedName, _) {
-                        final fallbackName =
-                            '${SaveLoginResponse.loginData?['first_name'] ?? ''} '
-                            '${SaveLoginResponse.loginData?['last_name'] ?? ''}';
-                        final docName = updatedName?.isNotEmpty == true
-                            ? updatedName
-                            : fallbackName;
-
-                        return Text(
-                          docName!.trim().isNotEmpty ? docName : 'Loading...',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
+                    const SizedBox(height: 14),
+                    doctorProvider.isLoading
+                        ? const SizedBox(
+                            width: 100,
+                            height: 20,
+                            child: LinearProgressIndicator(),
+                          )
+                        : Text(
+                            doctorProvider.doctorName.isNotEmpty
+                                ? (doctorProvider.doctorName.length > 15
+                                    ? '${doctorProvider.doctorName.substring(0, 15)}...'
+                                    : doctorProvider.doctorName)
+                                : 'User',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black,
+                            ),
                           ),
-                        );
-                      },
-                    ),
-                    const Text(
-                      'General Physician',
-                      style: TextStyle(fontSize: 15, color: Colors.grey),
-                    ),
-                    const Text(
-                      'License: GMC-12345',
-                      style: TextStyle(fontSize: 15, color: Colors.grey),
-                    ),
+                    const SizedBox(height: 6),
+                    doctorProvider.isLoading
+                        ? const SizedBox(
+                            width: 100,
+                            height: 14,
+                            child: LinearProgressIndicator(),
+                          )
+                        : Text(
+                            doctorProvider.specialty.isNotEmpty ? doctorProvider.specialty : 'Specialty',
+                            style: const TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                    const SizedBox(height: 4),
+                    doctorProvider.isLoading
+                        ? const SizedBox(
+                            width: 100,
+                            height: 13,
+                            child: LinearProgressIndicator(),
+                          )
+                        : Text(
+                            doctorProvider.licenseNumber.isNotEmpty
+                                ? 'License: ${doctorProvider.licenseNumber}'
+                                : 'License: N/A',
+                            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                          ),
                   ],
                 ),
               ),
 
               const SizedBox(height: 32),
 
-              _buildSection(
-                title: 'Account',
-                items: [
-                  SettingItem(
-                    icon: 'assets/icons/edit_profile_icon.svg',
-                    title: 'Edit Profile',
-                    onTap: () {
-                      debugPrint('Edit Button Tappable');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const EditProfileScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  SettingItem(
-                    icon: 'assets/icons/notification_icon.svg',
-                    title: 'Notifications',
-                    onTap: () {
-                      debugPrint('Notification Tapped');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const PharmacyNotificationsScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  SettingItem(
-                    icon: 'assets/icons/privacy_policy_icon.svg',
-                    title: 'Privacy Policy',
-                    onTap: () {
-                      debugPrint('Notification Tapped');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const PharmacyPrivacyPolicyScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-
-              _buildSection(
-                title: 'Support',
-                items: [
-                  SettingItem(
-                    icon: 'assets/icons/help_center_icon.svg',
-                    title: 'Help Center',
-                    onTap: () {
-                      debugPrint("Help Center tapped");
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PharmacyHelpCenterScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  SettingItem(
-                    icon: 'assets/icons/contact_support_icon.svg',
-                    title: 'Contact Support',
-                    onTap: () {
-                      debugPrint("Contact Support tapped");
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PharmacyContactSupportScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-
+              // Account Section
               Padding(
-                padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
-                child: GestureDetector(
-                  onTap: () async {
-                    final shouldLogout = await showDialog<bool>(
-                      context: context,
-                      builder: (context) {
-                        return AlertDialog(
-                          title: const Text('Confirm Logout'),
-                          content: const Text(
-                            'Are you sure you want to logout?',
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Account',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSettingsCard(
+                      context,
+                      svgIcon: 'assets/icons/edit_profile_icon.svg',
+                      title: 'Edit Profile',
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const EditProfileScreen(),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                        );
+                        // Refresh provider data after returning
+                        if (context.mounted) {
+                          context.read<DoctorUserProvider>().fetchProfile(forceRefresh: true);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 6),
+                    _buildSettingsCard(
+                      context,
+                      svgIcon: 'assets/icons/notification_icon.svg',
+                      title: 'Notifications',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PharmacyNotificationsScreen(),
                           ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text(
-                                'Cancel',
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: const Text(
-                                'Logout',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ),
-                          ],
                         );
                       },
-                    );
+                    ),
+                    const SizedBox(height: 6),
+                    _buildSettingsCard(
+                      context,
+                      svgIcon: 'assets/icons/privacy_policy_icon.svg',
+                      title: 'Privacy Policy',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PharmacyPrivacyPolicyScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
 
-                    if (shouldLogout == true) {
-                      showDialog(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (_) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        },
-                      );
-
-                      try {
-                        final success = await viewModel.logout();
-
-                        if (context.mounted) Navigator.of(context).pop();
-
-                        if (success && context.mounted) {
-                          Navigator.of(
-                            context,
-                            rootNavigator: true,
-                          ).pushAndRemoveUntil(
-                            MaterialPageRoute(
-                              builder: (_) => const LoginScreen(),
-                            ),
-                            (route) => false,
-                          );
-                        } else if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                "Failed to logout. Please try again.",
-                              ),
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        if (context.mounted) Navigator.of(context).pop();
-
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                "Something went wrong. Please try again.",
-                              ),
-                            ),
-                          );
-                        }
-                      }
-                    }
-                  },
-
-                  child: _buildSection(
-                    title: '',
-                    items: [
-                      SettingItem(
-                        icon: 'assets/icons/logout.svg',
-                        title: 'Logout',
-                        titleColor: const Color(0xFFFF3B30),
+              // Support Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Support',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
                       ),
-                    ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSettingsCard(
+                      context,
+                      svgIcon: 'assets/icons/help_center_icon.svg',
+                      title: 'Help Center',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PharmacyHelpCenterScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 6),
+                    _buildSettingsCard(
+                      context,
+                      svgIcon: 'assets/icons/contact_support_icon.svg',
+                      title: 'Contact Support',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PharmacyContactSupportScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Logout Button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _buildLogoutCard(context, viewModel),
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsCard(
+    BuildContext context, {
+    required String svgIcon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      color: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Colors.white),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          child: Row(
+            children: [
+              SvgPicture.asset(
+                svgIcon,
+                width: 24,
+                height: 24,
+                colorFilter: const ColorFilter.mode(
+                  Colors.black87,
+                  BlendMode.srcIn,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios, color: Colors.black, size: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogoutCard(BuildContext context, AuthDViewModel viewModel) {
+    return Card(
+      color: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Colors.white),
+      ),
+      child: InkWell(
+        onTap: () => _showLogoutDialog(context, viewModel),
+        borderRadius: BorderRadius.circular(12),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          child: Row(
+            children: [
+              Icon(Icons.logout, color: Colors.red, size: 24),
+              SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  'Logout',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.red,
                   ),
                 ),
               ),
@@ -423,86 +637,119 @@ class SettingsContentState extends State<SettingsContent> {
     );
   }
 
-  Widget _buildSection({required String title, required List<Widget> items}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            title,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+  void _showLogoutDialog(BuildContext context, AuthDViewModel viewModel) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-        ),
-        const SizedBox(height: 8),
-        ...items,
-      ],
-    );
-  }
-}
-
-class SettingItem extends StatelessWidget {
-  final String icon;
-  final String title;
-  final Color? titleColor;
-  final bool showArrow;
-  final bool hasShadow;
-  final bool hasBorder;
-  final VoidCallback? onTap;
-
-  const SettingItem({
-    required this.icon,
-    required this.title,
-    this.titleColor,
-    this.showArrow = true,
-    this.hasShadow = true,
-    this.hasBorder = true,
-    this.onTap,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: hasBorder
-              ? Border.all(color: const Color(0xFFE5E5EA), width: 0.5)
-              : null,
-          boxShadow: hasShadow
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          children: [
-            SvgPicture.asset(icon, width: 28, height: 28),
-
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
+          title: const Row(
+            children: [
+              Icon(Icons.logout, color: Colors.red, size: 28),
+              SizedBox(width: 12),
+              Text(
+                'Logout',
                 style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Are you sure you want to logout?',
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Colors.grey,
                   fontSize: 16,
-                  color: titleColor ?? Colors.black,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
-            if (showArrow) const Icon(Icons.chevron_right, color: Colors.grey),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                await _handleLogout(context, viewModel);
+              },
+              child: const Text(
+                'Logout',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ],
-        ),
-      ),
+        );
+      },
     );
+  }
+
+  Future<void> _handleLogout(BuildContext context, AuthDViewModel viewModel) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return const Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        );
+      },
+    );
+
+    try {
+      final success = await viewModel.logout();
+
+      if (context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+
+        // Small delay to ensure dialog is closed
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        if (!context.mounted) return;
+
+        if (success) {
+          // Navigate to login screen and clear all previous routes
+          Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to logout. Please try again.'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+
+        // Small delay to ensure dialog is closed
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        if (!context.mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Logout failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 }

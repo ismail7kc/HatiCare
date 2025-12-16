@@ -286,6 +286,47 @@ class LoginViewModel extends ChangeNotifier {
         await prefs.setString('user_phone_number', phoneNumber);
       }
 
+      // Save role-specific data (laboratory or pharmacy)
+      if (dataObj is Map<String, dynamic>) {
+        if (roleFromResponse == 'laboratory') {
+          // Save laboratory name
+          final laboratoryName = dataObj['laboratory_name'] ?? dataObj['name'];
+          if (laboratoryName is String && laboratoryName.isNotEmpty) {
+            await prefs.setString('laboratory_name', laboratoryName);
+          }
+          
+          // Save profile picture URL
+          final profilePicture = dataObj['profile_picture'];
+          if (profilePicture is String && profilePicture.isNotEmpty) {
+            await prefs.setString('profile_picture_url', profilePicture);
+          }
+          
+          // Save email for laboratory
+          final email = dataObj['email'];
+          if (email is String && email.isNotEmpty) {
+            await prefs.setString('email', email);
+          }
+        } else if (roleFromResponse == 'pharmacy') {
+          // Save pharmacy name
+          final pharmacyName = dataObj['pharmacy_name'] ?? dataObj['name'];
+          if (pharmacyName is String && pharmacyName.isNotEmpty) {
+            await prefs.setString('pharmacy_name', pharmacyName);
+          }
+          
+          // Save profile picture URL
+          final profilePicture = dataObj['profile_picture'];
+          if (profilePicture is String && profilePicture.isNotEmpty) {
+            await prefs.setString('profile_picture_url', profilePicture);
+          }
+          
+          // Save email for pharmacy
+          final email = dataObj['email'];
+          if (email is String && email.isNotEmpty) {
+            await prefs.setString('email', email);
+          }
+        }
+      }
+
       // Mark user as logged in
       await prefs.setBool('is_logged_in', true);
       await prefs.setString('user_email', emailController.text.trim());

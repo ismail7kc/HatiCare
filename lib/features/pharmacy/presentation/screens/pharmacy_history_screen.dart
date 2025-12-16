@@ -21,6 +21,14 @@ class _PharmacyHistoryScreenState extends State<PharmacyHistoryScreen> {
     historyItems = PrescriptionRequest.getDummyHistory();
   }
 
+  Future<void> _onRefresh() async {
+    // Reload dummy history data
+    setState(() {
+      historyItems = PrescriptionRequest.getDummyHistory();
+    });
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,13 +46,18 @@ class _PharmacyHistoryScreenState extends State<PharmacyHistoryScreen> {
         ),
         centerTitle: true,
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: historyItems.length,
-        itemBuilder: (context, index) {
-          final item = historyItems[index];
-          return _buildHistoryCard(item);
-        },
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        color: AppColors.primary,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(16),
+          physics: const AlwaysScrollableScrollPhysics(),
+          itemCount: historyItems.length,
+          itemBuilder: (context, index) {
+            final item = historyItems[index];
+            return _buildHistoryCard(item);
+          },
+        ),
       ),
     );
   }

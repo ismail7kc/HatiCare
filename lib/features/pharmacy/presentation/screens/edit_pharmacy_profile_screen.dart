@@ -1058,6 +1058,7 @@ class _EditPharmacyProfileView extends StatelessWidget {
                 ),
               ],
             ),
+
           ),
         );
       },

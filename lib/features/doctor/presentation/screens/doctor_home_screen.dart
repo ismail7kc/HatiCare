@@ -9,11 +9,13 @@ import 'package:haticare/features/doctor/presentation/screens/consultation_histo
 import 'package:haticare/features/doctor/presentation/screens/setting_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/doctor_viewModel.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel.dart';
+import 'package:haticare/features/doctor/presentation/providers/doctor_user_provider.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
 import 'package:haticare/features/doctor/models/appointment_model.dart';
 import 'package:provider/provider.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileNotifier {
   static final ValueNotifier<String?> profileImageUrl = ValueNotifier(null);
@@ -43,34 +45,37 @@ class _MainScreenState extends State<DoctorHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return CustomBottomNav(
-      screens: [
-        ChangeNotifierProvider(
-          create: (_) =>
-              DoctorViewModel(RepositoryLayer(ApiClient()))
-                ..fetchPatientQueue(),
-          child: const HomeScreen(),
-        ),
-        const ConsultationHistoryScreen(),
-        MultiProvider(
-          providers: [
-            Provider<ApiClient>(create: (_) => ApiClient()),
-            ProxyProvider<ApiClient, RepositoryLayer>(
-              update: (_, apiClient, __) => RepositoryLayer(apiClient),
-            ),
-            ChangeNotifierProvider<AuthDViewModel>(
-              create: (context) =>
-                  AuthDViewModel(context.read<RepositoryLayer>()),
-            ),
-          ],
-          child: const SettingsScreenWithAppBar(),
-        ),
-      ],
-      tabs: const [
-        TabItemData(title: "Home", iconPath: 'assets/icons/home.svg'),
-        TabItemData(title: "History", iconPath: 'assets/icons/history.svg'),
-        TabItemData(title: "Settings", iconPath: 'assets/icons/setting.svg'),
-      ],
+    return ChangeNotifierProvider(
+      create: (_) => DoctorUserProvider(),
+      child: CustomBottomNav(
+        screens: [
+          ChangeNotifierProvider(
+            create: (_) =>
+                DoctorViewModel(RepositoryLayer(ApiClient()))
+                  ..fetchPatientQueue(),
+            child: const HomeScreen(),
+          ),
+          const ConsultationHistoryScreen(),
+          MultiProvider(
+            providers: [
+              Provider<ApiClient>(create: (_) => ApiClient()),
+              ProxyProvider<ApiClient, RepositoryLayer>(
+                update: (_, apiClient, __) => RepositoryLayer(apiClient),
+              ),
+              ChangeNotifierProvider<AuthDViewModel>(
+                create: (context) =>
+                    AuthDViewModel(context.read<RepositoryLayer>()),
+              ),
+            ],
+            child: const SettingsScreenWithAppBar(),
+          ),
+        ],
+        tabs: const [
+          TabItemData(title: "Home", iconPath: 'assets/icons/home.svg'),
+          TabItemData(title: "History", iconPath: 'assets/icons/history.svg'),
+          TabItemData(title: "Settings", iconPath: 'assets/icons/setting.svg'),
+        ],
+      ),
     );
   }
 }
@@ -110,7 +115,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with RouteAware {
   bool isOnline = false;
-  bool hasAdminApproval = SaveLoginResponse.loginData?['is_approved'] == true;
+  bool? hasAdminApproval;
 
   late DoctorViewModel doctorViewModel;
 
@@ -119,6 +124,25 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     super.initState();
     doctorViewModel = DoctorViewModel(RepositoryLayer(ApiClient()));
     doctorViewModel.fetchPatientQueue();
+    _loadApprovalStatus();
+  }
+
+  Future<void> _loadApprovalStatus() async {
+    // Load from SharedPreferences first
+    final prefs = await SharedPreferences.getInstance();
+    final cachedApproval = prefs.getBool('doctor_is_approved');
+
+    if (mounted) {
+      setState(() {
+        hasAdminApproval = cachedApproval;
+      });
+
+      // Then update from provider
+      final provider = context.read<DoctorUserProvider>();
+      setState(() {
+        hasAdminApproval = provider.isApproved;
+      });
+    }
   }
 
   @override
@@ -133,6 +157,22 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     doctorViewModel = Provider.of<DoctorViewModel>(context);
   }
 
+  Future<void> _onRefresh() async {
+    // Fetch profile to check approval status
+    final provider = context.read<DoctorUserProvider>();
+    await provider.fetchProfile(forceRefresh: true);
+
+    // Update local state from provider
+    setState(() {
+      hasAdminApproval = provider.isApproved;
+    });
+
+    // Fetch patient queue if approved
+    if (hasAdminApproval == true) {
+      await doctorViewModel.fetchPatientQueue();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -140,43 +180,48 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       body: SafeArea(
         top: true,
         bottom: false,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
+        child: RefreshIndicator(
+          onRefresh: _onRefresh,
+          color: AppColors.primary,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
+              ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  headerView(),
-                  const SizedBox(height: 20),
-                  toggleView(),
-                  const SizedBox(height: 20),
-                  statsView(),
-                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        headerView(),
+                        const SizedBox(height: 20),
+                        toggleView(),
+                        const SizedBox(height: 20),
+                        statsView(),
+                        const SizedBox(height: 20),
 
-                  if (hasAdminApproval)
-                    const Text(
-                      "Patient Queue",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
+                        if (hasAdminApproval == true)
+                          const Text(
+                            "Patient Queue",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+
+                        if (hasAdminApproval == true) const SizedBox(height: 2),
+                      ],
                     ),
+                  ),
 
-                  if (hasAdminApproval) const SizedBox(height: 2),
+                  handleAppointment(context, doctorViewModel.appointments),
                 ],
               ),
             ),
-
-            Expanded(
-              child: MediaQuery.removePadding(
-                context: context,
-                removeTop: true,
-                removeBottom: true,
-                child: handleAppointment(context, doctorViewModel.appointments),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -186,126 +231,162 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     BuildContext context,
     List<AppointmentModel> appointments,
   ) {
-    if (!hasAdminApproval) {
-      return waitingMessageView();
+    if (hasAdminApproval == false) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: waitingMessageView(),
+      );
     }
 
-    if (!isOnline) {
-      return patientQueueView();
-    }
-
-    if (appointments.isEmpty) {
-      return Center(
-        child: Text(
-          "No appointments available",
-          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+    // Show loading state while approval status is being fetched
+    if (hasAdminApproval == null) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(),
+          ),
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 10),
-      itemCount: appointments.length,
-      itemBuilder: (context, index) {
-        final appt = appointments[index];
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: patientAppointmentView(context, appt),
-        );
-      },
+    if (!isOnline) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: patientQueueView(),
+      );
+    }
+
+    if (appointments.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: Text(
+              "No New Requests Available",
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: List.generate(
+        appointments.length,
+        (index) {
+          final appt = appointments[index];
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: patientAppointmentView(context, appt),
+          );
+        },
+      ),
     );
   }
 
   Widget headerView() {
-    return ValueListenableBuilder<String?>(
-      valueListenable: ProfileNotifier.doctorName,
-      builder: (context, updatedName, _) {
-        final fallbackName =
-            '${SaveLoginResponse.loginData?['first_name'] ?? ''} '
-            '${SaveLoginResponse.loginData?['last_name'] ?? ''}';
+    final doctorProvider = context.watch<DoctorUserProvider>();
 
-        final docName = updatedName?.isNotEmpty == true
-            ? updatedName
-            : fallbackName;
-
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
           children: [
-            Row(
+            doctorProvider.isLoading
+                ? const CircleAvatar(
+                    radius: 25,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    ),
+                  )
+                : CircleAvatar(
+                    radius: 25,
+                    backgroundImage: doctorProvider.profilePictureUrl.isNotEmpty
+                        ? NetworkImage(doctorProvider.profilePictureUrl)
+                        : null,
+                    child: doctorProvider.profilePictureUrl.isEmpty
+                        ? const Icon(Icons.person, size: 30)
+                        : null,
+                  ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ValueListenableBuilder<String?>(
-                  valueListenable: ProfileNotifier.profileImageUrl,
-                  builder: (context, updatedPicture, _) {
-                    final profileUrl = updatedPicture?.isNotEmpty == true
-                        ? updatedPicture
-                        : SaveLoginResponse.loginData?['profile_picture'] ?? '';
-
-                    return CircleAvatar(
-                      radius: 25,
-                      backgroundImage: profileUrl.isNotEmpty
-                          ? NetworkImage(profileUrl)
-                          : null,
-                      child: profileUrl.isEmpty
-                          ? SvgPicture.asset(
-                              'assets/icons/person_icon.svg',
-                              width: 80,
-                              height: 80,
-                            )
-                          : null,
-                    );
-                  },
+                const Text(
+                  "Welcome Back,",
+                  style: TextStyle(color: Colors.grey),
                 ),
-                const SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Welcome Back,",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    Text(
-                      docName!.trim().isNotEmpty ? docName : 'Loading...',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                doctorProvider.isLoading
+                    ? const SizedBox(
+                        width: 100,
+                        height: 18,
+                        child: LinearProgressIndicator(
+                          backgroundColor: Colors.grey,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                        ),
+                      )
+                    : Text(
+                        doctorProvider.doctorName.isNotEmpty
+                            ? (doctorProvider.doctorName.length > 15
+                                ? '${doctorProvider.doctorName.substring(0, 15)}...'
+                                : doctorProvider.doctorName)
+                            : 'Doctor',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
               ],
             ),
+          ],
+        ),
 
+        Stack(
+          children: [
             IconButton(
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => NotificationsScreen(),
+                    builder: (context) => const NotificationsScreen(),
                   ),
                 );
               },
-
-              icon: Stack(
-                children: [
-                  const Icon(Icons.notifications_none, size: 30),
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ],
+              icon: SvgPicture.asset(
+                'assets/icons/notification.svg',
+                height: 26,
+                color: Colors.black87,
+              ),
+            ),
+            const Positioned(
+              right: 8,
+              top: 8,
+              child: CircleAvatar(
+                radius: 4,
+                backgroundColor: Colors.red,
               ),
             ),
           ],
-        );
-      },
+        ),
+      ],
     );
   }
 
@@ -328,9 +409,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             ),
           ),
           AbsorbPointer(
-            absorbing: !hasAdminApproval,
+            absorbing: hasAdminApproval != true,
             child: Opacity(
-              opacity: hasAdminApproval ? 1.0 : 0.5,
+              opacity: hasAdminApproval == true ? 1.0 : 0.5,
               child: Switch(
                 value: isOnline,
                 activeThumbColor: const Color(0xFFFFFFFF),
@@ -357,7 +438,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       children: [
         Expanded(
           child: Opacity(
-            opacity: hasAdminApproval ? 1.0 : 0.5,
+            opacity: hasAdminApproval == true ? 1.0 : 0.5,
             child: Container(
               height: 80,
               decoration: BoxDecoration(
@@ -381,7 +462,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     Text(
                       "Consultations Today",
                       style: TextStyle(
-                        color: hasAdminApproval
+                        color: hasAdminApproval == true
                             ? Color(0xFF2443A9)
                             : Colors.grey,
                       ),
@@ -395,7 +476,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         const SizedBox(width: 10),
         Expanded(
           child: Opacity(
-            opacity: hasAdminApproval ? 1.0 : 0.5,
+            opacity: hasAdminApproval == true ? 1.0 : 0.5,
             child: Container(
               height: 80,
               decoration: BoxDecoration(
@@ -419,7 +500,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     Text(
                       "Avg. Time",
                       style: TextStyle(
-                        color: hasAdminApproval ? Colors.white : Colors.grey,
+                        color: hasAdminApproval == true ? Colors.white : Colors.grey,
                       ),
                     ),
                   ],
@@ -688,24 +769,71 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   Widget waitingMessageView() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          SvgPicture.asset('assets/waitingApproval.svg', height: 120),
-          const SizedBox(height: 15),
-          const Text(
-            "Waiting For Admin’s Approval.\nWe will get back to you in 24 hours.",
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey, fontSize: 15, height: 1.4),
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.orange.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
           ),
-        ],
-      ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.warning_amber_outlined,
+                color: Colors.orange[700],
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Account Status',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.orange[700],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Waiting For Admin's Approval",
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.orange[600],
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: Text(
+              'No New Requests Available',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

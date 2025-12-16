@@ -3,13 +3,32 @@ import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/doctor/presentation/screens/history_detail.dart';
 import '../../models/conslutation_hitory_model.dart';
 
-class ConsultationHistoryScreen extends StatelessWidget {
+class ConsultationHistoryScreen extends StatefulWidget {
   const ConsultationHistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final consultations = ConsultationHistoryModel.sampleData;
+  State<ConsultationHistoryScreen> createState() => _ConsultationHistoryScreenState();
+}
 
+class _ConsultationHistoryScreenState extends State<ConsultationHistoryScreen> {
+  late List<ConsultationHistoryModel> consultations;
+
+  @override
+  void initState() {
+    super.initState();
+    consultations = ConsultationHistoryModel.sampleData;
+  }
+
+  Future<void> _onRefresh() async {
+    // Reload consultation history
+    setState(() {
+      consultations = ConsultationHistoryModel.sampleData;
+    });
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFFF9FAFB),
       body: SafeArea(
@@ -27,21 +46,25 @@ class ConsultationHistoryScreen extends StatelessWidget {
               const SizedBox(height: 25),
 
               Expanded(
-                child: ListView.builder(
-                  itemCount: consultations.length,
-                  itemBuilder: (context, index) {
-                    final history = consultations[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12.0),
-                      child: GestureDetector(
-                        onTap: () => {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => HistoryDetail(),
+                child: RefreshIndicator(
+                  onRefresh: _onRefresh,
+                  color: AppColors.primary,
+                  child: ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: consultations.length,
+                    itemBuilder: (context, index) {
+                      final history = consultations[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: GestureDetector(
+                          onTap: () => {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => HistoryDetail(),
+                              ),
                             ),
-                          ),
-                        },
+                          },
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
@@ -129,6 +152,7 @@ class ConsultationHistoryScreen extends StatelessWidget {
                     );
                   },
                 ),
+                  ),
               ),
             ],
           ),

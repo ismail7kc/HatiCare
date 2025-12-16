@@ -421,7 +421,7 @@ class _EditLaboratoryProfileView extends StatelessWidget {
             validator: (_) => viewModel.getValidationError('address') ?? viewModel.validateAddress(viewModel.addressLine1Controller.text),
             hintText: 'Enter street address',
             inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s,.-]')),
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s,.\-#/&]')),
             ],
             onChanged: () => viewModel.clearValidationError('address'),
             viewModel: viewModel,
@@ -1109,13 +1109,6 @@ class _EditLaboratoryProfileView extends StatelessWidget {
             validator: validator,
             autovalidateMode: AutovalidateMode.onUnfocus,
             onChanged: (value) {
-              // Trim spaces on change
-              if (value != null && value != value.trim()) {
-                controller.text = value.trim();
-                controller.selection = TextSelection.fromPosition(
-                  TextPosition(offset: value.trim().length),
-                );
-              }
               if (onChanged != null) onChanged();
             },
             decoration: InputDecoration(

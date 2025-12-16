@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:http/http.dart' as http;
+import 'package:haticare/features/common/shared_prefs_helper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
   final http.Client _client = http.Client();
@@ -49,8 +50,11 @@ class ApiClient {
       final uri = Uri.parse(url);
       final request = http.MultipartRequest('PATCH', uri);
 
-      request.headers['Authorization'] =
-          'Bearer ${SaveLoginResponse.loginData?['access_token']}';
+      // Get access token from SharedPreferences as fallback
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = SaveLoginResponse.loginData?['access_token'] ?? 
+                          prefs.getString('access_token') ?? '';
+      request.headers['Authorization'] = 'Bearer $accessToken';
       request.headers['Accept'] = 'application/json';
 
       request.files.add(
@@ -74,13 +78,17 @@ class ApiClient {
   Future<Map<String, dynamic>> getSingleDoctor(String url) async {
     final uri = Uri.parse(url);
 
-    final response = await http.get(
-      uri,
-      headers: {
-        'Authorization':
-            'Bearer ${SaveLoginResponse.loginData?['access_token']}',
-      },
-    );
+    // Get access token from SharedPreferences as fallback
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = SaveLoginResponse.loginData?['access_token'] ?? 
+                          prefs.getString('access_token') ?? '';
+      
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
 
     debugPrint('✅ PATCH URL: $uri');
     debugPrint('✅ Status Code: ${response.statusCode}');
@@ -97,9 +105,13 @@ class ApiClient {
       final uri = Uri.parse(url);
       final request = http.MultipartRequest('PATCH', uri);
 
+      // Get access token from SharedPreferences as fallback
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = SaveLoginResponse.loginData?['access_token'] ?? 
+                          prefs.getString('access_token') ?? '';
+
       request.headers.addAll({
-        'Authorization':
-            'Bearer ${SaveLoginResponse.loginData?['access_token']}',
+        'Authorization': 'Bearer $accessToken',
         'Accept': 'application/json',
         'Content-Type': 'multipart/form-data',
       });
@@ -125,12 +137,13 @@ class ApiClient {
       final response = await http.Response.fromStream(streamed);
 
       debugPrint('PATCH $url');
-      debugPrint(response.body);
+      debugPrint('Status Code: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
 
       return _handleResponse(response);
     } catch (e) {
-      debugPrint("ERROR: $e");
-      return {'success': false};
+      debugPrint("ERROR in updateDocRequest: $e");
+      return {'success': false, 'message': e.toString()};
     }
   }
 
@@ -138,11 +151,15 @@ class ApiClient {
     try {
       final uri = Uri.parse(url);
 
+      // Get access token from SharedPreferences as fallback
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = SaveLoginResponse.loginData?['access_token'] ?? 
+                          prefs.getString('access_token') ?? '';
+      
       final response = await _client.get(
         uri,
         headers: {
-          'Authorization':
-              'Bearer ${SaveLoginResponse.loginData?['access_token']}',
+          'Authorization': 'Bearer $accessToken',
           'Accept': 'application/json',
         },
       );
@@ -162,11 +179,15 @@ class ApiClient {
     try {
       final uri = Uri.parse(url);
 
+      // Get access token from SharedPreferences as fallback
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = SaveLoginResponse.loginData?['access_token'] ?? 
+                          prefs.getString('access_token') ?? '';
+      
       final response = await _client.post(
         uri,
         headers: {
-          'Authorization':
-              'Bearer ${SaveLoginResponse.loginData?['access_token']}',
+          'Authorization': 'Bearer $accessToken',
         },
       );
 
@@ -188,11 +209,15 @@ class ApiClient {
     try {
       final uri = Uri.parse(url);
 
+      // Get access token from SharedPreferences as fallback
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = SaveLoginResponse.loginData?['access_token'] ?? 
+                          prefs.getString('access_token') ?? '';
+      
       final response = await _client.post(
         uri,
         headers: {
-          'Authorization':
-              'Bearer ${SaveLoginResponse.loginData?['access_token']}',
+          'Authorization': 'Bearer $accessToken',
           'Content-Type': 'application/json',
         },
         body: body != null ? jsonEncode(body) : null,

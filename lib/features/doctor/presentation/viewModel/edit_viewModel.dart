@@ -95,12 +95,21 @@ class EditViewmodel extends ChangeNotifier {
 
     final safeBody = sanitizeForJson(body);
 
+    debugPrint('Doctor update body: $safeBody');
     final response = await repositoryLayer.updateDoctorInfo(safeBody);
 
     if (response['success'] == true && response['data'] != null) {
-      doctorInstance = Doctor.fromJson(response['data']);
-      // await SaveDoctorResponse.saveDoctorModel(response['data']);
-      notifyListeners();
+      debugPrint('Creating Doctor from JSON: ${response['data']}');
+      try {
+        doctorInstance = Doctor.fromJson(response['data']);
+        debugPrint('Doctor instance created successfully');
+        // await SaveDoctorResponse.saveDoctorModel(response['data']);
+        notifyListeners();
+      } catch (e) {
+        debugPrint('Error creating Doctor from JSON: $e');
+        debugPrint('Response data: ${response['data']}');
+        rethrow;
+      }
     }
 
     return response;
@@ -110,19 +119,31 @@ class EditViewmodel extends ChangeNotifier {
     final Map<String, dynamic> result = {};
 
     data.forEach((key, value) {
-      if (value == null) return;
+      debugPrint('Processing field: $key = $value (${value.runtimeType})');
+      
+      if (value == null) {
+        debugPrint('Skipping null field: $key');
+        return;
+      }
 
-      if (value is String && value.trim().isEmpty) return;
+      if (value is String && value.trim().isEmpty) {
+        debugPrint('Skipping empty string field: $key');
+        return;
+      }
 
       if (value is DateTime) {
         result[key] = DateFormat('yyyy-MM-dd').format(value);
+        debugPrint('Added date field: $key = ${result[key]}');
       } else if (value is int || value is double || value is bool) {
         result[key] = value;
+        debugPrint('Added numeric field: $key = $value');
       } else {
         result[key] = value.toString().trim();
+        debugPrint('Added string field: $key = ${result[key]}');
       }
     });
 
+    debugPrint('Final sanitized body: $result');
     return result;
   }
 

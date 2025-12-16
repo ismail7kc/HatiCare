@@ -7,6 +7,8 @@ import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/doctor_verification.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/edit_pharmacy_profile_screen.dart';
+import 'package:haticare/features/laboratory/presentation/screens/laboratory_home_screen.dart';
+import 'package:haticare/features/laboratory/presentation/screens/edit_laboratory_profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -103,6 +105,28 @@ class _SplashScreenState extends State<SplashScreen>
             // Profile completed, allow home screen access
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const PharmacyHomeScreen()),
+            );
+          }
+        } else if (userType == 'laboratory') {
+          // LABORATORY: Check if profile is completed
+          final profileCompleted = prefs.getBool('laboratory_profile_completed') ?? false;
+          final laboratoryId = prefs.getString('laboratory_id') ?? '';
+          
+          if (!profileCompleted) {
+            // Force profile completion if incomplete
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => EditLaboratoryProfileScreen(
+                  laboratoryId: laboratoryId,
+                  isForceComplete: true,
+                  openedFromSettings: false,
+                ),
+              ),
+            );
+          } else {
+            // Profile completed, allow home screen access
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const LaboratoryHomeScreen()),
             );
           }
         } else {

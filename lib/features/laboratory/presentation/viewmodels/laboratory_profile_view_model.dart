@@ -323,21 +323,41 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
 
         final country = data['country'] ?? '';
         if (country.isNotEmpty) {
-          countryController.text = country;
-          debugPrint('country: $country');
+          // Check if country exists in the list
+          final countryExists = countries.any((c) => c == country);
+          if (countryExists) {
+            selectCountry(country);
+            debugPrint('Country selected: $country');
+          } else {
+            // If country doesn't exist in list, just set the text
+            countryController.text = country;
+            selectedCountry = country;
+            debugPrint('Country not found in list, set as text: $country');
+          }
         }
+        debugPrint('country: $country');
 
         final state = data['state'] ?? '';
         if (state.isNotEmpty) {
-          stateController.text = state;
-          debugPrint('state: $state');
+          // First ensure country is selected
+          if (selectedCountry != null && selectedCountry!.isNotEmpty) {
+            selectState(state);
+            debugPrint('State selected: $state');
+          } else {
+            // If country not selected, just set the text
+            stateController.text = state;
+            selectedState = state;
+            debugPrint('State not selected due to missing country, set as text: $state');
+          }
         }
+        debugPrint('state: $state');
 
         final city = data['city'] ?? '';
         if (city.isNotEmpty) {
-          cityController.text = city;
-          debugPrint('city: $city');
+          selectCity(city);
+          debugPrint('City selected: $city');
         }
+        debugPrint('city: $city');
 
         final zipCode = data['zip_code'] ?? '';
         zipCodeController.text = zipCode;
@@ -486,9 +506,33 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
 
   Future<void> submitProfile() async {
     _attemptedSubmit = true;
-    isSubmitting = true;
     errorMessage = null;
     successMessage = null;
+    notifyListeners();
+
+    // Validate basic forms if available
+    if (formKeyPage1.currentState != null && !formKeyPage1.currentState!.validate()) {
+      return;
+    }
+    if (formKeyPage2.currentState != null && !formKeyPage2.currentState!.validate()) {
+      return;
+    }
+
+    // Require profile picture
+    if (profilePictureFile == null && (profilePictureUrl == null || profilePictureUrl!.isEmpty)) {
+      errorMessage = 'Profile picture is required';
+      notifyListeners();
+      return;
+    }
+
+    // Require license document (either newly uploaded or existing)
+    if (licenseDocumentFile == null && (licenseDocumentUrl == null || licenseDocumentUrl!.isEmpty)) {
+      errorMessage = 'License document is required';
+      notifyListeners();
+      return;
+    }
+
+    isSubmitting = true;
     notifyListeners();
 
     try {
@@ -500,6 +544,13 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
         finalLaboratoryId = prefs.getString('laboratory_id') ?? '';
       }
 
+      if (finalLaboratoryId.isEmpty) {
+        errorMessage = 'Laboratory ID not found. Please login again.';
+        isSubmitting = false;
+        notifyListeners();
+        return;
+      }
+
       final request = http.MultipartRequest(
         'PATCH',
         Uri.parse('${AppConfig.baseUrl}lab/laboratories/$finalLaboratoryId/'),
@@ -507,7 +558,6 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
 
       request.headers.addAll({
         'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'multipart/form-data',
       });
 
       request.fields['laboratory_name'] = laboratoryNameController.text;
@@ -519,6 +569,9 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
       request.fields['phone_number'] = _phoneNumber ?? '';
       request.fields['tax_identification_number'] = taxIdentificationNumberController.text;
       request.fields['license_number'] = licenseNumberController.text;
+      request.fields['is_profile_complete'] = 'true';
+      request.fields['profile_completed'] = 'true';
+      request.fields['profile_complete'] = 'true';
 
       if (profilePictureFile != null) {
         final profilePicture = await http.MultipartFile.fromPath(
@@ -536,17 +589,33 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
         request.files.add(licenseDoc);
       }
 
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      debugPrint('Sending LAB PATCH: ${request.method} ${request.url}');
+      debugPrint('Headers: ${request.headers}');
+      debugPrint('Fields: ${request.fields}');
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
+      final client = ChuckerHttpClient(http.Client());
+      final streamedResponse = await client.send(request).timeout(const Duration(seconds: 30));
+      final responseBody = await streamedResponse.stream.bytesToString();
+
+      debugPrint('LAB PATCH status: ${streamedResponse.statusCode}');
+      debugPrint('LAB PATCH body: $responseBody');
+
+      if (streamedResponse.statusCode >= 200 && streamedResponse.statusCode < 300) {
         successMessage = 'Laboratory profile updated successfully!';
         await prefs.setBool('laboratory_profile_completed', true);
         _shouldNavigateToHome = true;
         _initializeChangeTracking();
       } else {
-        final errorData = jsonDecode(response.body);
-        throw Exception(errorData['message'] ?? 'Failed to update profile');
+        dynamic decoded;
+        try {
+          decoded = jsonDecode(responseBody);
+        } catch (_) {
+          decoded = null;
+        }
+        final msg = (decoded is Map<String, dynamic>)
+            ? (decoded['message']?.toString() ?? decoded['detail']?.toString())
+            : null;
+        throw Exception(msg ?? 'Failed to update profile: ${streamedResponse.statusCode}');
       }
     } catch (e) {
       errorMessage = 'Error updating profile: $e';

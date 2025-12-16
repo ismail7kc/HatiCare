@@ -102,7 +102,7 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
         throw Exception('Laboratory ID not found');
       }
 
-      final uri = Uri.parse('${AppConfig.baseUrl}phar/laboratories/$laboratoryId/');
+      final uri = Uri.parse('${AppConfig.baseUrl}lab/laboratories/$laboratoryId/');
       final request = http.MultipartRequest('PATCH', uri);
       request.headers['Authorization'] = 'Bearer $accessToken';
       request.files.add(await http.MultipartFile.fromPath(
@@ -299,6 +299,36 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
                     ),
                   ),
                   const SizedBox(height: 12),
+                  _buildSettingsCard(
+                    context,
+                    svgIcon: 'assets/icons/edit_profile_icon.svg',
+                    title: 'Edit Profile',
+                    onTap: () async {
+                      final prefs = await SharedPreferences.getInstance();
+                      final laboratoryId = prefs.getString('laboratory_id') ?? '';
+                      final profileCompleted =
+                          prefs.getBool('laboratory_profile_completed') ?? false;
+
+                      if (context.mounted) {
+                        // Navigate to edit profile with openedFromSettings = true
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditLaboratoryProfileScreen(
+                              laboratoryId: laboratoryId,
+                              isForceComplete: !profileCompleted,
+                              openedFromSettings: true,
+                            ),
+                          ),
+                        );
+                        // Refresh provider data after returning
+                        if (context.mounted) {
+                          context.read<LaboratoryUserProvider>().fetchProfile(forceRefresh: true);
+                        }
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 6),
                   _buildSettingsCard(
                     context,
                     svgIcon: 'assets/icons/notification_icon.svg',
@@ -546,59 +576,24 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
                   child: LinearProgressIndicator(),
                 )
               : Text(
-                  provider.email.isNotEmpty ? provider.email : 'Email',
+                  provider.contactPerson.isNotEmpty ? provider.contactPerson : 'Contact Person',
                   style: const TextStyle(fontSize: 14, color: Colors.grey),
                 ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 4),
 
-          // Edit Profile Button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EditLaboratoryProfileScreen(
-                      laboratoryId: provider.laboratoryId,
-                      isForceComplete: !provider.profileCompleted,
-                      openedFromSettings: true,
-                    ),
-                  ),
-                );
-                // Refresh provider data when returning
-                if (mounted) {
-                  provider.initializeData();
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+          provider.isLoading
+              ? const SizedBox(
+                  width: 100,
+                  height: 13,
+                  child: LinearProgressIndicator(),
+                )
+              : Text(
+                  provider.licenseNumber.isNotEmpty
+                      ? 'License: ${provider.licenseNumber}'
+                      : 'License: N/A',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                 ),
-              ),
-              child: Ink(
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: const Text(
-                    'Edit Profile',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
