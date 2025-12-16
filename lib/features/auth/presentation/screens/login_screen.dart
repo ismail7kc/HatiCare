@@ -128,10 +128,14 @@ class _LoginView extends StatelessWidget {
           final isDeactivated =
               message.toLowerCase().contains('deactivated') ||
               message.toLowerCase().contains('inactive');
-          final isNotFound = message.toLowerCase().contains('not found');
+          final isNotFound = message.toLowerCase().contains('not found') ||
+              message.toLowerCase().contains('no account found') ||
+              message.toLowerCase().contains('user not found');
           final isWrongPassword =
               message.toLowerCase().contains('password') ||
-              message.toLowerCase().contains('incorrect');
+              message.toLowerCase().contains('incorrect') ||
+              message.toLowerCase().contains('invalid credentials') ||
+              message.toLowerCase().contains('wrong password');
 
           String title = 'Login Failed';
           if (isDeactivated) {
