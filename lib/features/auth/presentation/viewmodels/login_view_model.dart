@@ -181,7 +181,6 @@ class LoginViewModel extends ChangeNotifier {
           prefs.setBool(CacheKeys.isProfileCompleted, isProfileCompleted);
           debugPrint('is CompletedProfile is $isProfileCompleted');
 
-
           // prefs.setBool(CacheKeys.doctorID, id);
           // debugPrint('Doctor ID is $CacheKeys.doctorID');
         // }

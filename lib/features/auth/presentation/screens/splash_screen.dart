@@ -74,9 +74,9 @@ class _SplashScreenState extends State<SplashScreen>
 
       if (isLoggedIn && accessToken != null && accessToken.isNotEmpty) {
         if (userType == 'doctor') {
-
           final prefs = await SharedPreferences.getInstance();
-          final bool isProfileCompleted = prefs.getBool(CacheKeys.isProfileCompleted) ?? false;
+          final bool isProfileCompleted =
+              prefs.getBool(CacheKeys.isProfileCompleted) ?? false;
 
           if (isProfileCompleted) {
             Navigator.of(context).pushReplacement(
@@ -89,9 +89,10 @@ class _SplashScreenState extends State<SplashScreen>
           }
         } else if (userType == 'pharmacy') {
           // PHARMACY: Check if profile is completed
-          final profileCompleted = prefs.getBool('pharmacy_profile_completed') ?? false;
+          final profileCompleted =
+              prefs.getBool('pharmacy_profile_completed') ?? false;
           final pharmacyId = prefs.getString('pharmacy_id') ?? '';
-          
+
           if (!profileCompleted) {
             // Force profile completion if incomplete
             Navigator.of(context).pushReplacement(
@@ -110,9 +111,10 @@ class _SplashScreenState extends State<SplashScreen>
           }
         } else if (userType == 'laboratory') {
           // LABORATORY: Check if profile is completed
-          final profileCompleted = prefs.getBool('laboratory_profile_completed') ?? false;
+          final profileCompleted =
+              prefs.getBool('laboratory_profile_completed') ?? false;
           final laboratoryId = prefs.getString('laboratory_id') ?? '';
-          
+
           if (!profileCompleted) {
             // Force profile completion if incomplete
             Navigator.of(context).pushReplacement(

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/features/auth/presentation/viewmodels/login_view_model.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
-import 'package:haticare/features/doctor/models/updated_doctor_model.dart';
 import 'package:haticare/features/doctor/presentation/screens/edit_profile_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DoctorRequiredInfo extends StatefulWidget {
   const DoctorRequiredInfo({super.key});
@@ -46,27 +47,29 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
     final repository = RepositoryLayer(apiClient);
     editViewModel = EditViewmodel(repository);
 
-    _loadDoctor();
-
+    _loadDoctorFromAPI();
     editViewModel.fetchSpecialization().then((_) {
       if (mounted) setState(() {});
     });
   }
 
-  Future<void> _loadDoctor() async {
+  Future<void> _loadDoctorFromAPI() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+
       final response = await editViewModel.getSignleDocResponse();
       debugPrint("SINGLE DOCTOR RES: $response");
 
       if (response['success'] == true && response['data'] != null) {
         setInitialData(response['data']);
+        if (_areAllFieldsFilled()) {
+          prefs.setBool('isRequiredInfoFilled', true);
+        }
       }
     } catch (e) {
       debugPrint("Exception: $e");
     } finally {
-      if (mounted) {
-        setState(() {});
-      }
+      if (mounted) setState(() {});
     }
   }
 
@@ -75,7 +78,6 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
     yearsExperienceController.text =
         data['years_of_experience']?.toString() ?? '';
     licenseAuthorityController.text = data['license_issuing_authority'] ?? '';
-
     selectedLicenseType = data['license_type'];
     selectedSpecialization = data['specialization'];
 
@@ -222,11 +224,20 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
                   "License Issuing Authority",
                   controller: licenseAuthorityController,
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-                    LengthLimitingTextInputFormatter(20),
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'[a-zA-Z0-9\s.,-]'),
+                    ),
+                    LengthLimitingTextInputFormatter(40),
                   ],
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty ? "Required" : null,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return "License Authority is required.";
+                    }
+                    if (v.trim().length < 3) {
+                      return "Authority name is too short.";
+                    }
+                    return null;
+                  },
                 ),
 
                 const SizedBox(height: 40),

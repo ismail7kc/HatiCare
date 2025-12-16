@@ -89,7 +89,7 @@ class _IdentifyDocumentScreenState extends State<IdentifyDocumentScreen> {
   Widget _buildDocumentOption({required String icon, required String label}) {
     return InkWell(
       onTap: () async {
-        if (label == 'Passport') {
+        // if (label == 'Passport') {
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
@@ -101,7 +101,7 @@ class _IdentifyDocumentScreenState extends State<IdentifyDocumentScreen> {
           if (result == true) {
             Navigator.pop(context, true);
           }
-        }
+        // }
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(

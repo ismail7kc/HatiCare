@@ -4,14 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
-import 'package:haticare/features/auth/presentation/viewmodels/login_view_model.dart';
-import 'package:haticare/features/doctor/ApiClient/api_client.dart';
-import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/doctor_requiredInfo.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/identify_document.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/take_selfi.dart';
-import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DoctorVerificationScreen extends StatefulWidget {
   const DoctorVerificationScreen({super.key});
@@ -30,7 +27,30 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
   bool get isAllChecked =>
       idCardChecked && selfieChecked && licenseChecked && isRequiredInfoFilled;
 
+      @override
+  void initState() {
+    super.initState();
+    _loadSavedState();
+  }
+
+  Future<void> _loadSavedState() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      idCardChecked = prefs.getBool('idCardChecked') ?? false;
+      selfieChecked = prefs.getBool('selfieChecked') ?? false;
+      licenseChecked = prefs.getBool('licenseChecked') ?? false;
+      isRequiredInfoFilled =
+          prefs.getBool('isRequiredInfoFilled') ?? false;
+    });
+  }
+
+  Future<void> _saveState(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+  }
+
   @override
+   @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
@@ -89,9 +109,9 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                                   const IdentifyDocumentScreen(isValidID: true),
                             ),
                           );
-
                           if (completed == true) {
                             setState(() => idCardChecked = true);
+                            _saveState('idCardChecked', true);
                           }
                         },
                         child: _VerificationOption(
@@ -113,9 +133,9 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                               builder: (_) => const TakeSelfieScreen(),
                             ),
                           );
-
                           if (completed == true) {
                             setState(() => selfieChecked = true);
+                            _saveState('selfieChecked', true);
                           }
                         },
                         child: _VerificationOption(
@@ -134,14 +154,13 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                           final completed = await Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const IdentifyDocumentScreen(
-                                isValidID: false,
-                              ),
+                              builder: (_) =>
+                                  const IdentifyDocumentScreen(isValidID: false),
                             ),
                           );
-
                           if (completed == true) {
                             setState(() => licenseChecked = true);
+                            _saveState('licenseChecked', true);
                           }
                         },
                         child: _VerificationOption(
@@ -152,6 +171,7 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                           isChecked: licenseChecked,
                         ),
                       ),
+
                       const SizedBox(height: 15),
 
                       GestureDetector(
@@ -162,9 +182,9 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                               builder: (_) => const DoctorRequiredInfo(),
                             ),
                           );
-
                           if (completed == true) {
                             setState(() => isRequiredInfoFilled = true);
+                            _saveState('isRequiredInfoFilled', true);
                           }
                         },
                         child: _VerificationOption(
@@ -199,7 +219,8 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 40),
+                      const SizedBox(height: 40),
+                      
                       Padding(
                         padding: const EdgeInsets.all(20.0),
                         child: Opacity(
@@ -227,14 +248,12 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                               ),
                               onPressed: isAllChecked
                                   ? () {
-                                      if (isAllChecked) {
-                                      Navigator.push(
+                                      Navigator.pushReplacement(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) => DoctorHomeScreen(),
+                                          builder: (_) => const DoctorHomeScreen(),
                                         ),
                                       );
-                                      }
                                     }
                                   : null,
                               child: const Text(
