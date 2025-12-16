@@ -6,7 +6,10 @@ import 'package:haticare/features/doctor/presentation/viewModel/appointment_deta
 class CreatePrescriptionScreen extends StatefulWidget {
   final AppointmentDetailvm appointmentDetailvm;
 
-  const CreatePrescriptionScreen(this.appointmentDetailvm, {super.key});
+  const CreatePrescriptionScreen({
+    super.key,
+    required this.appointmentDetailvm,
+  });
 
   @override
   _IssueRxScreenState createState() => _IssueRxScreenState();
@@ -116,7 +119,6 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                       const SizedBox(height: 20),
                     ],
 
-                    // Add Another button
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
@@ -196,7 +198,7 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                     final meds = getMedicationsFromControllers();
                     final response = await widget.appointmentDetailvm
                         .createPrescription(medications: meds);
-                        
+
                     if (!mounted) return;
 
                     showDialog(
@@ -213,7 +215,10 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                         ),
                         actions: [
                           TextButton(
-                            onPressed: () => Navigator.of(ctx).pop(),
+                            onPressed: () {
+                              Navigator.of(ctx).pop();
+                              Navigator.of(context).pop();
+                            },
                             child: const Text('OK'),
                           ),
                         ],

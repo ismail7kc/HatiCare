@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/features/auth/presentation/viewmodels/login_view_model.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/audio_call.dart';
@@ -12,11 +13,13 @@ import 'package:haticare/features/doctor/models/appointment_model.dart';
 class AppointmentDetailScreen extends StatefulWidget {
   final AppointmentModel appointment;
   final bool isCameFromAccept;
+  final int? visitId;
 
   const AppointmentDetailScreen({
     super.key,
     required this.appointment,
     this.isCameFromAccept = false,
+    this.visitId,
   });
 
   @override
@@ -34,6 +37,10 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
     final apiClient = ApiClient();
     final repository = RepositoryLayer(apiClient);
     appointmentDetailvm = AppointmentDetailvm(repository);
+
+    if (widget.visitId != null) {
+      appointmentDetailvm.visitId = widget.visitId!;
+    }
   }
 
   @override
@@ -302,12 +309,27 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                       ),
                       child: ElevatedButton(
                         onPressed: () {
-                          // Api Call when tap on Accept
-                          appointmentDetailvm.acceptPatientResponse(widget.appointment.id);
+                          appointmentDetailvm.acceptPatientResponse(
+                            widget.appointment.id,
+                          );
+                          final visitId = appointmentDetailvm.visitId;
+
+                          if (visitId == 0) {
+                            if (!context.mounted) return;
+                            showDialog(
+                              context: context,
+                              builder: (_) => const AlertDialog(
+                                title: Text('Error'),
+                                content: Text('Failed to accept patient'),
+                              ),
+                            );
+                            return;
+                          }
                           PersistentNavBarNavigator.pushNewScreen(
                             context,
                             screen: AudioCallScreen(
                               appointments: widget.appointment,
+                              visitId: visitId, // ✅ PASS IT
                             ),
                             withNavBar: false,
                             pageTransitionAnimation:
@@ -352,7 +374,11 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => CreatePrescriptionScreen(appointmentDetailvm)),
+              MaterialPageRoute(
+                builder: (_) => CreatePrescriptionScreen(
+                  appointmentDetailvm: appointmentDetailvm,
+                ),
+              ),
             );
           },
           child: Container(

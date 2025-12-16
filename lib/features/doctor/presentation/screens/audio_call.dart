@@ -7,8 +7,9 @@ import '../../../../core/theme/app_colors.dart';
 
 class AudioCallScreen extends StatelessWidget {
   final AppointmentModel appointments;
+   final int visitId;
 
-  const AudioCallScreen({super.key, required this.appointments});
+  const AudioCallScreen({super.key, required this.appointments, required this.visitId,});
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +118,7 @@ class AudioCallScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => AppointmentDetailScreen(appointment: appointments),
+                      builder: (_) => AppointmentDetailScreen(appointment: appointments, visitId: visitId) // ✅ SAME ID),
                     ),
                   );
                 },
