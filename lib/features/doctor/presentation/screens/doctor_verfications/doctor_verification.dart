@@ -4,10 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/features/auth/presentation/viewmodels/login_view_model.dart';
+import 'package:haticare/features/doctor/ApiClient/api_client.dart';
+import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/doctor_requiredInfo.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/identify_document.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/take_selfi.dart';
+import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
 
 class DoctorVerificationScreen extends StatefulWidget {
   const DoctorVerificationScreen({super.key});
@@ -77,23 +81,19 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                       const SizedBox(height: 30),
 
                       GestureDetector(
-                        onTap: idCardChecked
-                            ? null
-                            : () async {
-                                final completed = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const IdentifyDocumentScreen(
-                                          isValidID: true,
-                                        ),
-                                  ),
-                                );
+                        onTap: () async {
+                          final completed = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const IdentifyDocumentScreen(isValidID: true),
+                            ),
+                          );
 
-                                if (completed == true) {
-                                  setState(() => idCardChecked = true);
-                                }
-                              },
+                          if (completed == true) {
+                            setState(() => idCardChecked = true);
+                          }
+                        },
                         child: _VerificationOption(
                           icon: 'assets/icons/id_card.svg',
                           title: 'Take a picture of a valid ID',
@@ -106,20 +106,18 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                       const SizedBox(height: 15),
 
                       GestureDetector(
-                        onTap: selfieChecked
-                            ? null
-                            : () async {
-                                final completed = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const TakeSelfieScreen(),
-                                  ),
-                                );
+                        onTap: () async {
+                          final completed = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const TakeSelfieScreen(),
+                            ),
+                          );
 
-                                if (completed == true) {
-                                  setState(() => selfieChecked = true);
-                                }
-                              },
+                          if (completed == true) {
+                            setState(() => selfieChecked = true);
+                          }
+                        },
                         child: _VerificationOption(
                           icon: 'assets/icons/selfie.svg',
                           title: 'Take a selfie',
@@ -132,23 +130,20 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                       const SizedBox(height: 15),
 
                       GestureDetector(
-                        onTap: licenseChecked
-                            ? null
-                            : () async {
-                                final completed = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const IdentifyDocumentScreen(
-                                          isValidID: false,
-                                        ),
-                                  ),
-                                );
+                        onTap: () async {
+                          final completed = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const IdentifyDocumentScreen(
+                                isValidID: false,
+                              ),
+                            ),
+                          );
 
-                                if (completed == true) {
-                                  setState(() => licenseChecked = true);
-                                }
-                              },
+                          if (completed == true) {
+                            setState(() => licenseChecked = true);
+                          }
+                        },
                         child: _VerificationOption(
                           icon: 'assets/icons/id_card.svg',
                           title: 'Take a picture of Nursing License',
@@ -160,20 +155,18 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                       const SizedBox(height: 15),
 
                       GestureDetector(
-                        onTap: isRequiredInfoFilled
-                            ? null
-                            : () async {
-                                final completed = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const DoctorRequiredInfo(),
-                                  ),
-                                );
+                        onTap: () async {
+                          final completed = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const DoctorRequiredInfo(),
+                            ),
+                          );
 
-                                if (completed == true) {
-                                  setState(() => isRequiredInfoFilled = true);
-                                }
-                              },
+                          if (completed == true) {
+                            setState(() => isRequiredInfoFilled = true);
+                          }
+                        },
                         child: _VerificationOption(
                           icon: 'assets/icons/id_card.svg',
                           title: 'Doctor Required Information',
@@ -234,14 +227,14 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                               ),
                               onPressed: isAllChecked
                                   ? () {
-                                      // if (isAllChecked) {
+                                      if (isAllChecked) {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                           builder: (_) => DoctorHomeScreen(),
                                         ),
                                       );
-                                      // }
+                                      }
                                     }
                                   : null,
                               child: const Text(

@@ -6,9 +6,9 @@ import 'package:haticare/features/auth/domain/repositories/auth_repository.dart'
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 
-
 class CacheKeys {
   static const isProfileCompleted = 'is_profile_completed';
+  static const doctorID = 'Doctor_ID';
 }
 
 class LoginViewModel extends ChangeNotifier {
@@ -176,10 +176,15 @@ class LoginViewModel extends ChangeNotifier {
             debugPrint('Pharmacy ID saved: $pharmacyId');
           }
         }
+        // if (role == 'doctor') {
+          isProfileCompleted = (response['data']['is_profile_complete'] == true);
+          prefs.setBool(CacheKeys.isProfileCompleted, isProfileCompleted);
+          debugPrint('is CompletedProfile is $isProfileCompleted');
 
-        isProfileCompleted = (response['data']['is_profile_complete'] == true);
-        prefs.setBool(CacheKeys.isProfileCompleted, isProfileCompleted);
-        debugPrint('is CompletedProfile is $isProfileCompleted');
+
+          // prefs.setBool(CacheKeys.doctorID, id);
+          // debugPrint('Doctor ID is $CacheKeys.doctorID');
+        // }
 
         if (role == 'laboratory') {
           await prefs.setBool(
