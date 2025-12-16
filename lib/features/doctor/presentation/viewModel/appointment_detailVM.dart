@@ -42,6 +42,7 @@ class AppointmentDetailvm extends ChangeNotifier {
     notifyListeners();
 
     try {
+      
       final response = await respositoryLayer.createPrescription(
         visitId: visitId,
         medications: medications,
