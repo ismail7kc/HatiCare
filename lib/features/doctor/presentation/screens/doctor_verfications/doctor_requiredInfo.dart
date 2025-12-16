@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
+import 'package:haticare/features/doctor/models/updated_doctor_model.dart';
 import 'package:haticare/features/doctor/presentation/screens/edit_profile_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
 
@@ -29,6 +30,7 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
 
   final List<String> licenseTypes = ["CDLs", "IDP"];
 
+  @override
   void initState() {
     super.initState();
 
@@ -44,9 +46,40 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
     final repository = RepositoryLayer(apiClient);
     editViewModel = EditViewmodel(repository);
 
+    _loadDoctor();
+
     editViewModel.fetchSpecialization().then((_) {
-      setState(() {});
+      if (mounted) setState(() {});
     });
+  }
+
+  Future<void> _loadDoctor() async {
+    try {
+      final response = await editViewModel.getSignleDocResponse();
+      debugPrint("SINGLE DOCTOR RES: $response");
+
+      if (response['success'] == true && response['data'] != null) {
+        setInitialData(response['data']);
+      }
+    } catch (e) {
+      debugPrint("Exception: $e");
+    } finally {
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
+  void setInitialData(Map<String, dynamic> data) {
+    licenseNumberController.text = data['license_number'] ?? '';
+    yearsExperienceController.text =
+        data['years_of_experience']?.toString() ?? '';
+    licenseAuthorityController.text = data['license_issuing_authority'] ?? '';
+
+    selectedLicenseType = data['license_type'];
+    selectedSpecialization = data['specialization'];
+
+    isFormComplete.value = _areAllFieldsFilled();
   }
 
   bool _areAllFieldsFilled() {
