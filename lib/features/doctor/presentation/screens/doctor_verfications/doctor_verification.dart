@@ -50,7 +50,6 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
   }
 
   @override
-   @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
@@ -220,7 +219,7 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                         ],
                       ),
                       const SizedBox(height: 40),
-                      
+
                       Padding(
                         padding: const EdgeInsets.all(20.0),
                         child: Opacity(

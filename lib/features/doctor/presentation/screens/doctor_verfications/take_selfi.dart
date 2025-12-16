@@ -20,35 +20,50 @@ class _TakeSelfieScreenState extends State<TakeSelfieScreen> {
   }
 
   Future<void> _initCamera() async {
-    final cameras = await availableCameras();
+    try {
+      final cameras = await availableCameras();
 
-    if (cameras.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No camera found on this device')),
+      if (cameras.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No camera found on this device')),
+        );
+        return;
+      }
+
+      CameraDescription selectedCamera = cameras.firstWhere(
+        (camera) => camera.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras.first,
       );
-      return;
-    }
 
-    final frontCamera = cameras.firstWhere(
-      (camera) => camera.lensDirection == CameraLensDirection.front,
-      orElse: () => cameras.first,
-    );
+      if (!mounted) return;
 
-    _cameraController = CameraController(
-      frontCamera,
-      ResolutionPreset.medium,
-      enableAudio: false,
-    );
+      _cameraController = CameraController(
+        selectedCamera,
+        ResolutionPreset.high,
+        enableAudio: false,
+        imageFormatGroup: ImageFormatGroup.jpeg,
+      );
 
-    await _cameraController!.initialize();
-    if (mounted) {
+      await _cameraController!.initialize();
+
+      if (!mounted) return;
+
       setState(() => _isCameraReady = true);
+    } catch (e) {
+      debugPrint('Camera initialization error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to initialize camera')),
+        );
+      }
     }
   }
 
   @override
   void dispose() {
     _cameraController?.dispose();
+    _cameraController = null;
     super.dispose();
   }
 
@@ -107,7 +122,11 @@ class _TakeSelfieScreenState extends State<TakeSelfieScreen> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: _isCameraReady
-                              ? CameraPreview(_cameraController!)
+                              ? Transform(
+                                  alignment: Alignment.center,
+                                  transform: Matrix4.rotationY(3.14159),
+                                  child: CameraPreview(_cameraController!),
+                                )
                               : const Center(
                                   child: CircularProgressIndicator(),
                                 ),
@@ -133,9 +152,20 @@ class _TakeSelfieScreenState extends State<TakeSelfieScreen> {
                   borderRadius: BorderRadius.circular(28),
                 ),
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context, true);
+                  onPressed: () async {
+                    if (!_isCameraReady || _cameraController == null) return;
+                    try {
+                      Navigator.pop(context, true);
+                    } catch (e) {
+                      debugPrint('Capture failed: $e');
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Failed to capture image'),
+                        ),
+                      );
+                    }
                   },
+
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,

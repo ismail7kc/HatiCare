@@ -47,41 +47,25 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
     final repository = RepositoryLayer(apiClient);
     editViewModel = EditViewmodel(repository);
 
-    _loadDoctorFromAPI();
+    _loadDoctorFromPrefs();
+    // _loadDoctorFromAPI();
+
     editViewModel.fetchSpecialization().then((_) {
       if (mounted) setState(() {});
     });
   }
 
-  Future<void> _loadDoctorFromAPI() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
+  Future<void> _loadDoctorFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
 
-      final response = await editViewModel.getSignleDocResponse();
-      debugPrint("SINGLE DOCTOR RES: $response");
-
-      if (response['success'] == true && response['data'] != null) {
-        setInitialData(response['data']);
-        if (_areAllFieldsFilled()) {
-          prefs.setBool('isRequiredInfoFilled', true);
-        }
-      }
-    } catch (e) {
-      debugPrint("Exception: $e");
-    } finally {
-      if (mounted) setState(() {});
-    }
-  }
-
-  void setInitialData(Map<String, dynamic> data) {
-    licenseNumberController.text = data['license_number'] ?? '';
-    yearsExperienceController.text =
-        data['years_of_experience']?.toString() ?? '';
-    licenseAuthorityController.text = data['license_issuing_authority'] ?? '';
-    selectedLicenseType = data['license_type'];
-    selectedSpecialization = data['specialization'];
-
+    licenseNumberController.text = prefs.getString('licenseNumber') ?? '';
+    yearsExperienceController.text = prefs.getString('yearsExperience') ?? '';
+    licenseAuthorityController.text = prefs.getString('licenseAuthority') ?? '';
+    selectedLicenseType = prefs.getString('licenseType');
+    selectedSpecialization = prefs.getString('specialization');
     isFormComplete.value = _areAllFieldsFilled();
+
+    if (mounted) setState(() {});
   }
 
   bool _areAllFieldsFilled() {
@@ -108,22 +92,27 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
       return;
     }
 
-    editViewModel.updateDoctorInstanceFromControllers(
-      licenseNumber: licenseNumberController.text,
-      licenseType: selectedLicenseType,
-      specialization: selectedSpecialization,
-      yearsExperience: yearsExperienceController.text,
-      licenseAuthority: licenseAuthorityController.text,
-    );
-
     final response = await editViewModel.updateDoctorInfo();
 
     if (response['success'] == true) {
+      final prefs = await SharedPreferences.getInstance();
+
+      await prefs.setString('licenseNumber', licenseNumberController.text);
+      await prefs.setString('yearsExperience', yearsExperienceController.text);
+      await prefs.setString(
+        'licenseAuthority',
+        licenseAuthorityController.text,
+      );
+      await prefs.setString('licenseType', selectedLicenseType!);
+      await prefs.setString('specialization', selectedSpecialization!);
+      await prefs.setBool('isRequiredInfoFilled', true);
+
       Navigator.pop(context, true);
     } else {
-      final errorMessage =
-          response['message'] ?? "Something went wrong. Please try again.";
-      showErrorDialog(context, errorMessage);
+      showErrorDialog(
+        context,
+        response['message'] ?? "Something went wrong. Please try again.",
+      );
     }
   }
 

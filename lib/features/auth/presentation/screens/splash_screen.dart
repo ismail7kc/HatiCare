@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
 import 'package:haticare/features/auth/presentation/viewmodels/login_view_model.dart';
+import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/doctor_verification.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
@@ -27,12 +28,8 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
+
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    // Disable keyboard on splash screen
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
 
     _animationController = AnimationController(
       vsync: this,
@@ -52,7 +49,27 @@ class _SplashScreenState extends State<SplashScreen>
 
     _animationController.forward();
 
-    _checkLoginStatus();
+    _bootstrapApp();
+  }
+
+  Future<void> _bootstrapApp() async {
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    await restoreSession();
+
+    if (!mounted) return;
+    await _checkLoginStatus();
+  }
+
+  Future<void> restoreSession() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final doctorId = prefs.getString('doctorId');
+    final userType = prefs.getString('user_type');
+
+    if (doctorId != null && userType == 'doctor') {
+      SaveLoginResponse.loginData = {'id': doctorId};
+    }
   }
 
   @override
