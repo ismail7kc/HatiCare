@@ -13,6 +13,28 @@ import 'package:haticare/core/widgets/custom_dropdown_dialog.dart';
 import 'package:haticare/features/pharmacy/presentation/viewmodels/pharmacy_profile_view_model.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
 
+// Custom formatter to prevent double spaces
+class SingleSpaceFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Replace multiple consecutive spaces with a single space
+    final newText = newValue.text.replaceAll(RegExp(r'\s{2,}'), ' ');
+    
+    // If the text was changed (spaces were reduced), return the new value
+    if (newText != newValue.text) {
+      return TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: newText.length),
+      );
+    }
+    
+    return newValue;
+  }
+}
+
 class EditPharmacyProfileScreen extends StatelessWidget {
   final String pharmacyId;
   final bool isForceComplete;
@@ -323,6 +345,7 @@ class _EditPharmacyProfileView extends StatelessWidget {
             hintText: 'Enter pharmacy name',
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
+              SingleSpaceFormatter(),
             ],
             onChanged: () => viewModel.clearValidationError('pharmacyName'),
             viewModel: viewModel,
@@ -397,6 +420,7 @@ class _EditPharmacyProfileView extends StatelessWidget {
             hintText: 'Enter street address',
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s,.-]')),
+              SingleSpaceFormatter(),
             ],
             onChanged: () => viewModel.clearValidationError('address'),
             viewModel: viewModel,
@@ -903,13 +927,6 @@ class _EditPharmacyProfileView extends StatelessWidget {
             validator: validator,
             autovalidateMode: AutovalidateMode.onUnfocus,
             onChanged: (value) {
-              // Trim spaces on change
-              if (value != null && value != value.trim()) {
-                controller.text = value.trim();
-                controller.selection = TextSelection.fromPosition(
-                  TextPosition(offset: value.trim().length),
-                );
-              }
               if (onChanged != null) onChanged();
             },
             decoration: InputDecoration(

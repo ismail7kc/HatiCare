@@ -322,23 +322,31 @@ class PharmacyProfileViewModel extends ChangeNotifier {
 
         final state = data['state'] ?? '';
         if (state.isNotEmpty) {
-          // First ensure country is selected
+          // Always try to set state after country is processed
           if (selectedCountry != null && selectedCountry!.isNotEmpty) {
             selectState(state);
             debugPrint('State selected: $state');
           } else {
-            // If country not selected, just set the text
-            stateController.text = state;
+            // Store state for later selection after country is loaded
             selectedState = state;
-            debugPrint('State not selected due to missing country, set as text: $state');
+            stateController.text = state;
+            debugPrint('State stored for later selection: $state');
           }
         }
         debugPrint('state: $state');
 
         final city = data['city'] ?? '';
         if (city.isNotEmpty) {
-          selectCity(city);
-          debugPrint('City selected: $city');
+          // Always try to set city after state is processed
+          if (selectedState != null && selectedState!.isNotEmpty) {
+            selectCity(city);
+            debugPrint('City selected: $city');
+          } else {
+            // Store city for later selection after state is loaded
+            selectedCity = city;
+            cityController.text = city;
+            debugPrint('City stored for later selection: $city');
+          }
         }
         debugPrint('city: $city');
 
@@ -436,8 +444,6 @@ class PharmacyProfileViewModel extends ChangeNotifier {
     if (countryName == null) return;
     
     selectedCountry = countryName;
-    selectedState = null;
-    selectedCity = null;
     states = [];
     cities = [];
     
@@ -458,9 +464,28 @@ class PharmacyProfileViewModel extends ChangeNotifier {
       selectedState = countryName;
       stateController.text = countryName;
       cityController.text = countryName;
+      selectedCity = countryName;
     } else {
-      stateController.clear();
-      cityController.clear();
+      // Check if we have a stored state that needs to be selected
+      if (stateController.text.isNotEmpty && selectedState != null) {
+        final storedState = selectedState!;
+        // Try to select the stored state
+        final stateExists = states.any((s) => s['state_name'] == storedState);
+        if (stateExists) {
+          selectState(storedState);
+        } else {
+          // If state doesn't exist in this country's states, clear it
+          selectedState = null;
+          stateController.clear();
+          selectedCity = null;
+          cityController.clear();
+        }
+      } else {
+        stateController.clear();
+        cityController.clear();
+        selectedState = null;
+        selectedCity = null;
+      }
     }
     
     notifyListeners();
@@ -470,7 +495,6 @@ class PharmacyProfileViewModel extends ChangeNotifier {
     if (stateName == null || selectedCountry == null) return;
     
     selectedState = stateName;
-    selectedCity = null;
     cities = [];
     
     // Find the state and load its cities
@@ -491,7 +515,22 @@ class PharmacyProfileViewModel extends ChangeNotifier {
       selectedCity = stateName;
       cityController.text = stateName;
     } else {
-      cityController.clear();
+      // Check if we have a stored city that needs to be selected
+      if (cityController.text.isNotEmpty && selectedCity != null) {
+        final storedCity = selectedCity!;
+        // Try to select the stored city
+        final cityExists = cities.contains(storedCity);
+        if (cityExists) {
+          selectCity(storedCity);
+        } else {
+          // If city doesn't exist in this state's cities, clear it
+          selectedCity = null;
+          cityController.clear();
+        }
+      } else {
+        cityController.clear();
+        selectedCity = null;
+      }
     }
     
     notifyListeners();
@@ -668,10 +707,10 @@ class PharmacyProfileViewModel extends ChangeNotifier {
       // Add form fields
       request.fields['pharmacy_name'] = pharmacyNameController.text;
       request.fields['address_line1'] = addressLine1Controller.text;
-      request.fields['city'] = cityController.text;
-      request.fields['state'] = stateController.text;
+      request.fields['city'] = selectedCity ?? cityController.text;
+      request.fields['state'] = selectedState ?? stateController.text;
       request.fields['zip_code'] = zipCodeController.text;
-      request.fields['country'] = countryController.text;
+      request.fields['country'] = selectedCountry ?? countryController.text;
       request.fields['phone_number'] = _phoneNumber ?? phoneNumberController.text;
       request.fields['tax_identification_number'] = taxIdController.text;
       request.fields['license_number'] = licenseNumberController.text;
