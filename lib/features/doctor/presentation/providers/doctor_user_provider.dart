@@ -62,24 +62,29 @@ class DoctorUserProvider extends ChangeNotifier {
       }
 
       final uri = Uri.parse('${AppConfig.baseUrl}doc/doctors/$doctorId/');
-      final cacheBuster = forceRefresh ? '?t=${DateTime.now().millisecondsSinceEpoch}' : '';
+      final cacheBuster = forceRefresh
+          ? '?t=${DateTime.now().millisecondsSinceEpoch}'
+          : '';
       final finalUri = Uri.parse('$uri$cacheBuster');
 
       final client = ChuckerHttpClient(http.Client());
-      final response = await client.get(
-        finalUri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-        },
-      ).timeout(const Duration(seconds: 30));
+      final response = await client
+          .get(
+            finalUri,
+            headers: {
+              'Authorization': 'Bearer $accessToken',
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache',
+            },
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = jsonDecode(response.body);
         dynamic data;
-        if (jsonResponse is Map<String, dynamic> && jsonResponse.containsKey('data')) {
+        if (jsonResponse is Map<String, dynamic> &&
+            jsonResponse.containsKey('data')) {
           data = jsonResponse['data'];
         } else {
           data = jsonResponse;
@@ -94,11 +99,7 @@ class DoctorUserProvider extends ChangeNotifier {
           _licenseNumber = data['license_number'] ?? '';
           _email = data['email'] ?? '';
 
-          // Check approval status - multiple field names for compatibility
-          _isApproved = (data['is_approved'] == true ||
-                        data['approved'] == true ||
-                        data['is_approved_by_admin'] == true ||
-                        data['doctor_approved'] == true);
+          _isApproved = (data['is_approved'] == true);
 
           // Store approval message if present
           if (data.containsKey('approval_message')) {
@@ -120,7 +121,8 @@ class DoctorUserProvider extends ChangeNotifier {
           }
 
           if (_profilePictureUrl.isNotEmpty) {
-            SaveLoginResponse.loginData?['profile_picture'] = _profilePictureUrl;
+            SaveLoginResponse.loginData?['profile_picture'] =
+                _profilePictureUrl;
           }
 
           SaveLoginResponse.loginData?['is_approved'] = _isApproved;
