@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:haticare/core/config/app_config.dart';
-import 'package:haticare/features/auth/presentation/viewmodels/login_view_model.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:haticare/features/doctor/models/prescription_model.dart';
@@ -41,8 +40,12 @@ class RepositoryLayer {
     final prefs = await SharedPreferences.getInstance();
     // Convert docID to string properly, handling both int and string types
     final dynamic rawDocId = SaveLoginResponse.loginData?['id'];
-    final String docID = rawDocId?.toString() ?? prefs.getString('doctor_id') ?? '';
-    final accessToken = SaveLoginResponse.loginData?['access_token'] ?? prefs.getString('access_token') ?? '';
+    final String docID =
+        rawDocId?.toString() ?? prefs.getString('doctor_id') ?? '';
+    final accessToken =
+        SaveLoginResponse.loginData?['access_token'] ??
+        prefs.getString('access_token') ??
+        '';
     final url = '${AppConfig.baseUrl}doc/doctors/$docID/';
     debugPrint('updated Doctor URL Is $url');
     debugPrint('Doctor ID: $docID');
@@ -52,12 +55,12 @@ class RepositoryLayer {
       debugPrint('ERROR: Doctor ID is empty');
       return {'success': false, 'message': 'Doctor ID not found'};
     }
-    
+
     if (accessToken.isEmpty) {
       debugPrint('ERROR: Access token is empty');
       return {'success': false, 'message': 'Access token not found'};
     }
-    
+
     debugPrint('Calling updateDocRequest with URL: $url');
     debugPrint('Request body: $body');
     try {
@@ -101,8 +104,15 @@ class RepositoryLayer {
   }
 
   Future<Map<String, dynamic>> getSingleDoctor() async {
-    final dynamic rawDocId = SaveLoginResponse.loginData?['id'];
-    final String docID = rawDocId?.toString() ?? '';
+    final prefs = await SharedPreferences.getInstance();
+
+    final dynamic rawDocId = SaveLoginResponse.loginData?['id'] ?? prefs.getString('doctorId');
+
+    if (rawDocId == null || rawDocId.toString().isEmpty) {
+      throw Exception("Doctor Id not found");
+    }
+
+    final String docID = rawDocId.toString();
     final url = '${AppConfig.baseUrl}doc/doctors/$docID/';
     return await _apiClient.getSingleDoctor(url);
   }

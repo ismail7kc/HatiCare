@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
-import 'package:haticare/features/auth/presentation/viewmodels/login_view_model.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/audio_call.dart';

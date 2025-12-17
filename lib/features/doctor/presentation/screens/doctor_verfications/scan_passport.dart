@@ -20,6 +20,7 @@ class ScanPassportScreen extends StatefulWidget {
 class _ScanPassportScreenState extends State<ScanPassportScreen> {
   CameraController? _cameraController;
   bool _isCameraReady = false;
+  bool _isUploading = false;
   File? _pickedImage;
   late RepositoryLayer repoLayer;
 
@@ -59,16 +60,26 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
   }
 
   Future<void> _uploadImage(File file) async {
+    setState(() => _isUploading = true);
     final data = widget.isScanPassport
         ? {"id_document": file}
         : {"license_document": file};
 
-    await repoLayer.updateDoctorInfo(data);
-
-    if (mounted) Navigator.pop(context, true);
+    try {
+      await repoLayer.updateDoctorInfo(data);
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      debugPrint("Upload error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Upload failed, please try again')),
+      );
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
   }
 
   Future<void> pickFromGallery() async {
+    if (_isUploading) return;
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
@@ -128,168 +139,187 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
         ),
         centerTitle: false,
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            Text(
-              subText,
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-
-            const SizedBox(height: 30),
-
-            Center(
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: 327,
-                    height: 301,
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
+                Text(
+                  subText,
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+                const SizedBox(height: 30),
+                Center(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: 327,
+                        height: 301,
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: _pickedImage != null
-                          ? Image.file(
-                              _pickedImage!,
-                              width: 280,
-                              height: 180,
-                              fit: BoxFit.cover,
-                            )
-                          : (_isCameraReady
-                                ? CameraPreview(_cameraController!)
-                                : Container(
-                                    color: Colors.black,
-                                    child: const Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  )),
-                    ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: _pickedImage != null
+                              ? Image.file(
+                                  _pickedImage!,
+                                  width: 280,
+                                  height: 180,
+                                  fit: BoxFit.cover,
+                                )
+                              : (_isCameraReady
+                                    ? CameraPreview(_cameraController!)
+                                    : Container(
+                                        color: Colors.black,
+                                        child: const Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      )),
+                        ),
+                      ),
+                      // corners
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        child: _buildCorner(top: true, left: true),
+                      ),
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: _buildCorner(top: true, left: false),
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        child: _buildCorner(top: false, left: true),
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: _buildCorner(top: false, left: false),
+                      ),
+                    ],
                   ),
+                ),
+                const SizedBox(height: 40),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        children: [
+                          const Icon(Icons.info_outline, color: Colors.grey),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Hold the camera still\nMake sure there is enough lighting',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey, fontSize: 15),
+                          ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            'or',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey, fontSize: 15),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
 
-                  Positioned(
-                    top: 90,
-                    left: 20,
-                    right: 20,
-                    child: Container(height: 2), // Remove Orange Color
-                  ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: SizedBox(
+                          width: 236,
+                          height: 45,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(
+                                color: AppColors.primaryLight,
+                                width: 2,
+                              ),
+                            ),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                              ),
+                              onPressed: _isUploading ? null : pickFromGallery,
+                              child: const Text(
+                                'Upload from Gallery',
+                                style: TextStyle(
+                                  color: AppColors.primaryLight,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
 
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    child: _buildCorner(top: true, left: true),
+                      SizedBox(
+                        width: double.infinity,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: AppColors.primaryGradient,
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            onPressed: (_isCameraReady && !_isUploading)
+                                ? captureImage
+                                : null,
+                            child: const Text(
+                              'Capture',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: _buildCorner(top: true, left: false),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    child: _buildCorner(top: false, left: true),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: _buildCorner(top: false, left: false),
-                  ),
-                ],
+                ),
+                const SizedBox(height: 50),
+              ],
+            ),
+          ),
+
+          if (_isUploading)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: CircularProgressIndicator(color: Colors.white),
               ),
             ),
-
-            const SizedBox(height: 40),
-
-            const Icon(Icons.info_outline, color: Colors.grey),
-            const SizedBox(height: 10),
-            const Text(
-              'Hold the camera still\nMake sure there is enough lighting',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 15),
-            ),
-
-            SizedBox(height: 20),
-            const Text(
-              'or',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 15),
-            ),
-
-            const SizedBox(height: 16),
-            SizedBox(
-              width: 236,
-              height: 52,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: AppColors.primaryLight, width: 2),
-                ),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: pickFromGallery,
-                  child: const Text(
-                    'Upload from Gallery',
-                    style: TextStyle(
-                      color: AppColors.primaryLight,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            const Spacer(),
-
-            SizedBox(
-              width: double.infinity,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: _isCameraReady ? captureImage : null,
-                  child: const Text(
-                    'Capture',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 40),
-          ],
-        ),
+        ],
       ),
     );
   }

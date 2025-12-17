@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
-import 'package:haticare/features/doctor/models/updated_doctor_model.dart';
 import 'package:haticare/features/doctor/presentation/screens/edit_profile_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DoctorRequiredInfo extends StatefulWidget {
   const DoctorRequiredInfo({super.key});
@@ -46,40 +46,25 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
     final repository = RepositoryLayer(apiClient);
     editViewModel = EditViewmodel(repository);
 
-    _loadDoctor();
+    _loadDoctorFromPrefs();
+    // _loadDoctorFromAPI();
 
     editViewModel.fetchSpecialization().then((_) {
       if (mounted) setState(() {});
     });
   }
 
-  Future<void> _loadDoctor() async {
-    try {
-      final response = await editViewModel.getSignleDocResponse();
-      debugPrint("SINGLE DOCTOR RES: $response");
+  Future<void> _loadDoctorFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
 
-      if (response['success'] == true && response['data'] != null) {
-        setInitialData(response['data']);
-      }
-    } catch (e) {
-      debugPrint("Exception: $e");
-    } finally {
-      if (mounted) {
-        setState(() {});
-      }
-    }
-  }
-
-  void setInitialData(Map<String, dynamic> data) {
-    licenseNumberController.text = data['license_number'] ?? '';
-    yearsExperienceController.text =
-        data['years_of_experience']?.toString() ?? '';
-    licenseAuthorityController.text = data['license_issuing_authority'] ?? '';
-
-    selectedLicenseType = data['license_type'];
-    selectedSpecialization = data['specialization'];
-
+    licenseNumberController.text = prefs.getString('licenseNumber') ?? '';
+    yearsExperienceController.text = prefs.getString('yearsExperience') ?? '';
+    licenseAuthorityController.text = prefs.getString('licenseAuthority') ?? '';
+    selectedLicenseType = prefs.getString('licenseType');
+    selectedSpecialization = prefs.getString('specialization');
     isFormComplete.value = _areAllFieldsFilled();
+
+    if (mounted) setState(() {});
   }
 
   bool _areAllFieldsFilled() {
@@ -106,22 +91,27 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
       return;
     }
 
-    editViewModel.updateDoctorInstanceFromControllers(
-      licenseNumber: licenseNumberController.text,
-      licenseType: selectedLicenseType,
-      specialization: selectedSpecialization,
-      yearsExperience: yearsExperienceController.text,
-      licenseAuthority: licenseAuthorityController.text,
-    );
-
     final response = await editViewModel.updateDoctorInfo();
 
     if (response['success'] == true) {
+      final prefs = await SharedPreferences.getInstance();
+
+      await prefs.setString('licenseNumber', licenseNumberController.text);
+      await prefs.setString('yearsExperience', yearsExperienceController.text);
+      await prefs.setString(
+        'licenseAuthority',
+        licenseAuthorityController.text,
+      );
+      await prefs.setString('licenseType', selectedLicenseType!);
+      await prefs.setString('specialization', selectedSpecialization!);
+      await prefs.setBool('isRequiredInfoFilled', true);
+
       Navigator.pop(context, true);
     } else {
-      final errorMessage =
-          response['message'] ?? "Something went wrong. Please try again.";
-      showErrorDialog(context, errorMessage);
+      showErrorDialog(
+        context,
+        response['message'] ?? "Something went wrong. Please try again.",
+      );
     }
   }
 
@@ -222,11 +212,20 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
                   "License Issuing Authority",
                   controller: licenseAuthorityController,
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-                    LengthLimitingTextInputFormatter(20),
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'[a-zA-Z0-9\s.,-]'),
+                    ),
+                    LengthLimitingTextInputFormatter(40),
                   ],
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty ? "Required" : null,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return "License Authority is required.";
+                    }
+                    if (v.trim().length < 3) {
+                      return "Authority name is too short.";
+                    }
+                    return null;
+                  },
                 ),
 
                 const SizedBox(height: 40),

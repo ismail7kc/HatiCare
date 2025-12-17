@@ -176,15 +176,10 @@ class LoginViewModel extends ChangeNotifier {
             debugPrint('Pharmacy ID saved: $pharmacyId');
           }
         }
-        // if (role == 'doctor') {
-          isProfileCompleted = (response['data']['is_profile_complete'] == true);
-          prefs.setBool(CacheKeys.isProfileCompleted, isProfileCompleted);
-          debugPrint('is CompletedProfile is $isProfileCompleted');
 
-
-          // prefs.setBool(CacheKeys.doctorID, id);
-          // debugPrint('Doctor ID is $CacheKeys.doctorID');
-        // }
+        isProfileCompleted = (response['data']['is_profile_complete'] == true);
+        prefs.setBool(CacheKeys.isProfileCompleted, isProfileCompleted);
+        debugPrint('is CompletedProfile is $isProfileCompleted');
 
         if (role == 'laboratory') {
           await prefs.setBool(
@@ -201,6 +196,11 @@ class LoginViewModel extends ChangeNotifier {
       if (response['success'] == true && response['data'] != null) {
         lastResponse = response['data'];
         await SaveLoginResponse.saveLoginModel(lastResponse);
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('doctorId', lastResponse!['id'].toString());
+        SaveLoginResponse.loginData = lastResponse;
+        
         print('Saved loginData: ${SaveLoginResponse.loginData}');
       }
 
@@ -299,13 +299,13 @@ class LoginViewModel extends ChangeNotifier {
           if (laboratoryName is String && laboratoryName.isNotEmpty) {
             await prefs.setString('laboratory_name', laboratoryName);
           }
-          
+
           // Save profile picture URL
           final profilePicture = dataObj['profile_picture'];
           if (profilePicture is String && profilePicture.isNotEmpty) {
             await prefs.setString('profile_picture_url', profilePicture);
           }
-          
+
           // Save email for laboratory
           final email = dataObj['email'];
           if (email is String && email.isNotEmpty) {
@@ -317,13 +317,13 @@ class LoginViewModel extends ChangeNotifier {
           if (pharmacyName is String && pharmacyName.isNotEmpty) {
             await prefs.setString('pharmacy_name', pharmacyName);
           }
-          
+
           // Save profile picture URL
           final profilePicture = dataObj['profile_picture'];
           if (profilePicture is String && profilePicture.isNotEmpty) {
             await prefs.setString('profile_picture_url', profilePicture);
           }
-          
+
           // Save email for pharmacy
           final email = dataObj['email'];
           if (email is String && email.isNotEmpty) {
