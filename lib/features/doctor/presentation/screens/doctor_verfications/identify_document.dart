@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/scan_passport.dart';
 
+enum DocumentType { idCard, driversLicense }
+
 class IdentifyDocumentScreen extends StatefulWidget {
   final bool isValidID;
   const IdentifyDocumentScreen({super.key, required this.isValidID});
@@ -62,22 +64,26 @@ class _IdentifyDocumentScreenState extends State<IdentifyDocumentScreen> {
             if (widget.isValidID) ...[
               _buildDocumentOption(
                 icon: 'assets/icons/passport_alt.svg',
-                label: 'Passport',
+                label: 'License Document',
+                type: DocumentType.driversLicense,
               ),
               const SizedBox(height: 12),
               _buildDocumentOption(
                 icon: 'assets/icons/id_card.svg',
-                label: 'ID Card',
+                label: 'ID Document',
+                type: DocumentType.idCard,
               ),
             ] else ...[
-             _buildDocumentOption(
+              _buildDocumentOption(
                 icon: 'assets/icons/passport_alt.svg',
-                label: 'Passport',
-              ), 
+                label: 'ID Document',
+                type: DocumentType.idCard,
+              ),
               const SizedBox(height: 12),
               _buildDocumentOption(
                 icon: 'assets/icons/id_card.svg',
-                label: "Driver's License",
+                label: "Nursing License",
+                type: DocumentType.driversLicense,
               ),
             ],
           ],
@@ -86,22 +92,25 @@ class _IdentifyDocumentScreenState extends State<IdentifyDocumentScreen> {
     );
   }
 
-  Widget _buildDocumentOption({required String icon, required String label}) {
+  Widget _buildDocumentOption({
+    required String icon,
+    required String label,
+    required DocumentType type,
+  }) {
     return InkWell(
       onTap: () async {
-        // if (label == 'Passport') {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  ScanPassportScreen(isScanPassport: widget.isValidID),
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ScanPassportScreen(
+              documentType: type,
             ),
-          );
+          ),
+        );
 
-          if (result == true) {
-            Navigator.pop(context, true);
-          }
-        // }
+        if (result == true && mounted) {
+          Navigator.pop(context, true);
+        }
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(

@@ -27,6 +27,7 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
 
   String? selectedLicenseType;
   String? selectedSpecialization;
+  bool _isSubmitting = false;
 
   final List<String> licenseTypes = ["CDLs", "IDP"];
 
@@ -47,7 +48,6 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
     editViewModel = EditViewmodel(repository);
 
     _loadDoctorFromPrefs();
-    // _loadDoctorFromAPI();
 
     editViewModel.fetchSpecialization().then((_) {
       if (mounted) setState(() {});
@@ -91,27 +91,47 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
       return;
     }
 
-    final response = await editViewModel.updateDoctorInfo();
+    setState(() => _isSubmitting = true);
 
-    if (response['success'] == true) {
-      final prefs = await SharedPreferences.getInstance();
-
-      await prefs.setString('licenseNumber', licenseNumberController.text);
-      await prefs.setString('yearsExperience', yearsExperienceController.text);
-      await prefs.setString(
-        'licenseAuthority',
-        licenseAuthorityController.text,
+    try {
+      editViewModel.updateDoctorInstanceFromControllers(
+        licenseNumber: licenseNumberController.text,
+        licenseType: selectedLicenseType,
+        specialization: selectedSpecialization,
+        yearsExperience: yearsExperienceController.text,
+        licenseAuthority: licenseAuthorityController.text,
       );
-      await prefs.setString('licenseType', selectedLicenseType!);
-      await prefs.setString('specialization', selectedSpecialization!);
-      await prefs.setBool('isRequiredInfoFilled', true);
 
-      Navigator.pop(context, true);
-    } else {
-      showErrorDialog(
-        context,
-        response['message'] ?? "Something went wrong. Please try again.",
-      );
+      final response = await editViewModel.updateDoctorInfo();
+
+      if (response['success'] == true) {
+        final prefs = await SharedPreferences.getInstance();
+
+        await prefs.setString('licenseNumber', licenseNumberController.text);
+        await prefs.setString(
+          'yearsExperience',
+          yearsExperienceController.text,
+        );
+        await prefs.setString(
+          'licenseAuthority',
+          licenseAuthorityController.text,
+        );
+        await prefs.setString('licenseType', selectedLicenseType!);
+        await prefs.setString('specialization', selectedSpecialization!);
+        await prefs.setBool('isRequiredInfoFilled', true);
+
+        if (mounted) Navigator.pop(context, true);
+      } else {
+        showErrorDialog(
+          context,
+          response['message'] ?? "Something went wrong. Please try again.",
+        );
+      }
+    } catch (e) {
+      debugPrint("Submit error: $e");
+      showErrorDialog(context, "Failed to submit. Please try again.");
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -153,119 +173,130 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
       ),
 
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildTextField(
-                  "License Number",
-                  controller: licenseNumberController,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-                    LengthLimitingTextInputFormatter(20),
-                  ],
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty ? "Required" : null,
-                ),
-                const SizedBox(height: 18),
-
-                _buildDropdownField(
-                  label: "License Type",
-                  items: licenseTypes,
-                  value: selectedLicenseType,
-                  onChanged: _onLicenseTypeChanged,
-                ),
-                const SizedBox(height: 18),
-
-                _buildTextField(
-                  "Years of Experience",
-                  controller: yearsExperienceController,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    NoZeroInputFormatter(),
-                  ],
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return "Required";
-                    final value = int.tryParse(v.trim());
-                    if (value == null || value <= 0 || value > 99) {
-                      return "Enter a value between 1 and 99";
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 18),
-
-                _buildDropdownField(
-                  label: "Specialization",
-                  items: editViewModel.specializationNames,
-                  value: selectedSpecialization,
-                  onChanged: _onSpecializationChanged,
-                ),
-                const SizedBox(height: 18),
-
-                _buildTextField(
-                  "License Issuing Authority",
-                  controller: licenseAuthorityController,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                      RegExp(r'[a-zA-Z0-9\s.,-]'),
-                    ),
-                    LengthLimitingTextInputFormatter(40),
-                  ],
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) {
-                      return "License Authority is required.";
-                    }
-                    if (v.trim().length < 3) {
-                      return "Authority name is too short.";
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 40),
-
-                ValueListenableBuilder<bool>(
-                  valueListenable: isFormComplete,
-                  builder: (context, isEnabled, _) {
-                    return Opacity(
-                      opacity: isEnabled ? 1.0 : 0.4,
-                      child: Container(
-                        width: double.infinity,
-                        height: 55,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30),
-                          gradient: isEnabled
-                              ? AppColors.primaryGradient
-                              : const LinearGradient(
-                                  colors: [Colors.grey, Colors.grey],
-                                ),
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildTextField(
+                      "License Number",
+                      controller: licenseNumberController,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[a-zA-Z0-9]'),
                         ),
-                        child: TextButton(
-                          onPressed: isEnabled ? _onSavePressed : null,
-                          child: const Text(
-                            "Submit",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                        LengthLimitingTextInputFormatter(20),
+                      ],
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? "Required" : null,
+                    ),
+                    const SizedBox(height: 18),
+
+                    _buildDropdownField(
+                      label: "License Type",
+                      items: licenseTypes,
+                      value: selectedLicenseType,
+                      onChanged: _onLicenseTypeChanged,
+                    ),
+                    const SizedBox(height: 18),
+
+                    _buildTextField(
+                      "Years of Experience",
+                      controller: yearsExperienceController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        NoZeroInputFormatter(),
+                      ],
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return "Required";
+                        final value = int.tryParse(v.trim());
+                        if (value == null || value <= 0 || value > 99) {
+                          return "Enter a value between 1 and 99";
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 18),
+
+                    _buildDropdownField(
+                      label: "Specialization",
+                      items: editViewModel.specializationNames,
+                      value: selectedSpecialization,
+                      onChanged: _onSpecializationChanged,
+                    ),
+                    const SizedBox(height: 18),
+
+                    _buildTextField(
+                      "License Issuing Authority",
+                      controller: licenseAuthorityController,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[a-zA-Z0-9\s.,-]'),
+                        ),
+                        LengthLimitingTextInputFormatter(40),
+                      ],
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return "License Authority is required.";
+                        }
+                        if (v.trim().length < 3) {
+                          return "Authority name is too short.";
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    ValueListenableBuilder<bool>(
+                      valueListenable: isFormComplete,
+                      builder: (context, isEnabled, _) {
+                        return Opacity(
+                          opacity: isEnabled ? 1.0 : 0.4,
+                          child: Container(
+                            width: double.infinity,
+                            height: 55,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30),
+                              gradient: isEnabled
+                                  ? AppColors.primaryGradient
+                                  : const LinearGradient(
+                                      colors: [Colors.grey, Colors.grey],
+                                    ),
+                            ),
+                            child: TextButton(
+                              onPressed: isEnabled && !_isSubmitting
+                                  ? _onSavePressed
+                                  : null,
+                              child: _isSubmitting
+                                  ? const CircularProgressIndicator(
+                                      color: Colors.white,
+                                    )
+                                  : const Text(
+                                      "Submit",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                             ),
                           ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                        );
+                      },
+                    ),
 
-                const SizedBox(height: 20),
-              ],
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

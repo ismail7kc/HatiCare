@@ -92,8 +92,7 @@ class _SplashScreenState extends State<SplashScreen>
       if (isLoggedIn && accessToken != null && accessToken.isNotEmpty) {
         if (userType == 'doctor') {
           final prefs = await SharedPreferences.getInstance();
-          final bool isProfileCompleted =
-              prefs.getBool(CacheKeys.isProfileCompleted) ?? false;
+          final bool isProfileCompleted = prefs.getBool('is_profile_completed') ?? false;
 
           if (isProfileCompleted) {
             Navigator.of(context).pushReplacement(
