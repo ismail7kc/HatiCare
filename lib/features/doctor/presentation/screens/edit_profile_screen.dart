@@ -7,6 +7,7 @@ import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/scan_passport.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
 import 'package:intl/intl.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
@@ -159,7 +160,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
 
     selectedSpecialization = doc.specialization;
-    specializationController = TextEditingController(text: selectedSpecialization);
+    specializationController = TextEditingController(
+      text: selectedSpecialization,
+    );
 
     selectedLicenseType = doc.licenseType;
     licenseTypeController = TextEditingController(text: selectedLicenseType);
@@ -245,10 +248,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
         if (mounted) {
           // Update the provider to refresh doctor data
-          context.read<DoctorUserProvider>().updateDoctorName(firstName, lastName);
+          context.read<DoctorUserProvider>().updateDoctorName(
+            firstName,
+            lastName,
+          );
 
           _showSnackBar('Doctor profile updated successfully', isError: false);
-          
+
           // Navigate back after a short delay to show the success message
           Future.delayed(const Duration(milliseconds: 500), () {
             if (mounted) {
@@ -257,7 +263,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           });
         }
       } else {
-        final errorMsg = response['message'] ?? "Something went wrong. Please try again.";
+        final errorMsg =
+            response['message'] ?? "Something went wrong. Please try again.";
         if (mounted) {
           _showSnackBar(errorMsg, isError: true);
         }
@@ -322,327 +329,412 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ),
         body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-
-                const Text(
-                  'Basic Information',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Basic Information',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildEditableField(
-                        label: "First Name",
-                        controller: firstNameController,
-                        hintText: "Enter first name",
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildEditableField(
+                          label: "First Name",
+                          controller: firstNameController,
+                          hintText: "Enter first name",
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'[a-zA-Z]'),
+                            ),
+                          ],
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return "Required";
+                            }
+                            if (!RegExp(
+                              r'^[a-zA-Z]+$',
+                            ).hasMatch(value.trim())) {
+                              return "Alphabets only";
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildEditableField(
+                          label: "Last Name",
+                          controller: lastNameController,
+                          hintText: "Enter last name",
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'[a-zA-Z]'),
+                            ),
+                          ],
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return "Required";
+                            }
+                            if (!RegExp(
+                              r'^[a-zA-Z]+$',
+                            ).hasMatch(value.trim())) {
+                              return "Alphabets only";
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  _buildNonEditableField(
+                    label: "Email",
+                    controller: emailController,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Phone Number Field using IntlPhoneField
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Phone Number',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF6C7278),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      IntlPhoneField(
+                        initialValue: initialPhoneNumber,
                         inputFormatters: [
-                          FilteringTextInputFormatter.allow(
-                            RegExp(r'[a-zA-Z]'),
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        decoration: InputDecoration(
+                          hintText: 'Enter phone number',
+                          hintStyle: const TextStyle(
+                            color: AppColors.textSecondary,
                           ),
-                        ],
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Required";
-                          }
-                          if (!RegExp(r'^[a-zA-Z]+$').hasMatch(value.trim())) {
-                            return "Alphabets only";
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildEditableField(
-                        label: "Last Name",
-                        controller: lastNameController,
-                        hintText: "Enter last name",
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(
-                            RegExp(r'[a-zA-Z]'),
+                          counterText: '',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
                           ),
-                        ],
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: AppColors.primary,
+                              width: 1.5,
+                            ),
+                          ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: Colors.red,
+                              width: 1.5,
+                            ),
+                          ),
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: Colors.red,
+                              width: 1.5,
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        initialCountryCode: countryCode,
+                        showCountryFlag: true,
+                        showDropdownIcon: true,
+                        dropdownIconPosition: IconPosition.trailing,
+                        dropdownIcon: const Icon(
+                          Icons.arrow_drop_down,
+                          color: Colors.grey,
+                        ),
+                        flagsButtonPadding: const EdgeInsets.only(
+                          left: 12,
+                          right: 8,
+                        ),
+                        onChanged: (phone) {
+                          completePhoneNumber = phone.completeNumber;
+                        },
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return "Required";
-                          }
-                          if (!RegExp(r'^[a-zA-Z]+$').hasMatch(value.trim())) {
-                            return "Alphabets only";
+                          if (value == null || value.number.isEmpty) {
+                            return 'Please enter a valid phone number';
                           }
                           return null;
                         },
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
+                    ],
+                  ),
 
-                _buildNonEditableField(
-                  label: "Email",
-                  controller: emailController,
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                // Phone Number Field using IntlPhoneField
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Phone Number',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF6C7278),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    IntlPhoneField(
-                      initialValue: initialPhoneNumber,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: InputDecoration(
-                        hintText: 'Enter phone number',
-                        hintStyle: const TextStyle(color: AppColors.textSecondary),
-                        counterText: '',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-                        ),
-                        errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(color: Colors.red, width: 1.5),
-                        ),
-                        focusedErrorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(color: Colors.red, width: 1.5),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      initialCountryCode: countryCode,
-                      showCountryFlag: true,
-                      showDropdownIcon: true,
-                      dropdownIconPosition: IconPosition.trailing,
-                      dropdownIcon: const Icon(
-                        Icons.arrow_drop_down,
-                        color: Colors.grey,
-                      ),
-                      flagsButtonPadding: const EdgeInsets.only(left: 12, right: 8),
-                      onChanged: (phone) {
-                        completePhoneNumber = phone.completeNumber;
-                      },
-                      validator: (value) {
-                        if (value == null || value.number.isEmpty) {
-                          return 'Please enter a valid phone number';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // Gender and Date of Birth in Row
-                Row(
-                  children: [
-                    // Gender Dropdown
-                    Expanded(
-                      child: AppDropdownField<String>(
-                        label: 'Gender',
-                        items: const [
-                          DropdownMenuItem(value: 'Male', child: Text('Male')),
-                          DropdownMenuItem(value: 'Female', child: Text('Female')),
-                          DropdownMenuItem(value: 'Other', child: Text('Other')),
-                        ],
-                        value: gender,
-                        onChanged: (value) {
-                          setState(() {
-                            gender = value;
-                            genderController.text = value ?? '';
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Gender is required';
-                          }
-                          return null;
-                        },
-                        hint: 'Select gender',
-                        prefixIcon: const Icon(Icons.person_2_outlined, color: AppColors.primary),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Date of Birth
-                    Expanded(
-                      child: AppDropdownField<String>(
-                        label: 'Date of Birth',
-                        items: const [],
-                        value: dobController.text.isEmpty ? null : dobController.text,
-                        onChanged: (value) {
-                          // This will be handled by onTap
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Date of Birth is required';
-                          }
-                          return null;
-                        },
-                        hint: 'Select Date',
-                        prefixIcon: const Icon(Icons.calendar_today_outlined, color: AppColors.primary),
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: selectedDate ?? DateTime.now(),
-                            firstDate: DateTime(1950),
-                            lastDate: DateTime.now(),
-                          );
-                          if (picked != null) {
+                  // Gender and Date of Birth in Row
+                  Row(
+                    children: [
+                      // Gender Dropdown
+                      Expanded(
+                        child: AppDropdownField<String>(
+                          label: 'Gender',
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'Male',
+                              child: Text('Male'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Female',
+                              child: Text('Female'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Other',
+                              child: Text('Other'),
+                            ),
+                          ],
+                          value: gender,
+                          onChanged: (value) {
                             setState(() {
-                              selectedDate = picked;
-                              dobController.text = DateFormat('MMM dd, yyyy').format(picked);
+                              gender = value;
+                              genderController.text = value ?? '';
                             });
-                          }
-                        },
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Gender is required';
+                            }
+                            return null;
+                          },
+                          hint: 'Select gender',
+                          prefixIcon: const Icon(
+                            Icons.person_2_outlined,
+                            color: AppColors.primary,
+                          ),
+                        ),
                       ),
+                      const SizedBox(width: 12),
+                      // Date of Birth
+                      Expanded(
+                        child: AppDropdownField<String>(
+                          label: 'Date of Birth',
+                          items: const [],
+                          value: dobController.text.isEmpty
+                              ? null
+                              : dobController.text,
+                          onChanged: (value) {
+                            // This will be handled by onTap
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Date of Birth is required';
+                            }
+                            return null;
+                          },
+                          hint: 'Select Date',
+                          prefixIcon: const Icon(
+                            Icons.calendar_today_outlined,
+                            color: AppColors.primary,
+                          ),
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate ?? DateTime.now(),
+                              firstDate: DateTime(1950),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                selectedDate = picked;
+                                dobController.text = DateFormat(
+                                  'MMM dd, yyyy',
+                                ).format(picked);
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  _buildEditableField(
+                    label: "License Number",
+                    controller: licenseNumberController,
+                    hintText: "Enter license number",
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+                      LengthLimitingTextInputFormatter(20),
+                    ],
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty ? "Required" : null,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // License Type Dropdown
+                  AppDropdownField<String>(
+                    label: 'License Type',
+                    items: const [
+                      DropdownMenuItem(value: 'CDLs', child: Text('CDLs')),
+                      DropdownMenuItem(value: 'IDP', child: Text('IDP')),
+                    ],
+                    value: selectedLicenseType,
+                    onChanged: (value) {
+                      setState(() {
+                        selectedLicenseType = value;
+                        licenseTypeController.text = value ?? '';
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'License Type is required';
+                      }
+                      return null;
+                    },
+                    hint: 'Select license type',
+                    prefixIcon: const Icon(
+                      Icons.card_membership_outlined,
+                      color: AppColors.primary,
                     ),
-                  ],
-                ),
+                  ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                _buildEditableField(
-                  label: "License Number",
-                  controller: licenseNumberController,
-                  hintText: "Enter license number",
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-                    LengthLimitingTextInputFormatter(20),
-                  ],
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty ? "Required" : null,
-                ),
+                  _buildEditableField(
+                    label: "Years of Experience",
+                    controller: yearsExperienceController,
+                    hintText: "Enter years of experience",
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      NoZeroInputFormatter(),
+                    ],
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return "Required";
+                      }
+                      final value = int.tryParse(v.trim());
+                      if (value == null || value <= 0 || value > 99) {
+                        return "Enter a value between 1 and 99";
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
 
-                const SizedBox(height: 16),
+                  Text(
+                    'License Document',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF6C7278),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
 
-                // License Type Dropdown
-                AppDropdownField<String>(
-                  label: 'License Type',
-                  items: const [
-                    DropdownMenuItem(value: 'CDLs', child: Text('CDLs')),
-                    DropdownMenuItem(value: 'IDP', child: Text('IDP')),
-                  ],
-                  value: selectedLicenseType,
-                  onChanged: (value) {
-                    setState(() {
-                      selectedLicenseType = value;
-                      licenseTypeController.text = value ?? '';
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'License Type is required';
-                    }
-                    return null;
-                  },
-                  hint: 'Select license type',
-                  prefixIcon: const Icon(Icons.card_membership_outlined, color: AppColors.primary),
-                ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                      color: Colors.white,
+                    ),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.picture_as_pdf, color: Colors.red),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'doctor_license_document.pdf',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Icon(Icons.edit, color: AppColors.primary),
+                      ],
+                    ),
+                  ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                _buildEditableField(
-                  label: "Years of Experience",
-                  controller: yearsExperienceController,
-                  hintText: "Enter years of experience",
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    NoZeroInputFormatter(),
-                  ],
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) {
-                      return "Required";
-                    }
-                    final value = int.tryParse(v.trim());
-                    if (value == null || value <= 0 || value > 99) {
-                      return "Enter a value between 1 and 99";
-                    }
-                    return null;
-                  },
-                ),
+                  // Specialization Dropdown
+                  AppDropdownField<String>(
+                    label: 'Specialization',
+                    items: editViewModel.specializationNames.map((spec) {
+                      return DropdownMenuItem(value: spec, child: Text(spec));
+                    }).toList(),
+                    value: selectedSpecialization,
+                    onChanged: (value) {
+                      setState(() {
+                        selectedSpecialization = value;
+                        specializationController.text = value ?? '';
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Specialization is required';
+                      }
+                      return null;
+                    },
+                    hint: 'Select specialization',
+                    prefixIcon: const Icon(
+                      Icons.medical_services_outlined,
+                      color: AppColors.primary,
+                    ),
+                  ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                // Specialization Dropdown
-                AppDropdownField<String>(
-                  label: 'Specialization',
-                  items: editViewModel.specializationNames.map((spec) {
-                    return DropdownMenuItem(value: spec, child: Text(spec));
-                  }).toList(),
-                  value: selectedSpecialization,
-                  onChanged: (value) {
-                    setState(() {
-                      selectedSpecialization = value;
-                      specializationController.text = value ?? '';
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Specialization is required';
-                    }
-                    return null;
-                  },
-                  hint: 'Select specialization',
-                  prefixIcon: const Icon(Icons.medical_services_outlined, color: AppColors.primary),
-                ),
+                  _buildEditableField(
+                    label: "License Issuing Authority",
+                    controller: licenseAuthorityController,
+                    hintText: "Enter license issuing authority",
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'[a-zA-Z0-9\s]'),
+                      ),
+                      LengthLimitingTextInputFormatter(50),
+                    ],
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty ? "Required" : null,
+                  ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 24),
 
-                _buildEditableField(
-                  label: "License Issuing Authority",
-                  controller: licenseAuthorityController,
-                  hintText: "Enter license issuing authority",
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s]')),
-                    LengthLimitingTextInputFormatter(50),
-                  ],
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty ? "Required" : null,
-                ),
-
-                const SizedBox(height: 24),
-
-                AppPrimaryButton(
-                  label: isSubmitting ? "Submitting..." : "Submit",
-                  onPressed: isSubmitting ? null : _onSubmitPressed,
-                ),
-                const SizedBox(height: 16),
-              ],
+                  AppPrimaryButton(
+                    label: isSubmitting ? "Submitting..." : "Submit",
+                    onPressed: isSubmitting ? null : _onSubmitPressed,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -687,7 +779,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.5,
+              ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
@@ -746,10 +841,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               vertical: 16,
             ),
           ),
-          style: const TextStyle(
-            color: Colors.grey,
-            fontSize: 14,
-          ),
+          style: const TextStyle(color: Colors.grey, fontSize: 14),
         ),
       ],
     );

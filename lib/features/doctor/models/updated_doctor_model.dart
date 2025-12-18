@@ -11,6 +11,8 @@ class Doctor {
   final String? gender;
   final DateTime? dob;
   final String? profilePicture;
+  final String? licenseDocument;
+  final String? IdDocuments;
 
   Doctor({
     this.firstName,
@@ -25,6 +27,8 @@ class Doctor {
     this.gender,
     this.dob,
     this.profilePicture,
+    this.licenseDocument,
+    this.IdDocuments
   });
 
   factory Doctor.fromJson(Map<String, dynamic> json) {
@@ -36,12 +40,17 @@ class Doctor {
       licenseNumber: json['license_number'],
       licenseType: json['license_type'],
       specialization: json['specialization'],
-      yearsOfExperience: json['years_of_experience'] is int ? json['years_of_experience'] : int.tryParse(json['years_of_experience']?.toString() ?? '0'),
+      yearsOfExperience: json['years_of_experience'] is int
+          ? json['years_of_experience']
+          : int.tryParse(json['years_of_experience']?.toString() ?? '0'),
       licenseIssuingAuthority: json['license_issuing_authority'],
       gender: json['gender'],
-      dob: json['date_of_birth'] != null ? DateTime.tryParse(json['date_of_birth']) : null,
+      dob: json['date_of_birth'] != null
+          ? DateTime.tryParse(json['date_of_birth'])
+          : null,
       profilePicture: json['profile_picture'],
+      licenseDocument: json['license_document'],
+      IdDocuments: json['id_document']
     );
   }
 }
-
