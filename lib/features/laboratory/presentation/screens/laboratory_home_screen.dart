@@ -58,7 +58,6 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   void initState() {
     super.initState();
     _rxCodeController = TextEditingController();
-    // Provider already fetches on initialization
   }
 
   @override
@@ -69,7 +68,6 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
 
   Future<void> _onRefresh() async {
     final provider = context.read<LaboratoryUserProvider>();
-    // Fetch profile to check approval status
     await provider.fetchProfile(forceRefresh: true);
   }
 
@@ -88,7 +86,6 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
 
     await provider.verifyRxCode(_rxCodeController.text);
 
-    // Show dialog based on verification result
     if (provider.errorMessage != null) {
       _showVerificationDialog(
         title: 'Verification Failed',
@@ -174,7 +171,6 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header View
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -279,7 +275,6 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                   ),
                   const SizedBox(height: 20),
 
-                  // Verify Test Request Section
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -431,7 +426,6 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                   ),
                   const SizedBox(height: 24),
 
-                  // Approval Status Message (if not approved)
                   if (!laboratoryProvider.isApproved &&
                       laboratoryProvider.approvalMessage.isNotEmpty)
                     Container(
@@ -484,7 +478,6 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                       laboratoryProvider.approvalMessage.isNotEmpty)
                     const SizedBox(height: 24),
 
-                  // New Requests Section
                   const Text(
                     'New Requests',
                     style: TextStyle(
@@ -495,7 +488,6 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                   ),
                   const SizedBox(height: 12),
 
-                  // Test Requests List
                   laboratoryProvider.isLoading
                       ? Container(
                           padding: const EdgeInsets.all(40),

@@ -592,7 +592,7 @@ class _EditPharmacyProfileView extends StatelessWidget {
                 : (viewModel.licenseDocument1Url != null && viewModel.licenseDocument1Url!.isNotEmpty)
                 ? 'License Document (Uploaded)'
                 : 'Upload License Document',
-            onPressed: () => _pickFile(context, viewModel, 1),
+            onPressed: () => _showLicenseDocumentPickerBottomSheet(context, viewModel, 1),
             isSelected: viewModel.licenseDocument1 != null || (viewModel.licenseDocument1Url != null && viewModel.licenseDocument1Url!.isNotEmpty),
           ),
         ],
@@ -988,18 +988,22 @@ class _EditPharmacyProfileView extends StatelessWidget {
         compressQuality: 85,
         maxWidth: 800,
         maxHeight: 800,
-        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: 'Crop Image',
             toolbarColor: AppColors.primaryDark,
             toolbarWidgetColor: Colors.white,
-            initAspectRatio: CropAspectRatioPreset.square,
+            initAspectRatio: CropAspectRatioPreset.original,
             lockAspectRatio: false,
+            hideBottomControls: false,
+            cropGridRowCount: 3,
+            cropGridColumnCount: 3,
           ),
           IOSUiSettings(
             title: 'Crop Image',
             aspectRatioLockEnabled: false,
+            resetAspectRatioEnabled: true,
+            aspectRatioPickerButtonHidden: false,
           ),
         ],
       );
@@ -1040,18 +1044,7 @@ class _EditPharmacyProfileView extends StatelessWidget {
                   title: const Text('Take Picture'),
                   onTap: () async {
                     Navigator.pop(context);
-                    final picker = ImagePicker();
-                    final pickedFile = await picker.pickImage(
-                      source: ImageSource.camera,
-                      imageQuality: 85,
-                      maxWidth: 800,
-                    );
-                    if (pickedFile != null) {
-                      final croppedFile = await _cropImage(File(pickedFile.path));
-                      if (croppedFile != null) {
-                        viewModel.setProfilePicture(croppedFile);
-                      }
-                    }
+                    _handleImagePick(context, ImageSource.camera, viewModel, isProfilePicture: true);
                   },
                 ),
                 ListTile(
@@ -1059,18 +1052,7 @@ class _EditPharmacyProfileView extends StatelessWidget {
                   title: const Text('Select From Gallery'),
                   onTap: () async {
                     Navigator.pop(context);
-                    final picker = ImagePicker();
-                    final pickedFile = await picker.pickImage(
-                      source: ImageSource.gallery,
-                      imageQuality: 85,
-                      maxWidth: 800,
-                    );
-                    if (pickedFile != null) {
-                      final croppedFile = await _cropImage(File(pickedFile.path));
-                      if (croppedFile != null) {
-                        viewModel.setProfilePicture(croppedFile);
-                      }
-                    }
+                    _handleImagePick(context, ImageSource.gallery, viewModel, isProfilePicture: true);
                   },
                 ),
               ],
@@ -1082,23 +1064,102 @@ class _EditPharmacyProfileView extends StatelessWidget {
     );
   }
 
-  Future<void> _pickFile(
+  Future<void> _handleImagePick(
+      BuildContext context,
+      ImageSource source,
+      PharmacyProfileViewModel viewModel,
+      {bool isProfilePicture = false, int? documentNumber}
+      ) async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: source == ImageSource.camera ? 800 : 1920,
+        maxHeight: source == ImageSource.camera ? 800 : 1920,
+      );
+
+      if (pickedFile != null) {
+        final croppedFile = await _cropImage(File(pickedFile.path));
+        if (croppedFile != null) {
+          if (isProfilePicture) {
+            viewModel.setProfilePicture(croppedFile);
+          } else if (documentNumber != null) {
+            if (documentNumber == 1) {
+              viewModel.setLicenseDocument1(croppedFile);
+            } else if (documentNumber == 2) {
+              viewModel.setLicenseDocument2(croppedFile);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+    }
+  }
+
+  void _showLicenseDocumentPickerBottomSheet(
       BuildContext context,
       PharmacyProfileViewModel viewModel,
       int documentNumber,
-      ) async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      ) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Select License Document',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Take Picture'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    _handleImagePick(context, ImageSource.camera, viewModel, documentNumber: documentNumber);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.image),
+                  title: const Text('Select From Gallery'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    _handleImagePick(context, ImageSource.gallery, viewModel, documentNumber: documentNumber);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.picture_as_pdf),
+                  title: const Text('Select PDF Document'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.custom,
+                      allowedExtensions: ['pdf'],
+                    );
+                    if (result != null && result.files.single.path != null) {
+                      final file = File(result.files.single.path!);
+                      if (documentNumber == 1) {
+                        viewModel.setLicenseDocument1(file);
+                      } else if (documentNumber == 2) {
+                        viewModel.setLicenseDocument2(file);
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
-
-    if (result != null && result.files.single.path != null) {
-      final file = File(result.files.single.path!);
-      if (documentNumber == 1) {
-        viewModel.setLicenseDocument1(file);
-      } else if (documentNumber == 2) {
-        viewModel.setLicenseDocument2(file);
-      }
-    }
   }
 }

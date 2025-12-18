@@ -364,10 +364,11 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
     // Create a map to track availability for each medication
     Map<int, Map<String, dynamic>> medicationAvailability = {};
     for (int i = 0; i < widget.request.medications.length; i++) {
+      final requiredQty = _extractQuantity(widget.request.medications[i].instructions) ?? 1;
       medicationAvailability[i] = {
         'isAvailable': true,
-        'availableQty': 0, // Will be set based on required quantity
-        'requiredQty': _extractQuantity(widget.request.medications[i].instructions) ?? 1,
+        'requiredQty': requiredQty,
+        'availableQty': requiredQty,
       };
     }
 
@@ -432,7 +433,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                       itemBuilder: (context, index) {
                         final medication = widget.request.medications[index];
                         final availability = medicationAvailability[index]!;
-                        
+
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(16),
@@ -626,9 +627,12 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
     return match != null ? int.tryParse(match.group(1)!) : null;
   }
 
-  Future<void> _updateAvailability(String availability) async {
+  Future<void> _submitAvailability({
+    required String availability,
+    required List<Map<String, dynamic>> items,
+    required String comment,
+  }) async {
     try {
-      // Show loading dialog
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -640,121 +644,9 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
       final prefs = await SharedPreferences.getInstance();
       final accessToken = prefs.getString('access_token') ?? '';
       final statusId = widget.request.id;
-
-      // Prepare items list
-      List<Map<String, dynamic>> items = [];
-      
-      if (availability == 'full') {
-        // All medicines fully available
-        for (final medication in widget.request.medications) {
-          final quantity = _extractQuantity(medication.instructions) ?? 1;
-          items.add({
-            'name': medication.name,
-            'strength': medication.dosage,
-            'required_qty': quantity,
-            'available_qty': quantity + 5, // Add some buffer stock
-            'notes': 'In stock',
-          });
-        }
-      }
 
       final body = {
         'availability': availability,
-        'items': items,
-        'comment': availability == 'full' 
-            ? 'All medicines fully available.'
-            : 'Availability updated.',
-      };
-
-      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/$statusId/availability/');
-      final client = ChuckerHttpClient(http.Client());
-      final response = await client.patch(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 30));
-
-      Navigator.pop(context); // Close loading dialog
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(availability == 'full' 
-                ? 'Prescription marked as fully available'
-                : 'Availability updated successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context); // Go back to home screen
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update availability: ${response.statusCode}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      Navigator.pop(context); // Close loading dialog
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating availability: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Future<void> _updatePartialAvailability(Map<int, Map<String, dynamic>> medicationAvailability) async {
-    try {
-      // Show loading dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-
-      final prefs = await SharedPreferences.getInstance();
-      final accessToken = prefs.getString('access_token') ?? '';
-      final statusId = widget.request.id;
-
-      // Prepare items list based on user selection
-      List<Map<String, dynamic>> items = [];
-      bool anyAvailable = false;
-      
-      for (int i = 0; i < widget.request.medications.length; i++) {
-        final medication = widget.request.medications[i];
-        final availability = medicationAvailability[i]!;
-        
-        if (availability['isAvailable']) {
-          anyAvailable = true;
-          items.add({
-            'name': medication.name,
-            'strength': medication.dosage,
-            'required_qty': availability['requiredQty'],
-            'available_qty': availability['availableQty'],
-            'notes': availability['availableQty'] >= availability['requiredQty']
-                ? 'In stock'
-                : 'Only ${availability['availableQty']} available',
-          });
-        }
-      }
-
-      String availabilityStatus = 'none';
-      String comment = 'None of the requested medicines are available.';
-      
-      if (anyAvailable) {
-        availabilityStatus = 'partial';
-        comment = 'Some medicines are available, others are not.';
-      }
-
-      final body = {
-        'availability': availabilityStatus,
         'items': items,
         'comment': comment,
       };
@@ -773,13 +665,19 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
       Navigator.pop(context);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        final successMessage = availability == 'full'
+            ? 'Prescription marked as fully available'
+            : availability == 'none'
+                ? 'Prescription marked as unavailable'
+                : 'Availability updated successfully';
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Availability updated successfully'),
+          SnackBar(
+            content: Text(successMessage),
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -797,5 +695,126 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _updateAvailability(String availability) async {
+    final List<Map<String, dynamic>> items = [];
+
+    if (availability == 'full') {
+      for (final medication in widget.request.medications) {
+        final requiredQty = _extractQuantity(medication.instructions) ?? 1;
+        items.add({
+          'name': medication.name,
+          'strength': medication.dosage,
+          'required_qty': requiredQty,
+          'available_qty': requiredQty,
+          'notes': 'In stock',
+        });
+      }
+    }
+
+    final String comment;
+    if (availability == 'full') {
+      comment = 'All medicines fully available.';
+    } else if (availability == 'none') {
+      comment = 'None of the requested medicines are available.';
+    } else {
+      comment = 'Availability updated.';
+    }
+
+    await _submitAvailability(
+      availability: availability,
+      items: availability == 'none' ? [] : items,
+      comment: comment,
+    );
+  }
+
+  Future<void> _updatePartialAvailability(
+    Map<int, Map<String, dynamic>> medicationAvailability,
+  ) async {
+    final List<Map<String, dynamic>> items = [];
+    bool anyAvailable = false;
+    bool allFullyAvailable = true;
+
+    for (int i = 0; i < widget.request.medications.length; i++) {
+      final medication = widget.request.medications[i];
+      final availability = medicationAvailability[i]!;
+
+      final int requiredQty = (availability['requiredQty'] as int?) ?? 1;
+      final bool isAvailable = availability['isAvailable'] as bool? ?? false;
+      final int availableQty = isAvailable ? (availability['availableQty'] as int? ?? 0) : 0;
+
+      if (availableQty > 0) {
+        anyAvailable = true;
+      }
+
+      if (availableQty < requiredQty) {
+        allFullyAvailable = false;
+      }
+
+      items.add({
+        'name': medication.name,
+        'strength': medication.dosage,
+        'required_qty': requiredQty,
+        'available_qty': availableQty,
+        'notes': isAvailable
+            ? (availableQty >= requiredQty
+                ? 'In stock'
+                : 'Only $availableQty available')
+            : 'Out of stock',
+      });
+    }
+
+    if (items.isEmpty) {
+      await _submitAvailability(
+        availability: 'none',
+        items: const [],
+        comment: 'None of the requested medicines are available.',
+      );
+      return;
+    }
+
+    String availabilityStatus;
+    String comment;
+
+    if (!anyAvailable) {
+      availabilityStatus = 'none';
+      comment = 'None of the requested medicines are available.';
+    } else if (allFullyAvailable) {
+      availabilityStatus = 'full';
+      comment = 'All medicines fully available.';
+    } else {
+      availabilityStatus = 'partial';
+      comment = _buildPartialAvailabilityComment(items);
+    }
+
+    final List<Map<String, dynamic>> payloadItems =
+        availabilityStatus == 'none' ? <Map<String, dynamic>>[] : items;
+
+    await _submitAvailability(
+      availability: availabilityStatus,
+      items: payloadItems,
+      comment: comment,
+    );
+  }
+
+  String _buildPartialAvailabilityComment(List<Map<String, dynamic>> items) {
+    final List<String> parts = [];
+
+    for (final item in items) {
+      final String name = item['name'] as String? ?? '';
+      final int requiredQty = item['required_qty'] as int? ?? 0;
+      final int availableQty = item['available_qty'] as int? ?? 0;
+
+      if (availableQty == 0) {
+        parts.add('$name out of stock');
+      } else if (availableQty < requiredQty) {
+        parts.add('$name partially available ($availableQty of $requiredQty)');
+      } else {
+        parts.add('$name fully available');
+      }
+    }
+
+    return parts.join(', ');
   }
 }

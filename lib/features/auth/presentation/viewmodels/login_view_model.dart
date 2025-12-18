@@ -178,6 +178,15 @@ class LoginViewModel extends ChangeNotifier {
         }
 
         isProfileCompleted = (response['data']['is_profile_complete'] == true);
+
+        // For doctors, also check if verification was completed locally
+        if (role == 'doctor') {
+          final verificationCompleted = prefs.getBool('doctor_verification_completed') ?? false;
+          if (verificationCompleted) {
+            isProfileCompleted = true;
+          }
+        }
+
         prefs.setBool(CacheKeys.isProfileCompleted, isProfileCompleted);
         debugPrint('is CompletedProfile is $isProfileCompleted');
 
@@ -186,7 +195,7 @@ class LoginViewModel extends ChangeNotifier {
             'laboratory_profile_completed',
             isProfileCompleted,
           );
-        } else {
+        } else if (role == 'pharmacy') {
           await prefs.setBool('pharmacy_profile_completed', isProfileCompleted);
         }
 
