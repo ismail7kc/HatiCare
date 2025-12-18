@@ -179,11 +179,15 @@ class LoginViewModel extends ChangeNotifier {
 
         isProfileCompleted = (response['data']['is_profile_complete'] == true);
 
-        // For doctors, also check if verification was completed locally
+        // For doctors, check verification status per doctor ID
         if (role == 'doctor') {
-          final verificationCompleted = prefs.getBool('doctor_verification_completed') ?? false;
-          if (verificationCompleted) {
-            isProfileCompleted = true;
+          final doctorId = response['data']['id']?.toString() ?? '';
+          if (doctorId.isNotEmpty) {
+            final verificationCompleted = prefs.getBool('doctor_verification_completed_$doctorId') ?? false;
+            if (verificationCompleted && !isProfileCompleted) {
+              // Local verification flag exists but server hasn't updated yet
+              isProfileCompleted = true;
+            }
           }
         }
 
@@ -203,21 +207,41 @@ class LoginViewModel extends ChangeNotifier {
       }
 
       if (response['success'] == true && response['data'] != null) {
-        lastResponse = response['data'];
+        final responseData = response['data'] as Map<String, dynamic>;
+        lastResponse = responseData;
         await SaveLoginResponse.saveLoginModel(lastResponse);
 
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('doctorId', lastResponse!['id'].toString());
-        SaveLoginResponse.loginData = lastResponse;
+        await prefs.setString('doctorId', responseData['id'].toString());
+
+        if (roleFromResponse == 'doctor') {
+          final currentDoctorId = responseData['id']?.toString() ?? '';
+          final lastDoctorId = prefs.getString('last_logged_in_doctor_id') ?? '';
+
+          if (currentDoctorId.isNotEmpty && lastDoctorId.isNotEmpty && currentDoctorId != lastDoctorId) {
+            await prefs.remove('idCardChecked_$lastDoctorId');
+            await prefs.remove('selfieChecked_$lastDoctorId');
+            await prefs.remove('licenseChecked_$lastDoctorId');
+            await prefs.remove('isRequiredInfoFilled_$lastDoctorId');
+
+            await prefs.remove('licenseNumber_$lastDoctorId');
+            await prefs.remove('yearsExperience_$lastDoctorId');
+            await prefs.remove('licenseAuthority_$lastDoctorId');
+            await prefs.remove('licenseType_$lastDoctorId');
+            await prefs.remove('specialization_$lastDoctorId');
+          }
+
+          if (currentDoctorId.isNotEmpty) {
+            await prefs.setString('last_logged_in_doctor_id', currentDoctorId);
+          }
+        }
+        SaveLoginResponse.loginData = responseData;
         
-        print('Saved loginData: ${SaveLoginResponse.loginData}');
       }
 
-      // Check at root level
       accessToken ??= response['access_token'] ?? response['access'];
       refreshToken ??= response['refresh_token'] ?? response['refresh'];
 
-      // Check in data object
       final data = response['data'];
       if (data is Map<String, dynamic>) {
         accessToken ??= data['access_token'] ?? data['access'];
@@ -238,17 +262,14 @@ class LoginViewModel extends ChangeNotifier {
         debugPrint('No refresh token found in response');
       }
 
-      // Save user type
       final userType = roleFromResponse;
       if (userType != null) {
         await prefs.setString('user_type', userType);
       }
 
-      // Save user name and phone number if available
       String? firstName;
       String? lastName;
       String? phoneNumber;
-      // Root level
       if (response['first_name'] is String) {
         firstName = response['first_name'] as String;
       }
@@ -258,7 +279,6 @@ class LoginViewModel extends ChangeNotifier {
       if (response['phone_number'] is String) {
         phoneNumber = response['phone_number'] as String;
       }
-      // In 'response' object
       final responseObj2 = response['response'];
       if (responseObj2 is Map<String, dynamic>) {
         if (responseObj2['first_name'] is String &&
@@ -274,7 +294,6 @@ class LoginViewModel extends ChangeNotifier {
           phoneNumber = responseObj2['phone_number'] as String;
         }
       }
-      // In 'data' object
       final dataObj = response['data'];
       if (dataObj is Map<String, dynamic>) {
         if (dataObj['first_name'] is String &&

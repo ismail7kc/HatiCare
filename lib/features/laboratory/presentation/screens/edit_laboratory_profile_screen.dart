@@ -6,12 +6,14 @@ import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:path/path.dart' as path;
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/core/widgets/app_dropdown_field.dart';
 import 'package:haticare/core/widgets/app_primary_button.dart';
 import 'package:haticare/core/widgets/custom_dropdown_dialog.dart';
 import 'package:haticare/features/laboratory/presentation/viewmodels/laboratory_profile_view_model.dart';
 import 'package:haticare/features/laboratory/presentation/screens/laboratory_home_screen.dart';
+import 'package:haticare/features/common/presentation/screens/upload_document_screen.dart';
 
 import '../../../../core/widgets/app_text_field.dart';
 
@@ -847,11 +849,11 @@ class _EditLaboratoryProfileView extends StatelessWidget {
 
           _buildFileUploadButton(
             label: viewModel.licenseDocument1 != null
-                ? 'License Document (Selected)'
+                ? path.basename(viewModel.licenseDocument1!.path)
                 : (viewModel.licenseDocument1Url != null && viewModel.licenseDocument1Url!.isNotEmpty)
                     ? 'License Document (Uploaded)'
                     : 'Upload License Document',
-            onPressed: () => _showLicenseDocumentPickerBottomSheet(context, viewModel, 1),
+            onPressed: () => _navigateToUploadDocument(context, viewModel, 1),
             isSelected: viewModel.licenseDocument1 != null || (viewModel.licenseDocument1Url != null && viewModel.licenseDocument1Url!.isNotEmpty),
           ),
         ],
@@ -1280,68 +1282,27 @@ class _EditLaboratoryProfileView extends StatelessWidget {
   }
 
 
-  static void _showLicenseDocumentPickerBottomSheet(
+  static Future<void> _navigateToUploadDocument(
       BuildContext context,
       LaboratoryProfileViewModel viewModel,
       int documentNumber,
-      ) {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Select License Document',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  leading: const Icon(Icons.camera_alt),
-                  title: const Text('Take Picture'),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    _handleImagePick(context, ImageSource.camera, viewModel, documentNumber: documentNumber);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.image),
-                  title: const Text('Select From Gallery'),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    _handleImagePick(context, ImageSource.gallery, viewModel, documentNumber: documentNumber);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.picture_as_pdf),
-                  title: const Text('Select PDF Document'),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    final result = await FilePicker.platform.pickFiles(
-                      type: FileType.custom,
-                      allowedExtensions: ['pdf'],
-                    );
-                    if (result != null && result.files.single.path != null) {
-                      final file = File(result.files.single.path!);
-                      if (documentNumber == 1) {
-                        viewModel.setLicenseDocument1(file);
-                      } else if (documentNumber == 2) {
-                        viewModel.setLicenseDocument2(file);
-                      }
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      ) async {
+    final result = await Navigator.of(context, rootNavigator: true).push<Map<String, dynamic>>(
+      MaterialPageRoute(
+        builder: (_) => const UploadDocumentScreen(
+          title: 'Upload License Document',
+          subtitle: 'Please capture or upload your license document',
+        ),
+      ),
     );
+
+    if (result != null && result['file'] != null) {
+      final file = result['file'] as File;
+      if (documentNumber == 1) {
+        viewModel.setLicenseDocument1(file);
+      } else if (documentNumber == 2) {
+        viewModel.setLicenseDocument2(file);
+      }
+    }
   }
 }

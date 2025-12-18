@@ -9,6 +9,7 @@ import 'package:haticare/features/doctor/presentation/screens/doctor_verfication
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/identify_document.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/take_selfi.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:haticare/features/common/shared_prefs_helper.dart';
 
 class DoctorVerificationScreen extends StatefulWidget {
   const DoctorVerificationScreen({super.key});
@@ -35,18 +36,28 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
 
   Future<void> _loadSavedState() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      idCardChecked = prefs.getBool('idCardChecked') ?? false;
-      selfieChecked = prefs.getBool('selfieChecked') ?? false;
-      licenseChecked = prefs.getBool('licenseChecked') ?? false;
-      isRequiredInfoFilled =
-          prefs.getBool('isRequiredInfoFilled') ?? false;
-    });
+    await SaveLoginResponse.loadLoginModel();
+    final doctorId = SaveLoginResponse.loginData?['id']?.toString() ?? '';
+
+    if (doctorId.isNotEmpty) {
+      setState(() {
+        idCardChecked = prefs.getBool('idCardChecked_$doctorId') ?? false;
+        selfieChecked = prefs.getBool('selfieChecked_$doctorId') ?? false;
+        licenseChecked = prefs.getBool('licenseChecked_$doctorId') ?? false;
+        isRequiredInfoFilled =
+            prefs.getBool('isRequiredInfoFilled_$doctorId') ?? false;
+      });
+    }
   }
 
   Future<void> _saveState(String key, bool value) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(key, value);
+    await SaveLoginResponse.loadLoginModel();
+    final doctorId = SaveLoginResponse.loginData?['id']?.toString() ?? '';
+
+    if (doctorId.isNotEmpty) {
+      await prefs.setBool('${key}_$doctorId', value);
+    }
   }
 
   @override
@@ -247,10 +258,16 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                               ),
                               onPressed: isAllChecked
                                   ? () async {
-                                      // Save profile completion status
+                                      // Save profile completion status with doctor ID
                                       final prefs = await SharedPreferences.getInstance();
+                                      final doctorId = SaveLoginResponse.loginData?['id']?.toString() ?? '';
+
                                       await prefs.setBool('is_profile_completed', true);
-                                      await prefs.setBool('doctor_verification_completed', true);
+
+                                      // Save verification completed flag with doctor ID to prevent cross-account issues
+                                      if (doctorId.isNotEmpty) {
+                                        await prefs.setBool('doctor_verification_completed_$doctorId', true);
+                                      }
 
                                       if (context.mounted) {
                                         Navigator.pushReplacement(

@@ -6,6 +6,7 @@ import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/edit_profile_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:haticare/features/common/shared_prefs_helper.dart';
 
 class DoctorRequiredInfo extends StatefulWidget {
   const DoctorRequiredInfo({super.key});
@@ -56,12 +57,17 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
 
   Future<void> _loadDoctorFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
+    await SaveLoginResponse.loadLoginModel();
+    final doctorId = SaveLoginResponse.loginData?['id']?.toString() ?? '';
 
-    licenseNumberController.text = prefs.getString('licenseNumber') ?? '';
-    yearsExperienceController.text = prefs.getString('yearsExperience') ?? '';
-    licenseAuthorityController.text = prefs.getString('licenseAuthority') ?? '';
-    selectedLicenseType = prefs.getString('licenseType');
-    selectedSpecialization = prefs.getString('specialization');
+    if (doctorId.isNotEmpty) {
+      licenseNumberController.text = prefs.getString('licenseNumber_$doctorId') ?? '';
+      yearsExperienceController.text = prefs.getString('yearsExperience_$doctorId') ?? '';
+      licenseAuthorityController.text = prefs.getString('licenseAuthority_$doctorId') ?? '';
+      selectedLicenseType = prefs.getString('licenseType_$doctorId');
+      selectedSpecialization = prefs.getString('specialization_$doctorId');
+    }
+
     isFormComplete.value = _areAllFieldsFilled();
 
     if (mounted) setState(() {});
@@ -95,16 +101,17 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
 
     if (response['success'] == true) {
       final prefs = await SharedPreferences.getInstance();
+      await SaveLoginResponse.loadLoginModel();
+      final doctorId = SaveLoginResponse.loginData?['id']?.toString() ?? '';
 
-      await prefs.setString('licenseNumber', licenseNumberController.text);
-      await prefs.setString('yearsExperience', yearsExperienceController.text);
-      await prefs.setString(
-        'licenseAuthority',
-        licenseAuthorityController.text,
-      );
-      await prefs.setString('licenseType', selectedLicenseType!);
-      await prefs.setString('specialization', selectedSpecialization!);
-      await prefs.setBool('isRequiredInfoFilled', true);
+      if (doctorId.isNotEmpty) {
+        await prefs.setString('licenseNumber_$doctorId', licenseNumberController.text);
+        await prefs.setString('yearsExperience_$doctorId', yearsExperienceController.text);
+        await prefs.setString('licenseAuthority_$doctorId', licenseAuthorityController.text);
+        await prefs.setString('licenseType_$doctorId', selectedLicenseType!);
+        await prefs.setString('specialization_$doctorId', selectedSpecialization!);
+        await prefs.setBool('isRequiredInfoFilled_$doctorId', true);
+      }
 
       Navigator.pop(context, true);
     } else {
