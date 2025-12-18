@@ -247,14 +247,19 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                               ),
                               onPressed: isAllChecked
                                   ? () async {
-                                      await clearDoctorVerificationState();
-                                      Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              const DoctorHomeScreen(),
-                                        ),
-                                      );
+                                      // Save profile completion status
+                                      final prefs = await SharedPreferences.getInstance();
+                                      await prefs.setBool('is_profile_completed', true);
+                                      await prefs.setBool('doctor_verification_completed', true);
+
+                                      if (context.mounted) {
+                                        Navigator.pushReplacement(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => const DoctorHomeScreen(),
+                                          ),
+                                        );
+                                      }
                                     }
                                   : null,
                               child: const Text(

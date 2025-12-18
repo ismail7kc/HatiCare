@@ -55,7 +55,7 @@ class _CustomDropdownDialogState extends State<CustomDropdownDialog> {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
-        color: Colors.white, // Set the background color of the entire dialog content to white
+        color: Colors.white,
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.8,
           maxWidth: MediaQuery.of(context).size.width * 0.95,
@@ -63,11 +63,10 @@ class _CustomDropdownDialogState extends State<CustomDropdownDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white, // Set header background to white
+                color: Colors.white,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
                   topRight: Radius.circular(12),
@@ -94,7 +93,6 @@ class _CustomDropdownDialogState extends State<CustomDropdownDialog> {
               ),
             ),
 
-            // Search Field
             Padding(
               padding: const EdgeInsets.all(16),
               child: TextField(
@@ -127,7 +125,6 @@ class _CustomDropdownDialogState extends State<CustomDropdownDialog> {
               ),
             ),
 
-            // Items List
             Expanded(
               child: _filteredItems.isEmpty
                   ? Center(
@@ -162,7 +159,6 @@ class _CustomDropdownDialogState extends State<CustomDropdownDialog> {
   }
 }
 
-// Helper function to show the dialog
 Future<String?> showCustomDropdownDialog({
   required BuildContext context,
   required String title,

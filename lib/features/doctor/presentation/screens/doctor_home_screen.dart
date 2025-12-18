@@ -137,11 +137,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         hasAdminApproval = cachedApproval;
       });
 
-      // Then update from provider
+      // Fetch fresh data from API
       final provider = context.read<DoctorUserProvider>();
-      setState(() {
-        hasAdminApproval = provider.isApproved;
-      });
+      await provider.fetchProfile(forceRefresh: true);
+
+      // Then update from provider after fetch completes
+      if (mounted) {
+        setState(() {
+          hasAdminApproval = provider.isApproved;
+        });
+      }
     }
   }
 
@@ -411,7 +416,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           AbsorbPointer(
             absorbing: hasAdminApproval != true,
             child: Opacity(
-              opacity: hasAdminApproval == true ? 1.0 : 0.5,
+              opacity: (hasAdminApproval == true) ? 1.0 : 0.5,
               child: Switch(
                 value: isOnline,
                 activeThumbColor: const Color(0xFFFFFFFF),

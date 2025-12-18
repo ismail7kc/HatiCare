@@ -14,7 +14,7 @@ class DoctorUserProvider extends ChangeNotifier {
   String _email = '';
   bool _isLoading = true;
   String? _errorMessage;
-  bool _isApproved = true;
+  bool? _isApproved;
   String _approvalMessage = '';
 
   String get doctorName => _doctorName;
@@ -24,7 +24,7 @@ class DoctorUserProvider extends ChangeNotifier {
   String get email => _email;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  bool get isApproved => _isApproved;
+  bool? get isApproved => _isApproved;
   String get approvalMessage => _approvalMessage;
 
   DoctorUserProvider() {
@@ -106,7 +106,7 @@ class DoctorUserProvider extends ChangeNotifier {
             _approvalMessage = data['approval_message'] ?? '';
           } else if (data.containsKey('status_message')) {
             _approvalMessage = data['status_message'] ?? '';
-          } else if (!_isApproved) {
+          } else if (_isApproved != true) {
             _approvalMessage = "Waiting For Admin's Approval";
           } else {
             _approvalMessage = '';
@@ -128,7 +128,7 @@ class DoctorUserProvider extends ChangeNotifier {
           SaveLoginResponse.loginData?['is_approved'] = _isApproved;
 
           // Save approval status to preferences for offline checking
-          await prefs.setBool('doctor_is_approved', _isApproved);
+          await prefs.setBool('doctor_is_approved', _isApproved ?? false);
           await prefs.setString('doctor_approval_message', _approvalMessage);
         }
       } else {

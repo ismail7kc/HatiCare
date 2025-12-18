@@ -13,6 +13,28 @@ import 'package:haticare/core/widgets/custom_dropdown_dialog.dart';
 import 'package:haticare/features/pharmacy/presentation/viewmodels/pharmacy_profile_view_model.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
 
+// Custom formatter to prevent double spaces
+class SingleSpaceFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Replace multiple consecutive spaces with a single space
+    final newText = newValue.text.replaceAll(RegExp(r'\s{2,}'), ' ');
+    
+    // If the text was changed (spaces were reduced), return the new value
+    if (newText != newValue.text) {
+      return TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: newText.length),
+      );
+    }
+    
+    return newValue;
+  }
+}
+
 class EditPharmacyProfileScreen extends StatelessWidget {
   final String pharmacyId;
   final bool isForceComplete;
@@ -323,6 +345,7 @@ class _EditPharmacyProfileView extends StatelessWidget {
             hintText: 'Enter pharmacy name',
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
+              SingleSpaceFormatter(),
             ],
             onChanged: () => viewModel.clearValidationError('pharmacyName'),
             viewModel: viewModel,
@@ -397,6 +420,7 @@ class _EditPharmacyProfileView extends StatelessWidget {
             hintText: 'Enter street address',
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s,.-]')),
+              SingleSpaceFormatter(),
             ],
             onChanged: () => viewModel.clearValidationError('address'),
             viewModel: viewModel,
@@ -568,7 +592,7 @@ class _EditPharmacyProfileView extends StatelessWidget {
                 : (viewModel.licenseDocument1Url != null && viewModel.licenseDocument1Url!.isNotEmpty)
                 ? 'License Document (Uploaded)'
                 : 'Upload License Document',
-            onPressed: () => _pickFile(context, viewModel, 1),
+            onPressed: () => _showLicenseDocumentPickerBottomSheet(context, viewModel, 1),
             isSelected: viewModel.licenseDocument1 != null || (viewModel.licenseDocument1Url != null && viewModel.licenseDocument1Url!.isNotEmpty),
           ),
         ],
@@ -903,13 +927,6 @@ class _EditPharmacyProfileView extends StatelessWidget {
             validator: validator,
             autovalidateMode: AutovalidateMode.onUnfocus,
             onChanged: (value) {
-              // Trim spaces on change
-              if (value != null && value != value.trim()) {
-                controller.text = value.trim();
-                controller.selection = TextSelection.fromPosition(
-                  TextPosition(offset: value.trim().length),
-                );
-              }
               if (onChanged != null) onChanged();
             },
             decoration: InputDecoration(
@@ -971,18 +988,22 @@ class _EditPharmacyProfileView extends StatelessWidget {
         compressQuality: 85,
         maxWidth: 800,
         maxHeight: 800,
-        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: 'Crop Image',
             toolbarColor: AppColors.primaryDark,
             toolbarWidgetColor: Colors.white,
-            initAspectRatio: CropAspectRatioPreset.square,
+            initAspectRatio: CropAspectRatioPreset.original,
             lockAspectRatio: false,
+            hideBottomControls: false,
+            cropGridRowCount: 3,
+            cropGridColumnCount: 3,
           ),
           IOSUiSettings(
             title: 'Crop Image',
             aspectRatioLockEnabled: false,
+            resetAspectRatioEnabled: true,
+            aspectRatioPickerButtonHidden: false,
           ),
         ],
       );
@@ -1023,18 +1044,7 @@ class _EditPharmacyProfileView extends StatelessWidget {
                   title: const Text('Take Picture'),
                   onTap: () async {
                     Navigator.pop(context);
-                    final picker = ImagePicker();
-                    final pickedFile = await picker.pickImage(
-                      source: ImageSource.camera,
-                      imageQuality: 85,
-                      maxWidth: 800,
-                    );
-                    if (pickedFile != null) {
-                      final croppedFile = await _cropImage(File(pickedFile.path));
-                      if (croppedFile != null) {
-                        viewModel.setProfilePicture(croppedFile);
-                      }
-                    }
+                    _handleImagePick(context, ImageSource.camera, viewModel, isProfilePicture: true);
                   },
                 ),
                 ListTile(
@@ -1042,18 +1052,7 @@ class _EditPharmacyProfileView extends StatelessWidget {
                   title: const Text('Select From Gallery'),
                   onTap: () async {
                     Navigator.pop(context);
-                    final picker = ImagePicker();
-                    final pickedFile = await picker.pickImage(
-                      source: ImageSource.gallery,
-                      imageQuality: 85,
-                      maxWidth: 800,
-                    );
-                    if (pickedFile != null) {
-                      final croppedFile = await _cropImage(File(pickedFile.path));
-                      if (croppedFile != null) {
-                        viewModel.setProfilePicture(croppedFile);
-                      }
-                    }
+                    _handleImagePick(context, ImageSource.gallery, viewModel, isProfilePicture: true);
                   },
                 ),
               ],
@@ -1065,23 +1064,102 @@ class _EditPharmacyProfileView extends StatelessWidget {
     );
   }
 
-  Future<void> _pickFile(
+  Future<void> _handleImagePick(
+      BuildContext context,
+      ImageSource source,
+      PharmacyProfileViewModel viewModel,
+      {bool isProfilePicture = false, int? documentNumber}
+      ) async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: source == ImageSource.camera ? 800 : 1920,
+        maxHeight: source == ImageSource.camera ? 800 : 1920,
+      );
+
+      if (pickedFile != null) {
+        final croppedFile = await _cropImage(File(pickedFile.path));
+        if (croppedFile != null) {
+          if (isProfilePicture) {
+            viewModel.setProfilePicture(croppedFile);
+          } else if (documentNumber != null) {
+            if (documentNumber == 1) {
+              viewModel.setLicenseDocument1(croppedFile);
+            } else if (documentNumber == 2) {
+              viewModel.setLicenseDocument2(croppedFile);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+    }
+  }
+
+  void _showLicenseDocumentPickerBottomSheet(
       BuildContext context,
       PharmacyProfileViewModel viewModel,
       int documentNumber,
-      ) async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      ) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Select License Document',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Take Picture'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    _handleImagePick(context, ImageSource.camera, viewModel, documentNumber: documentNumber);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.image),
+                  title: const Text('Select From Gallery'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    _handleImagePick(context, ImageSource.gallery, viewModel, documentNumber: documentNumber);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.picture_as_pdf),
+                  title: const Text('Select PDF Document'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.custom,
+                      allowedExtensions: ['pdf'],
+                    );
+                    if (result != null && result.files.single.path != null) {
+                      final file = File(result.files.single.path!);
+                      if (documentNumber == 1) {
+                        viewModel.setLicenseDocument1(file);
+                      } else if (documentNumber == 2) {
+                        viewModel.setLicenseDocument2(file);
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
-
-    if (result != null && result.files.single.path != null) {
-      final file = File(result.files.single.path!);
-      if (documentNumber == 1) {
-        viewModel.setLicenseDocument1(file);
-      } else if (documentNumber == 2) {
-        viewModel.setLicenseDocument2(file);
-      }
-    }
   }
 }

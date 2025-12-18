@@ -562,10 +562,10 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
 
       request.fields['laboratory_name'] = laboratoryNameController.text;
       request.fields['address_line1'] = addressLine1Controller.text;
-      request.fields['city'] = cityController.text;
-      request.fields['state'] = stateController.text;
+      request.fields['city'] = selectedCity ?? cityController.text;
+      request.fields['state'] = selectedState ?? stateController.text;
       request.fields['zip_code'] = zipCodeController.text;
-      request.fields['country'] = countryController.text;
+      request.fields['country'] = selectedCountry ?? countryController.text;
       request.fields['phone_number'] = _phoneNumber ?? '';
       request.fields['tax_identification_number'] = taxIdentificationNumberController.text;
       request.fields['license_number'] = licenseNumberController.text;

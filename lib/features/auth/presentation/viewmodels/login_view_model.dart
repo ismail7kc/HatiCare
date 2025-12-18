@@ -173,7 +173,15 @@ class LoginViewModel extends ChangeNotifier {
         }
 
         isProfileCompleted = (response['data']['is_profile_complete'] == true);
-        prefs.setBool('is_profile_completed', isProfileCompleted);
+
+        // For doctors, also check if verification was completed locally
+        if (role == 'doctor') {
+          final verificationCompleted = prefs.getBool('doctor_verification_completed') ?? false;
+          if (verificationCompleted) {
+            isProfileCompleted = true;
+          }
+        }
+
         debugPrint('is CompletedProfile is $isProfileCompleted');
 
         if (role == 'laboratory') {
@@ -181,7 +189,7 @@ class LoginViewModel extends ChangeNotifier {
             'laboratory_profile_completed',
             isProfileCompleted,
           );
-        } else {
+        } else if (role == 'pharmacy') {
           await prefs.setBool('pharmacy_profile_completed', isProfileCompleted);
         }
 
@@ -332,24 +340,31 @@ class LoginViewModel extends ChangeNotifier {
       await prefs.setBool('is_logged_in', true);
       await prefs.setString('user_email', emailController.text.trim());
     } on AuthApiException catch (error) {
+      debugPrint('AuthApiException: ${error.message}');
+      debugPrint('Status code: ${error.statusCode}');
+      
       // Show appropriate error message based on the error
       final errorMsg = error.message.toLowerCase();
 
       if (errorMsg.contains('deactivated') || errorMsg.contains('inactive')) {
         dialogMessage = error.message;
       } else if (errorMsg.contains('not found') ||
-          errorMsg.contains('does not exist')) {
-        dialogMessage = 'Account not found. Please register your account.';
+          errorMsg.contains('does not exist') ||
+          errorMsg.contains('no account found') ||
+          errorMsg.contains('user not found')) {
+        dialogMessage = 'No account found with this email. Please try with correct email or register a new account.';
       } else if (errorMsg.contains('password') ||
           errorMsg.contains('incorrect') ||
-          errorMsg.contains('invalid')) {
-        dialogMessage = 'Incorrect password. Please try again.';
-      } else if (errorMsg.contains('email')) {
-        dialogMessage = 'Invalid email address.';
+          errorMsg.contains('invalid credentials') ||
+          errorMsg.contains('wrong password')) {
+        dialogMessage = 'Incorrect password. Please check your password and try again.';
+      } else if (errorMsg.contains('email') && errorMsg.contains('invalid')) {
+        dialogMessage = 'Invalid email address. Please enter a valid email.';
       } else {
+        // Use the original error message from API if available
         dialogMessage = error.message.isNotEmpty
             ? error.message
-            : 'Login failed. Please try again.';
+            : 'Invalid login credentials. Please try again.';
       }
 
       errorMessage = null;
