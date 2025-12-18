@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/scan_passport.dart';
 
-enum DocumentType { idCard, driversLicense }
+enum DocumentType { passport, driverLicense, idCard }
 
 class IdentifyDocumentScreen extends StatefulWidget {
   final bool isValidID;
@@ -61,31 +61,26 @@ class _IdentifyDocumentScreenState extends State<IdentifyDocumentScreen> {
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 8),
-            if (widget.isValidID) ...[
+
               _buildDocumentOption(
                 icon: 'assets/icons/passport_alt.svg',
-                label: 'License Document',
-                type: DocumentType.driversLicense,
+                label: 'Passport',
+                type: DocumentType.passport,
               ),
+
               const SizedBox(height: 12),
               _buildDocumentOption(
                 icon: 'assets/icons/id_card.svg',
                 label: 'ID Document',
                 type: DocumentType.idCard,
               ),
-            ] else ...[
-              _buildDocumentOption(
-                icon: 'assets/icons/passport_alt.svg',
-                label: 'ID Document',
-                type: DocumentType.idCard,
-              ),
+
               const SizedBox(height: 12),
               _buildDocumentOption(
                 icon: 'assets/icons/id_card.svg',
                 label: "Nursing License",
-                type: DocumentType.driversLicense,
+                type: DocumentType.driverLicense,
               ),
-            ],
           ],
         ),
       ),
@@ -102,9 +97,7 @@ class _IdentifyDocumentScreenState extends State<IdentifyDocumentScreen> {
         final result = await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ScanPassportScreen(
-              documentType: type,
-            ),
+            builder: (_) => ScanPassportScreen(documentType: type),
           ),
         );
 

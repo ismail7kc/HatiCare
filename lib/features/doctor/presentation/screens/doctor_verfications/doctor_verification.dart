@@ -7,6 +7,7 @@ import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/doctor_requiredInfo.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/identify_document.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/scan_passport.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/take_selfi.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -152,9 +153,7 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                           final completed = await Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const IdentifyDocumentScreen(
-                                isValidID: false,
-                              ),
+                              builder: (_) => ScanPassportScreen(documentType: null),
                             ),
                           );
                           if (completed == true) {
