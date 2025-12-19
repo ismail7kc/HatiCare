@@ -690,7 +690,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             final result =
                                 await PersistentNavBarNavigator.pushNewScreen(
                                   context,
-                                  screen: const ScanPassportScreen(documentType: null),
+                                  screen: const ScanPassportScreen(
+                                    documentType: null,
+                                  ),
                                   withNavBar: false,
                                   pageTransitionAnimation:
                                       PageTransitionAnimation.cupertino,
@@ -759,7 +761,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             final result =
                                 await PersistentNavBarNavigator.pushNewScreen(
                                   context,
-                                  screen: const ScanPassportScreen(isFromEditScreen: true),
+                                  screen: const ScanPassportScreen(
+                                    isFromEditScreen: true,
+                                  ),
                                   withNavBar: false,
                                   pageTransitionAnimation:
                                       PageTransitionAnimation.cupertino,
