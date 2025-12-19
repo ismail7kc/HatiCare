@@ -6,11 +6,6 @@ import 'package:haticare/features/auth/domain/repositories/auth_repository.dart'
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 
-class CacheKeys {
-  static const isProfileCompleted = 'is_profile_completed';
-  static const doctorID = 'Doctor_ID';
-}
-
 class LoginViewModel extends ChangeNotifier {
   LoginViewModel(this._repository) {
     _loadSavedCredentials();
@@ -191,7 +186,6 @@ class LoginViewModel extends ChangeNotifier {
           }
         }
 
-        prefs.setBool(CacheKeys.isProfileCompleted, isProfileCompleted);
         debugPrint('is CompletedProfile is $isProfileCompleted');
 
         if (role == 'laboratory') {
@@ -234,7 +228,7 @@ class LoginViewModel extends ChangeNotifier {
           }
         }
         SaveLoginResponse.loginData = responseData;
-        
+
       }
 
       accessToken ??= response['access_token'] ?? response['access'];
@@ -356,7 +350,7 @@ class LoginViewModel extends ChangeNotifier {
     } on AuthApiException catch (error) {
       debugPrint('AuthApiException: ${error.message}');
       debugPrint('Status code: ${error.statusCode}');
-      
+
       final errorMsg = error.message.toLowerCase();
 
       if (errorMsg.contains('deactivated') || errorMsg.contains('inactive')) {

@@ -28,7 +28,7 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
   bool get isAllChecked =>
       idCardChecked && selfieChecked && licenseChecked && isRequiredInfoFilled;
 
-      @override
+  @override
   void initState() {
     super.initState();
     _loadSavedState();
@@ -164,8 +164,9 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                           final completed = await Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  const IdentifyDocumentScreen(isValidID: false),
+                              builder: (_) => const IdentifyDocumentScreen(
+                                isValidID: false,
+                              ),
                             ),
                           );
                           if (completed == true) {
@@ -300,6 +301,21 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> clearDoctorVerificationState() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.remove('idCardChecked');
+    await prefs.remove('selfieChecked');
+    await prefs.remove('licenseChecked');
+    await prefs.remove('isRequiredInfoFilled');
+
+    await prefs.remove('licenseNumber');
+    await prefs.remove('yearsExperience');
+    await prefs.remove('licenseAuthority');
+    await prefs.remove('licenseType');
+    await prefs.remove('specialization');
   }
 }
 

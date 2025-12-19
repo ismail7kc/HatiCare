@@ -41,25 +41,3 @@ class SaveLoginResponse {
   }
 }
 
-// class SaveDoctorResponse {
-//   static const String _doctorKey = 'doctor_model';
-
-//   static Doctor? doctorInstance;
-
-//   static Future<void> saveDoctorModel(Map<String, dynamic> doctorData) async {
-//     doctorInstance = Doctor.fromJson(doctorData);
-//     final prefs = await SharedPreferences.getInstance();
-//     final jsonString = jsonEncode(doctorData);
-//     await prefs.setString(_doctorKey, jsonString);
-//   }
-
-//   static Future<void> loadDoctorModel() async {
-//     final prefs = await SharedPreferences.getInstance();
-//     final jsonString = prefs.getString(_doctorKey);
-//     if (jsonString != null) {
-//       final data = jsonDecode(jsonString);
-//       doctorInstance = Doctor.fromJson(data);
-//     }
-//   }
-// }
-

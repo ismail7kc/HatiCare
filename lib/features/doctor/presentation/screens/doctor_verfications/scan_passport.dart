@@ -6,12 +6,13 @@ import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/identify_document.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class ScanPassportScreen extends StatefulWidget {
-  final bool isScanPassport;
+  final DocumentType documentType;
 
-  const ScanPassportScreen({super.key, required this.isScanPassport});
+  const ScanPassportScreen({super.key, required this.documentType});
 
   @override
   State<ScanPassportScreen> createState() => _ScanPassportScreenState();
@@ -61,9 +62,19 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
 
   Future<void> _uploadImage(File file) async {
     setState(() => _isUploading = true);
-    final data = widget.isScanPassport
-        ? {"id_document": file}
-        : {"license_document": file};
+
+    late final Map<String, dynamic> data;
+
+    switch (widget.documentType) {
+
+      case DocumentType.idCard:
+        data = {"id_document": file};
+        break;
+
+      case DocumentType.driversLicense:
+        data = {"license_document": file};
+        break;
+    }
 
     try {
       await repoLayer.updateDoctorInfo(data);
@@ -109,16 +120,26 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
     super.dispose();
   }
 
+  String get title {
+    switch (widget.documentType) {
+      case DocumentType.idCard:
+        return "Scan your ID card";
+      case DocumentType.driversLicense:
+        return "Scan your license";
+    }
+  }
+
+  String get subText {
+    switch (widget.documentType) {
+      case DocumentType.idCard:
+        return "Please scan your ID card";
+      case DocumentType.driversLicense:
+        return "Please scan your license";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final String title = widget.isScanPassport
-        ? "Scan your passport"
-        : "Scan your nursing license";
-
-    final String subText = widget.isScanPassport
-        ? "Please scan your passport"
-        : "Please scan your nursing license";
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -307,7 +328,7 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 50),
+                const SizedBox(height: 40),
               ],
             ),
           ),

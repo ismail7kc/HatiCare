@@ -491,8 +491,7 @@ class SettingsContentState extends State<SettingsContent> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // Support Section
+              
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(

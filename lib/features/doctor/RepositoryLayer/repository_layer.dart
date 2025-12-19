@@ -38,7 +38,6 @@ class RepositoryLayer {
     Map<String, dynamic> body,
   ) async {
     final prefs = await SharedPreferences.getInstance();
-    // Convert docID to string properly, handling both int and string types
     final dynamic rawDocId = SaveLoginResponse.loginData?['id'];
     final String docID =
         rawDocId?.toString() ?? prefs.getString('doctor_id') ?? '';
