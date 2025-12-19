@@ -6,11 +6,13 @@ import 'package:haticare/core/widgets/app_dropdown_field.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
+import 'package:haticare/features/doctor/models/updated_doctor_model.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/scan_passport.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
 import 'package:intl/intl.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/doctor_user_provider.dart';
@@ -297,6 +299,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    String? licenseDocument = editViewModel.doctorInstance?.licenseDocument;
+    String? idDocuments = editViewModel.doctorInstance?.IdDocuments;
+
     if (isLoading) {
       return const Scaffold(
         backgroundColor: Color(0xFFF9FAFB),
@@ -645,7 +650,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   const SizedBox(height: 16),
 
                   Text(
-                    'License Document',
+                    'License Media',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -665,16 +670,117 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       color: Colors.white,
                     ),
                     child: Row(
-                      children: const [
-                        Icon(Icons.picture_as_pdf, color: Colors.red),
-                        SizedBox(width: 12),
+                      children: [
+                        Icon(
+                          getLicenseIcon(licenseDocument),
+                          color: licenseDocument?.endsWith('.pdf') == true
+                              ? Colors.red
+                              : AppColors.primary,
+                        ),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'doctor_license_document.pdf',
+                            licenseDocument?.split('/').last ??
+                                'No document uploaded',
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        Icon(Icons.edit, color: AppColors.primary),
+                        GestureDetector(
+                          onTap: () async {
+                            final result =
+                                await PersistentNavBarNavigator.pushNewScreen(
+                                  context,
+                                  screen: const ScanPassportScreen(documentType: null),
+                                  withNavBar: false,
+                                  pageTransitionAnimation:
+                                      PageTransitionAnimation.cupertino,
+                                );
+
+                            await _refreshDoctor(licenseDocument);
+
+                            if (result != null && result is String) {
+                              setState(() {
+                                licenseDocument = result;
+                                editViewModel.doctorInstance = editViewModel
+                                    .doctorInstance
+                                    ?.copyWith(licenseDocument: result);
+                              });
+                            }
+                          },
+                          child: const Icon(
+                            Icons.edit,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  Text(
+                    'Document ID',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF6C7278),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                      color: Colors.white,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          getLicenseIcon(idDocuments),
+                          color: idDocuments?.endsWith('.pdf') == true
+                              ? Colors.red
+                              : AppColors.primary,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            idDocuments?.split('/').last ??
+                                'No document uploaded',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () async {
+                            final result =
+                                await PersistentNavBarNavigator.pushNewScreen(
+                                  context,
+                                  screen: const ScanPassportScreen(isFromEditScreen: true),
+                                  withNavBar: false,
+                                  pageTransitionAnimation:
+                                      PageTransitionAnimation.cupertino,
+                                );
+
+                            await _refreshDoctorD(idDocuments);
+
+                            if (result != null && result is String) {
+                              setState(() {
+                                idDocuments = result;
+                                editViewModel.doctorInstance = editViewModel
+                                    .doctorInstance
+                                    ?.copyWithID(IdDocument: result);
+                              });
+                            }
+                          },
+                          child: const Icon(
+                            Icons.edit,
+                            color: AppColors.primary,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -737,6 +843,70 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _refreshDoctor(String? licenseDoc) async {
+    try {
+      setState(() => isLoading = true);
+
+      final response = await editViewModel.getSignleDocResponse();
+
+      if (response['success'] == true && response['data'] != null) {
+        final data = response['data'];
+        editViewModel.doctorInstance = Doctor.fromJson(data);
+
+        setState(() {
+          licenseDoc = editViewModel.doctorInstance?.licenseDocument;
+        });
+      }
+    } catch (e) {
+      debugPrint('Refresh doctor error: $e');
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _refreshDoctorD(String? IdDoc) async {
+    try {
+      setState(() => isLoading = true);
+
+      final response = await editViewModel.getSignleDocResponse();
+
+      if (response['success'] == true && response['data'] != null) {
+        final data = response['data'];
+        editViewModel.doctorInstance = Doctor.fromJson(data);
+
+        setState(() {
+          IdDoc = editViewModel.doctorInstance?.IdDocuments;
+        });
+      }
+    } catch (e) {
+      debugPrint('Refresh doctor error: $e');
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
+  IconData getLicenseIcon(String? path) {
+    if (path == null || path.isEmpty) {
+      return Icons.insert_drive_file;
+    }
+
+    final ext = path.split('.').last.toLowerCase();
+
+    if (ext == 'pdf') {
+      return Icons.picture_as_pdf;
+    }
+
+    if (['jpg', 'jpeg', 'png', 'webp'].contains(ext)) {
+      return Icons.image;
+    }
+
+    return Icons.insert_drive_file;
   }
 
   Widget _buildEditableField({

@@ -11,8 +11,13 @@ import 'package:permission_handler/permission_handler.dart';
 
 class ScanPassportScreen extends StatefulWidget {
   final DocumentType? documentType;
+  final bool? isFromEditScreen;
 
-  const ScanPassportScreen({super.key, this.documentType});
+  const ScanPassportScreen({
+    super.key,
+    this.documentType,
+    this.isFromEditScreen,
+  });
 
   @override
   State<ScanPassportScreen> createState() => _ScanPassportScreenState();
@@ -65,20 +70,26 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
 
     late final Map<String, dynamic> data;
 
-    switch (widget.documentType) {
-      case DocumentType.passport:
-        data = {"id_type": "passport", "id_document": file};
-        break;
+    if (widget.isFromEditScreen == true) {
+      data = {"id_document": file};
+    } else {
+      switch (widget.documentType) {
+        case DocumentType.passport:
+          data = {"id_type": "passport", "id_document": file};
+          break;
 
-      case DocumentType.idCard:
-        data = {"id_type": "Id_card", "id_document": file};
-        break;
+        case DocumentType.idCard:
+          data = {"id_type": "Id_card", "id_document": file};
+          break;
 
-      case DocumentType.driverLicense:
-        data = {"id_type": "nursing_license", "id_document": file};
-        break;
-      case null:
-        data = {"license_document": file};
+        case DocumentType.driverLicense:
+          data = {"id_type": "nursing_license", "id_document": file};
+          break;
+
+        case null:
+          data = {"license_document": file};
+          break;
+      }
     }
 
     try {
@@ -92,7 +103,7 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
       );
 
       await Future.delayed(const Duration(seconds: 2));
-      if (mounted) Navigator.pop(context, true);
+      Navigator.pop(context, true);
     } catch (e) {
       debugPrint("Upload error: $e");
       ScaffoldMessenger.of(context).showSnackBar(

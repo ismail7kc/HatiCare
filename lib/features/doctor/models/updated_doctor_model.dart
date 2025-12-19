@@ -53,4 +53,20 @@ class Doctor {
       IdDocuments: json['id_document']
     );
   }
+
+   Doctor copyWith({
+    String? licenseDocument,
+  }) {
+    return Doctor(
+      licenseDocument: licenseDocument ?? this.licenseDocument,
+    );
+  }
+
+  Doctor copyWithID({
+    String? IdDocument,
+  }) {
+    return Doctor(
+      IdDocuments: IdDocument ?? this.IdDocuments,
+    );
+  }
 }
