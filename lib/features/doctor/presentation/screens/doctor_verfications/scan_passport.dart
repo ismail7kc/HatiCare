@@ -10,9 +10,9 @@ import 'package:haticare/features/doctor/presentation/screens/doctor_verfication
 import 'package:permission_handler/permission_handler.dart';
 
 class ScanPassportScreen extends StatefulWidget {
-  final DocumentType documentType;
+  final DocumentType? documentType;
 
-  const ScanPassportScreen({super.key, required this.documentType});
+  const ScanPassportScreen({super.key, this.documentType});
 
   @override
   State<ScanPassportScreen> createState() => _ScanPassportScreenState();
@@ -66,18 +66,32 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
     late final Map<String, dynamic> data;
 
     switch (widget.documentType) {
+      case DocumentType.passport:
+        data = {"id_type": "passport", "id_document": file};
+        break;
 
       case DocumentType.idCard:
-        data = {"id_document": file};
+        data = {"id_type": "Id_card", "id_document": file};
         break;
 
-      case DocumentType.driversLicense:
-        data = {"license_document": file};
+      case DocumentType.driverLicense:
+        data = {"id_type": "nursing_license", "id_document": file};
         break;
+      case null:
+        data = {"license_document": file};
     }
 
     try {
       await repoLayer.updateDoctorInfo(data);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your media has been sent successfully to server'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      await Future.delayed(const Duration(seconds: 2));
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       debugPrint("Upload error: $e");
@@ -124,8 +138,12 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
     switch (widget.documentType) {
       case DocumentType.idCard:
         return "Scan your ID card";
-      case DocumentType.driversLicense:
+      case DocumentType.driverLicense:
         return "Scan your license";
+      case DocumentType.passport:
+        return "Scan your Passport";
+      case null:
+        return "Nursing License";
     }
   }
 
@@ -133,8 +151,12 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
     switch (widget.documentType) {
       case DocumentType.idCard:
         return "Please scan your ID card";
-      case DocumentType.driversLicense:
+      case DocumentType.driverLicense:
         return "Please scan your license";
+      case DocumentType.passport:
+        return "Please scan your Passport";
+      case null:
+        return "Please scan your nursing license";
     }
   }
 
