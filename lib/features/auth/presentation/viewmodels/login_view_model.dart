@@ -202,8 +202,6 @@ class LoginViewModel extends ChangeNotifier {
         } else if (role == 'pharmacy') {
           await prefs.setBool('pharmacy_profile_completed', isProfileCompleted);
         }
-
-        debugPrint('Profile completed status: $isProfileCompleted');
       }
 
       if (response['success'] == true && response['data'] != null) {
@@ -319,40 +317,33 @@ class LoginViewModel extends ChangeNotifier {
         await prefs.setString('user_phone_number', phoneNumber);
       }
 
-      // Save role-specific data (laboratory or pharmacy)
       if (dataObj is Map<String, dynamic>) {
         if (roleFromResponse == 'laboratory') {
-          // Save laboratory name
           final laboratoryName = dataObj['laboratory_name'] ?? dataObj['name'];
           if (laboratoryName is String && laboratoryName.isNotEmpty) {
             await prefs.setString('laboratory_name', laboratoryName);
           }
 
-          // Save profile picture URL
           final profilePicture = dataObj['profile_picture'];
           if (profilePicture is String && profilePicture.isNotEmpty) {
             await prefs.setString('profile_picture_url', profilePicture);
           }
 
-          // Save email for laboratory
           final email = dataObj['email'];
           if (email is String && email.isNotEmpty) {
             await prefs.setString('email', email);
           }
         } else if (roleFromResponse == 'pharmacy') {
-          // Save pharmacy name
           final pharmacyName = dataObj['pharmacy_name'] ?? dataObj['name'];
           if (pharmacyName is String && pharmacyName.isNotEmpty) {
             await prefs.setString('pharmacy_name', pharmacyName);
           }
 
-          // Save profile picture URL
           final profilePicture = dataObj['profile_picture'];
           if (profilePicture is String && profilePicture.isNotEmpty) {
             await prefs.setString('profile_picture_url', profilePicture);
           }
 
-          // Save email for pharmacy
           final email = dataObj['email'];
           if (email is String && email.isNotEmpty) {
             await prefs.setString('email', email);
@@ -360,14 +351,12 @@ class LoginViewModel extends ChangeNotifier {
         }
       }
 
-      // Mark user as logged in
       await prefs.setBool('is_logged_in', true);
       await prefs.setString('user_email', emailController.text.trim());
     } on AuthApiException catch (error) {
       debugPrint('AuthApiException: ${error.message}');
       debugPrint('Status code: ${error.statusCode}');
       
-      // Show appropriate error message based on the error
       final errorMsg = error.message.toLowerCase();
 
       if (errorMsg.contains('deactivated') || errorMsg.contains('inactive')) {
@@ -385,7 +374,6 @@ class LoginViewModel extends ChangeNotifier {
       } else if (errorMsg.contains('email') && errorMsg.contains('invalid')) {
         dialogMessage = 'Invalid email address. Please enter a valid email.';
       } else {
-        // Use the original error message from API if available
         dialogMessage = error.message.isNotEmpty
             ? error.message
             : 'Invalid login credentials. Please try again.';
@@ -395,8 +383,6 @@ class LoginViewModel extends ChangeNotifier {
       _shouldNavigate = false;
       lastResponse = null;
     } catch (e, stackTrace) {
-      debugPrint('Unexpected login error: $e');
-      debugPrint('Stack trace: $stackTrace');
       dialogMessage = 'Login failed. Please try again.';
       _shouldNavigate = false;
       lastResponse = null;
@@ -413,25 +399,21 @@ class LoginViewModel extends ChangeNotifier {
     final response = lastResponse;
     if (response == null) return null;
 
-    // Check for user_type first (new API format)
     final userType = response['user_type'];
     if (userType is String) return userType.toLowerCase();
 
-    // Check in response object
     final responseObj = response['response'];
     if (responseObj is Map<String, dynamic>) {
       final type = responseObj['user_type'];
       if (type is String) return type.toLowerCase();
     }
 
-    // Check in data object
     final data = response['data'];
     if (data is Map<String, dynamic>) {
       final type = data['user_type'] ?? data['role'] ?? data['type'];
       if (type is String) return type.toLowerCase();
     }
 
-    // Fallback to other possible fields
     final role = response['role'] ?? response['user_role'] ?? response['type'];
     return role is String ? role.toLowerCase() : null;
   }

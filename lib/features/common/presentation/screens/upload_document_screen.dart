@@ -6,6 +6,8 @@ import 'package:haticare/core/theme/app_colors.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart' as path;
+import 'package:image_cropper/image_cropper.dart';
+import 'package:haticare/core/utils/document_quality_validator.dart';
 
 class UploadDocumentScreen extends StatefulWidget {
   final String title;
@@ -61,26 +63,105 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
   }
 
   Future<void> pickFromGallery() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
-    );
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      );
 
-    if (result != null && result.files.single.path != null) {
-      final file = File(result.files.single.path!);
-      final fileName = path.basename(file.path);
+      if (result != null && result.files.single.path != null) {
+        final file = File(result.files.single.path!);
+        final fileName = path.basename(file.path);
+        final extension = path.extension(file.path).toLowerCase();
 
-      setState(() {
-        _selectedFile = file;
-        _selectedFileName = fileName;
-      });
+        // If it's a PDF, return directly without validation or cropping
+        if (extension == '.pdf') {
+          if (mounted) {
+            Navigator.pop(context, {
+              'file': file,
+              'fileName': fileName,
+            });
+          }
+          return;
+        }
 
-      // Return the selected file
+        // Show cropper first for images
+        final croppedFile = await _cropImage(file);
+
+        if (croppedFile != null) {
+          // Show loading while validating
+          if (mounted) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (_) => const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+            );
+          }
+
+          // Validate cropped image quality
+          final validationResult = await DocumentQualityValidator.validateDocument(croppedFile);
+
+          // Dismiss loading
+          if (mounted) {
+            Navigator.pop(context);
+          }
+
+          debugPrint('Gallery validation: isValid=${validationResult.isValid}, score=${validationResult.qualityScore}');
+
+          if (!validationResult.isValid) {
+            // Show warning but allow user to proceed
+            if (mounted) {
+              final shouldProceed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Image Quality Warning'),
+                  content: Text(validationResult.errorMessage ?? 'Image quality may be poor'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Choose Another'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Use Anyway'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (shouldProceed != true) {
+                return; // User wants to choose another image
+              }
+            }
+          }
+
+          final croppedFileName = path.basename(croppedFile.path);
+
+          setState(() {
+            _selectedFile = croppedFile;
+            _selectedFileName = croppedFileName;
+          });
+
+          // Return the cropped file
+          if (mounted) {
+            Navigator.pop(context, {
+              'file': croppedFile,
+              'fileName': croppedFileName,
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error picking from gallery: $e');
       if (mounted) {
-        Navigator.pop(context, {
-          'file': file,
-          'fileName': fileName,
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to select image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -93,33 +174,131 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
     try {
       final XFile picture = await _cameraController!.takePicture();
       final file = File(picture.path);
-      final fileName = path.basename(file.path);
 
-      setState(() {
-        _selectedFile = file;
-        _selectedFileName = fileName;
-      });
+      // Show cropper to let user crop the captured image
+      final croppedFile = await _cropImage(file);
 
-      // Return the captured file
-      if (mounted) {
-        Navigator.pop(context, {
-          'file': file,
-          'fileName': fileName,
+      if (croppedFile != null) {
+        // Show loading while validating
+        if (mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
+          );
+        }
+
+        // Validate cropped image quality
+        final validationResult = await DocumentQualityValidator.validateDocument(croppedFile);
+
+        // Dismiss loading
+        if (mounted) {
+          Navigator.pop(context);
+        }
+
+        debugPrint('Validation result: isValid=${validationResult.isValid}, score=${validationResult.qualityScore}');
+        debugPrint('hasText=${validationResult.hasText}, isSharp=${validationResult.isSharp}, isWellLit=${validationResult.isWellLit}');
+
+        if (!validationResult.isValid) {
+          // Show warning but allow user to proceed or retake
+          if (mounted) {
+            final shouldProceed = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Image Quality Warning'),
+                content: Text(validationResult.errorMessage ?? 'Image quality may be poor'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Retake'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Use Anyway'),
+                  ),
+                ],
+              ),
+            );
+
+            if (shouldProceed != true) {
+              return; // User wants to retake
+            }
+          }
+        }
+
+        // Quality is good or user chose to proceed
+        final fileName = path.basename(croppedFile.path);
+
+        setState(() {
+          _selectedFile = croppedFile;
+          _selectedFileName = fileName;
         });
+
+        // Return the cropped file
+        if (mounted) {
+          Navigator.pop(context, {
+            'file': croppedFile,
+            'fileName': fileName,
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error capturing image: $e');
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to capture image')),
+          SnackBar(
+            content: Text('Failed to capture image: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
+    }
+  }
+
+  Future<File?> _cropImage(File imageFile) async {
+    try {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: imageFile.path,
+        compressQuality: 85,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Document',
+            toolbarColor: AppColors.primaryDark,
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: false,
+            hideBottomControls: false,
+            cropGridRowCount: 3,
+            cropGridColumnCount: 3,
+          ),
+          IOSUiSettings(
+            title: 'Crop Document',
+            aspectRatioLockEnabled: false,
+            resetAspectRatioEnabled: true,
+            aspectRatioPickerButtonHidden: false,
+          ),
+        ],
+      );
+
+      if (croppedFile != null) {
+        return File(croppedFile.path);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error cropping image: $e');
+      return null;
     }
   }
 
   @override
   void dispose() {
     _cameraController?.dispose();
+    DocumentQualityValidator.dispose();
     super.dispose();
   }
 
@@ -128,9 +307,9 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    // Responsive camera preview size
-    final cameraWidth = (screenWidth * 0.85).clamp(280.0, 360.0);
-    final cameraHeight = (cameraWidth * 0.92).clamp(240.0, 330.0);
+    // Responsive camera preview size - smaller to fit everything
+    final cameraWidth = (screenWidth * 0.85).clamp(280.0, 340.0);
+    final cameraHeight = (cameraWidth * 0.75).clamp(200.0, 260.0);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -158,13 +337,13 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Column(
               children: [
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 Text(
                   widget.subtitle,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                  style: const TextStyle(fontSize: 15, color: Colors.grey),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 24),
                 Center(
                   child: Stack(
                     alignment: Alignment.center,
@@ -233,24 +412,24 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 30),
-                const Icon(Icons.info_outline, color: Colors.grey, size: 24),
-                const SizedBox(height: 10),
+                const SizedBox(height: 20),
+                const Icon(Icons.info_outline, color: Colors.grey, size: 20),
+                const SizedBox(height: 8),
                 const Text(
                   'Hold the camera still\nMake sure there is enough lighting',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, fontSize: 15, height: 1.4),
+                  style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.3),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 const Text(
                   'or',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, fontSize: 15),
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 Center(
                   child: SizedBox(
-                    width: (screenWidth * 0.6).clamp(200.0, 260.0),
+                    width: (screenWidth * 0.65).clamp(220.0, 280.0),
                     height: 48,
                     child: Container(
                       decoration: BoxDecoration(
@@ -276,7 +455,7 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: AppColors.primaryLight,
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -285,7 +464,7 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 Center(
                   child: SizedBox(
                     width: screenWidth - 48,
@@ -317,7 +496,7 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 24),
               ],
             ),
           ),

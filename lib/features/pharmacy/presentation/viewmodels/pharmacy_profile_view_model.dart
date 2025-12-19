@@ -225,26 +225,31 @@ class PharmacyProfileViewModel extends ChangeNotifier {
 
   Future<void> fetchPharmacyProfile({bool forceRefresh = false}) async {
     try {
+      debugPrint('===== fetchPharmacyProfile START =====');
       isLoading = true;
       errorMessage = null;
       notifyListeners();
 
       final prefs = await SharedPreferences.getInstance();
       final accessToken = prefs.getString('access_token') ?? '';
+      debugPrint('Access token exists: ${accessToken.isNotEmpty}');
 
       String finalPharmacyId = pharmacyId;
       if (pharmacyId.isEmpty) {
         finalPharmacyId = prefs.getString('pharmacy_id') ?? '';
       }
+      debugPrint('Pharmacy ID: $finalPharmacyId');
 
       if (finalPharmacyId.isEmpty) {
         errorMessage = 'Pharmacy ID not found. Please login again.';
         isLoading = false;
         notifyListeners();
+        debugPrint('ERROR: Pharmacy ID is empty');
         return;
       }
 
       final uri = Uri.parse('${AppConfig.baseUrl}phar/pharmacies/$finalPharmacyId/');
+      debugPrint('Fetching from: $uri');
 
       final client = ChuckerHttpClient(http.Client());
       final response = await client.get(
@@ -253,7 +258,13 @@ class PharmacyProfileViewModel extends ChangeNotifier {
           'Authorization': 'Bearer $accessToken',
           'Content-Type': 'application/json',
         },
-      ).timeout(const Duration(seconds: 30));
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          debugPrint('ERROR: Request timeout after 30 seconds');
+          throw TimeoutException('Request timeout');
+        },
+      );
 
       debugPrint('Fetch Profile Response Status: ${response.statusCode}');
       debugPrint('Fetch Profile Response Body: ${response.body}');
@@ -272,6 +283,7 @@ class PharmacyProfileViewModel extends ChangeNotifier {
         debugPrint('Extracted Data: $data');
         _populateFormFields(data);
         successMessage = null;
+        debugPrint('Profile loaded successfully');
       } else {
         final responseBody = response.body;
         errorMessage = 'Failed to load profile: ${response.statusCode}';
@@ -280,14 +292,17 @@ class PharmacyProfileViewModel extends ChangeNotifier {
     } on SocketException catch (e) {
       errorMessage = 'Network error: ${e.message}. Please check your internet connection.';
       debugPrint('SocketException: $e');
-    } on TimeoutException {
+    } on TimeoutException catch (e) {
       errorMessage = 'Request timed out. Please try again.';
+      debugPrint('TimeoutException: $e');
     } catch (e) {
       errorMessage = 'Error loading profile: ${e.toString()}';
       debugPrint('Exception: $e');
     } finally {
+      debugPrint('===== Setting isLoading = false =====');
       isLoading = false;
       notifyListeners();
+      debugPrint('===== fetchPharmacyProfile END =====');
     }
   }
 
