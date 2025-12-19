@@ -17,15 +17,21 @@ class EditViewmodel extends ChangeNotifier {
 
   Future<void> fetchSpecialization() async {
     try {
+      debugPrint('===== Fetching Specializations =====');
       final response = await repositoryLayer.getSpecialization();
+      debugPrint('Specialization Response: $response');
+
       specializationList = List<Map<String, dynamic>>.from(response['data']);
       specializationNames = specializationList
           .map((item) => item['name'] as String)
           .toList();
 
+      debugPrint('Loaded ${specializationNames.length} specializations: $specializationNames');
       notifyListeners();
     } catch (error) {
       debugPrint('Error Fetching Specialization: $error');
+      specializationNames = []; // Ensure it's empty on error
+      notifyListeners();
     }
   }
 

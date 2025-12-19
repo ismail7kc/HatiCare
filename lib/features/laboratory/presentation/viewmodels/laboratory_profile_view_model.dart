@@ -441,6 +441,13 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
     _checkForChanges();
   }
 
+  String? validateContactPerson(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Contact person name is required';
+    }
+    return null;
+  }
+
   String? validateLaboratoryName(String? value) {
     if (value == null || value.isEmpty) {
       return 'Laboratory name is required';
@@ -560,6 +567,7 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
         'Authorization': 'Bearer $accessToken',
       });
 
+      request.fields['contact_person'] = contactPersonController.text;
       request.fields['laboratory_name'] = laboratoryNameController.text;
       request.fields['address_line1'] = addressLine1Controller.text;
       request.fields['city'] = selectedCity ?? cityController.text;

@@ -326,10 +326,17 @@ class _EditPharmacyProfileView extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Non-editable fields
-          _buildNonEditableField(
+          // Editable fields
+          _buildEditableField(
             label: 'Contact Person',
             controller: viewModel.contactPersonController,
+            validator: (_) => viewModel.validateContactPerson(viewModel.contactPersonController.text),
+            hintText: 'Enter contact person name',
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
+              SingleSpaceFormatter(),
+            ],
+            viewModel: viewModel,
           ),
           const SizedBox(height: 16),
 
@@ -589,11 +596,7 @@ class _EditPharmacyProfileView extends StatelessWidget {
           const SizedBox(height: 12),
 
           _buildFileUploadButton(
-            label: viewModel.licenseDocument1 != null
-                ? path.basename(viewModel.licenseDocument1!.path)
-                : (viewModel.licenseDocument1Url != null && viewModel.licenseDocument1Url!.isNotEmpty)
-                ? 'License Document (Uploaded)'
-                : 'Upload License Document',
+            label: _getLicenseDocumentLabel(viewModel),
             onPressed: () => _navigateToUploadDocument(context, viewModel, 1),
             isSelected: viewModel.licenseDocument1 != null || (viewModel.licenseDocument1Url != null && viewModel.licenseDocument1Url!.isNotEmpty),
           ),
@@ -1098,6 +1101,31 @@ class _EditPharmacyProfileView extends StatelessWidget {
     } catch (e) {
       debugPrint('Error picking image: $e');
     }
+  }
+
+  static String _getLicenseDocumentLabel(PharmacyProfileViewModel viewModel) {
+    // If a new file is selected
+    if (viewModel.licenseDocument1 != null) {
+      return path.basename(viewModel.licenseDocument1!.path);
+    }
+
+    // If there's an existing document URL from API
+    if (viewModel.licenseDocument1Url != null && viewModel.licenseDocument1Url!.isNotEmpty) {
+      try {
+        // Extract filename from URL
+        final uri = Uri.parse(viewModel.licenseDocument1Url!);
+        final segments = uri.pathSegments;
+        if (segments.isNotEmpty) {
+          return segments.last;
+        }
+      } catch (e) {
+        debugPrint('Error parsing document URL: $e');
+      }
+      return 'License Document (Uploaded)';
+    }
+
+    // Default label when no document
+    return 'Upload License Document';
   }
 
   Future<void> _navigateToUploadDocument(

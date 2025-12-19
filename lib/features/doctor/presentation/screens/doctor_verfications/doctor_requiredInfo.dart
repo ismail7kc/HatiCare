@@ -7,6 +7,7 @@ import 'package:haticare/features/doctor/presentation/screens/edit_profile_scree
 import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
+import 'package:haticare/core/widgets/custom_dropdown_dialog.dart';
 
 class DoctorRequiredInfo extends StatefulWidget {
   const DoctorRequiredInfo({super.key});
@@ -30,7 +31,15 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
   String? selectedSpecialization;
   bool _isSubmitting = false;
 
-  final List<String> licenseTypes = ["CDLs", "IDP"];
+  final List<String> licenseTypes = [
+    "Permanent medical licenses",
+    "Temporary medical license",
+    "Locum tenens license",
+    "Institutional practice limited license",
+    "Faculty license",
+    "Residency training license",
+    "Fellowship training license"
+  ];
 
   @override
   void initState() {
@@ -62,9 +71,12 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
     final doctorId = SaveLoginResponse.loginData?['id']?.toString() ?? '';
 
     if (doctorId.isNotEmpty) {
-      licenseNumberController.text = prefs.getString('licenseNumber_$doctorId') ?? '';
-      yearsExperienceController.text = prefs.getString('yearsExperience_$doctorId') ?? '';
-      licenseAuthorityController.text = prefs.getString('licenseAuthority_$doctorId') ?? '';
+      licenseNumberController.text =
+          prefs.getString('licenseNumber_$doctorId') ?? '';
+      yearsExperienceController.text =
+          prefs.getString('yearsExperience_$doctorId') ?? '';
+      licenseAuthorityController.text =
+          prefs.getString('licenseAuthority_$doctorId') ?? '';
       selectedLicenseType = prefs.getString('licenseType_$doctorId');
       selectedSpecialization = prefs.getString('specialization_$doctorId');
     }
@@ -92,9 +104,26 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
     isFormComplete.value = _areAllFieldsFilled();
   }
 
-  Future<void> _onSavePressed() async {
+  Future<void> _onSubmitPressed() async {
+    // Validate form first
+    if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fix the errors in the form'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Check if all fields are filled
     if (!_areAllFieldsFilled()) {
-      _showError("Please fill all fields correctly");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill all required fields'),
+          backgroundColor: Colors.orange,
+        ),
+      );
       return;
     }
 
@@ -113,30 +142,44 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
 
       if (response['success'] == true) {
         final prefs = await SharedPreferences.getInstance();
+        await SaveLoginResponse.loadLoginModel();
+        final doctorId = SaveLoginResponse.loginData?['id']?.toString() ?? '';
 
-        await prefs.setString('licenseNumber', licenseNumberController.text);
-        await prefs.setString(
-          'yearsExperience',
-          yearsExperienceController.text,
-        );
-        await prefs.setString(
-          'licenseAuthority',
-          licenseAuthorityController.text,
-        );
-        await prefs.setString('licenseType', selectedLicenseType!);
-        await prefs.setString('specialization', selectedSpecialization!);
-        await prefs.setBool('isRequiredInfoFilled', true);
+        if (doctorId.isNotEmpty) {
+          await prefs.setString(
+            'licenseNumber_$doctorId',
+            licenseNumberController.text,
+          );
+          await prefs.setString(
+            'yearsExperience_$doctorId',
+            yearsExperienceController.text,
+          );
+          await prefs.setString(
+            'licenseAuthority_$doctorId',
+            licenseAuthorityController.text,
+          );
+          await prefs.setString('licenseType_$doctorId', selectedLicenseType!);
+          await prefs.setString(
+            'specialization_$doctorId',
+            selectedSpecialization!,
+          );
+          await prefs.setBool('isRequiredInfoFilled_$doctorId', true);
+        }
 
         if (mounted) Navigator.pop(context, true);
       } else {
-        showErrorDialog(
-          context,
-          response['message'] ?? "Something went wrong. Please try again.",
-        );
+        if (mounted) {
+          showErrorDialog(
+            context,
+            response['message'] ?? "Something went wrong. Please try again.",
+          );
+        }
       }
     } catch (e) {
       debugPrint("Submit error: $e");
-      showErrorDialog(context, "Failed to submit. Please try again.");
+      if (mounted) {
+        showErrorDialog(context, "Failed to submit. Please try again.");
+      }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -163,147 +206,297 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
+        backgroundColor: const Color(0xFFF9FAFB),
         elevation: 0,
-        backgroundColor: Colors.white,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          "Doctor Required Info",
+          'Doctor Required Information',
           style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.w600,
             fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
           ),
         ),
+        centerTitle: true,
       ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Professional Information',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 16),
 
-      body: SafeArea(
-        child: Stack(
-          children: [
-            SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Form(
-                key: _formKey,
-                child: Column(
+                // License Number
+                _buildTextField(
+                  label: 'License Number',
+                  controller: licenseNumberController,
+                  hintText: 'Enter license number',
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+                    LengthLimitingTextInputFormatter(20),
+                  ],
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'License number is required'
+                      : null,
+                ),
+                const SizedBox(height: 16),
+
+                // License Type Dropdown
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildTextField(
-                      "License Number",
-                      controller: licenseNumberController,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'[a-zA-Z0-9]'),
+                    const Text(
+                      'License Type',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      readOnly: true,
+                      controller: TextEditingController(
+                        text: selectedLicenseType ?? '',
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Select license type',
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
                         ),
-                        LengthLimitingTextInputFormatter(20),
-                      ],
-                      validator: (v) =>
-                          v == null || v.trim().isEmpty ? "Required" : null,
-                    ),
-                    const SizedBox(height: 18),
-
-                    _buildDropdownField(
-                      label: "License Type",
-                      items: licenseTypes,
-                      value: selectedLicenseType,
-                      onChanged: _onLicenseTypeChanged,
-                    ),
-                    const SizedBox(height: 18),
-
-                    _buildTextField(
-                      "Years of Experience",
-                      controller: yearsExperienceController,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        NoZeroInputFormatter(),
-                      ],
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) return "Required";
-                        final value = int.tryParse(v.trim());
-                        if (value == null || value <= 0 || value > 99) {
-                          return "Enter a value between 1 and 99";
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 18),
-
-                    _buildDropdownField(
-                      label: "Specialization",
-                      items: editViewModel.specializationNames,
-                      value: selectedSpecialization,
-                      onChanged: _onSpecializationChanged,
-                    ),
-                    const SizedBox(height: 18),
-
-                    _buildTextField(
-                      "License Issuing Authority",
-                      controller: licenseAuthorityController,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'[a-zA-Z0-9\s.,-]'),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
                         ),
-                        LengthLimitingTextInputFormatter(40),
-                      ],
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) {
-                          return "License Authority is required.";
-                        }
-                        if (v.trim().length < 3) {
-                          return "Authority name is too short.";
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 40),
-
-                    ValueListenableBuilder<bool>(
-                      valueListenable: isFormComplete,
-                      builder: (context, isEnabled, _) {
-                        return Opacity(
-                          opacity: isEnabled ? 1.0 : 0.4,
-                          child: Container(
-                            width: double.infinity,
-                            height: 55,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(30),
-                              gradient: isEnabled
-                                  ? AppColors.primaryGradient
-                                  : const LinearGradient(
-                                      colors: [Colors.grey, Colors.grey],
-                                    ),
-                            ),
-                            child: TextButton(
-                              onPressed: isEnabled && !_isSubmitting
-                                  ? _onSavePressed
-                                  : null,
-                              child: _isSubmitting
-                                  ? const CircularProgressIndicator(
-                                      color: Colors.white,
-                                    )
-                                  : const Text(
-                                      "Submit",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                            ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: AppColors.primaryDark,
+                            width: 2,
                           ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        suffixIcon: Icon(
+                          Icons.arrow_drop_down,
+                          color: Colors.grey[400],
+                        ),
+                      ),
+                      onTap: () async {
+                        // Dismiss keyboard first
+                        FocusScope.of(context).unfocus();
+
+                        final selected = await showCustomDropdownDialog(
+                          context: context,
+                          title: 'Select License Type',
+                          items: licenseTypes,
+                          selectedValue: selectedLicenseType,
+                          searchHint: 'Search license type...',
                         );
+                        if (selected != null) {
+                          setState(() => selectedLicenseType = selected);
+                          isFormComplete.value = _areAllFieldsFilled();
+                        }
                       },
                     ),
-
-                    const SizedBox(height: 20),
                   ],
                 ),
-              ),
+                const SizedBox(height: 16),
+
+                // Years of Experience
+                _buildTextField(
+                  label: 'Years of Experience',
+                  controller: yearsExperienceController,
+                  hintText: 'Enter years of experience',
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    NoZeroInputFormatter(),
+                  ],
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty)
+                      return 'Years of experience is required';
+                    final value = int.tryParse(v.trim());
+                    if (value == null || value <= 0 || value > 99) {
+                      return 'Enter a value between 1 and 99';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Specialization Dropdown
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Specialization',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      readOnly: true,
+                      controller: TextEditingController(
+                        text: selectedSpecialization ?? '',
+                      ),
+                      decoration: InputDecoration(
+                        hintText: editViewModel.specializationNames.isEmpty
+                            ? 'Loading specializations...'
+                            : 'Select specialization',
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: AppColors.primaryDark,
+                            width: 2,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        suffixIcon: editViewModel.specializationNames.isEmpty
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: Padding(
+                                  padding: EdgeInsets.all(12.0),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              )
+                            : Icon(
+                                Icons.arrow_drop_down,
+                                color: Colors.grey[400],
+                              ),
+                      ),
+                      onTap: editViewModel.specializationNames.isEmpty
+                          ? null
+                          : () async {
+                              // Dismiss keyboard first
+                              FocusScope.of(context).unfocus();
+
+                              debugPrint(
+                                'Opening specialization dialog with ${editViewModel.specializationNames.length} items',
+                              );
+                              final selected = await showCustomDropdownDialog(
+                                context: context,
+                                title: 'Select Specialization',
+                                items: editViewModel.specializationNames,
+                                selectedValue: selectedSpecialization,
+                                searchHint: 'Search specializations...',
+                              );
+                              if (selected != null) {
+                                setState(
+                                  () => selectedSpecialization = selected,
+                                );
+                                isFormComplete.value = _areAllFieldsFilled();
+                              }
+                            },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // License Issuing Authority
+                _buildTextField(
+                  label: 'License Issuing Authority',
+                  controller: licenseAuthorityController,
+                  hintText: 'Enter license issuing authority',
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'[a-zA-Z0-9\s.,-]'),
+                    ),
+                    LengthLimitingTextInputFormatter(40),
+                  ],
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'License issuing authority is required';
+                    }
+                    if (v.trim().length < 3) {
+                      return 'Authority name is too short';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // Submit Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: _isSubmitting ? null : _onSubmitPressed,
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Submit',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -313,9 +506,10 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  Widget _buildTextField(
-    String label, {
+  Widget _buildTextField({
+    required String label,
     required TextEditingController controller,
+    required String hintText,
     String? Function(String?)? validator,
     List<TextInputFormatter>? inputFormatters,
     TextInputType keyboardType = TextInputType.text,
@@ -323,65 +517,55 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: _labelStyle()),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: _inputDecoration(),
-          child: TextFormField(
-            controller: controller,
-            validator: validator,
-            inputFormatters: inputFormatters,
-            keyboardType: keyboardType,
-            decoration: const InputDecoration(border: InputBorder.none),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          validator: validator,
+          inputFormatters: inputFormatters,
+          keyboardType: keyboardType,
+          autovalidateMode: AutovalidateMode.onUnfocus,
+          decoration: InputDecoration(
+            hintText: hintText,
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.5,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.red, width: 1.5),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.red, width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildDropdownField({
-    required String label,
-    required List<String> items,
-    required String? value,
-    required Function(String?) onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: _labelStyle()),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-          decoration: _inputDecoration(),
-          child: DropdownButton<String>(
-            value: value,
-            hint: const Text("Select"),
-            isExpanded: true,
-            underline: const SizedBox(),
-            items: items
-                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                .toList(),
-            onChanged: onChanged,
-          ),
-        ),
-      ],
-    );
-  }
-
-  BoxDecoration _inputDecoration() {
-    return BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: const Color(0xFFE5E5EA), width: 1),
-    );
-  }
-
-  TextStyle _labelStyle() {
-    return const TextStyle(
-      fontSize: 14,
-      fontWeight: FontWeight.w500,
-      color: Colors.black54,
     );
   }
 }

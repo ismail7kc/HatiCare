@@ -571,6 +571,13 @@ class PharmacyProfileViewModel extends ChangeNotifier {
     return cities;
   }
 
+  String? validateContactPerson(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Contact person name is required';
+    }
+    return null;
+  }
+
   String? validatePharmacyName(String? value) {
     if (value == null || value.isEmpty) {
       return 'Pharmacy name is required';
@@ -720,6 +727,7 @@ class PharmacyProfileViewModel extends ChangeNotifier {
       request.headers['Authorization'] = 'Bearer $accessToken';
 
       // Add form fields
+      request.fields['contact_person'] = contactPersonController.text;
       request.fields['pharmacy_name'] = pharmacyNameController.text;
       request.fields['address_line1'] = addressLine1Controller.text;
       request.fields['city'] = selectedCity ?? cityController.text;
