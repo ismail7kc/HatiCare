@@ -1,12 +1,9 @@
 import 'dart:io';
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl_phone_field/phone_number.dart';
-import 'package:chucker_flutter/chucker_flutter.dart';
 
 import '../../../../core/config/app_config.dart';
 import '../../ApiClient/api_client.dart';
