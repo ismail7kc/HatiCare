@@ -2,11 +2,11 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl_phone_field/phone_number.dart';
 import 'package:chucker_flutter/chucker_flutter.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../core/config/app_config.dart';
 import '../../ApiClient/api_client.dart';
@@ -67,7 +67,7 @@ class DoctorProfileViewModel extends ChangeNotifier {
     "Institutional practice limited license",
     "Faculty license",
     "Residency training license",
-    "Fellowship training license"
+    "Fellowship training license",
   ];
 
   // Change tracking
@@ -214,10 +214,7 @@ class DoctorProfileViewModel extends ChangeNotifier {
       }
     }
 
-    return {
-      'countryCode': countryCode,
-      'number': numberOnly,
-    };
+    return {'countryCode': countryCode, 'number': numberOnly};
   }
 
   Future<void> fetchDoctorProfile({bool forceRefresh = false}) async {
@@ -229,84 +226,70 @@ class DoctorProfileViewModel extends ChangeNotifier {
 
       final response = await editViewModel.getSignleDocResponse();
       debugPrint("SINGLE DOCTOR RES: $response");
-      debugPrint("Response success: ${response['success']}");
-      debugPrint("Response data: ${response['data']}");
 
-      if (response['success'] == true && response['data'] != null) {
-        _populateFormFields(response['data']);
+      if (response['success'] == true && editViewModel.doctorInstance != null) {
+        _populateFromDoctor(editViewModel.doctorInstance!);
         debugPrint("✅ Form fields populated successfully");
       } else {
         errorMessage = 'Failed to load doctor profile';
-        debugPrint("❌ Error fetching doctor - success: ${response['success']}, data: ${response['data']}");
+        debugPrint("❌ Failed to load doctor profile");
       }
     } catch (e, stackTrace) {
       errorMessage = 'Error loading profile: ${e.toString()}';
       debugPrint("❌ Exception in fetchDoctorProfile: $e");
       debugPrint("Stack trace: $stackTrace");
     } finally {
-      debugPrint('===== Setting isLoading = false =====');
       isLoading = false;
       notifyListeners();
       debugPrint('===== fetchDoctorProfile END =====');
     }
   }
 
-  void _populateFormFields(dynamic data) {
+  void _populateFromDoctor(Doctor doc) {
     try {
-      if (data is Map<String, dynamic>) {
-        debugPrint('📝 Starting to populate form fields...');
-        debugPrint('📊 Data received: $data');
+      debugPrint('📝 Populating form fields from Doctor model');
 
-        final doc = Doctor.fromJson(data);
-        debugPrint('✅ Doctor model created: ${doc.firstName} ${doc.lastName}');
+      firstNameController.text = doc.firstName ?? '';
+      lastNameController.text = doc.lastName ?? '';
+      emailController.text = doc.email ?? '';
 
-        firstNameController.text = doc.firstName ?? '';
-        lastNameController.text = doc.lastName ?? '';
-        emailController.text = doc.email ?? '';
-        debugPrint('✅ Basic info set: ${firstNameController.text} ${lastNameController.text}, ${emailController.text}');
-
-        // Parse phone number
-        String? phoneNum = doc.phoneNumber;
-        debugPrint('📞 Phone number from API: $phoneNum');
-
-        if (phoneNum != null && phoneNum.isNotEmpty) {
-          final parsedPhone = _parsePhoneNumber(phoneNum);
-          _countryCode = parsedPhone['countryCode']!;
-          _initialPhoneNumber = parsedPhone['number'];
-          _phoneNumber = phoneNum;
-          _phoneFieldKey++; // Increment to force rebuild
-
-          debugPrint('📞 Set country code: $_countryCode');
-          debugPrint('📞 Set initial phone: $_initialPhoneNumber');
-          debugPrint('📞 Phone field key incremented to: $_phoneFieldKey');
-        } else {
-          debugPrint('📞 Phone number is null or empty');
-        }
-
-        licenseNumberController.text = doc.licenseNumber ?? '';
-        yearsExperienceController.text = doc.yearsOfExperience?.toString() ?? '';
-        licenseAuthorityController.text = doc.licenseIssuingAuthority ?? '';
-
-        gender = doc.gender == 'M'
-            ? 'Male'
-            : doc.gender == 'F'
-            ? 'Female'
-            : 'Other';
-
-        selectedDate = doc.dob ?? DateTime(1992, 1, 8);
-        selectedSpecialization = doc.specialization;
-        selectedLicenseType = doc.licenseType;
-
-        licenseDocumentUrl = doc.licenseDocument;
-        idDocumentUrl = doc.IdDocuments;
-
-        debugPrint('Form fields populated successfully');
-
-        _initializeChangeTracking();
-        notifyListeners();
+      // Phone
+      if (doc.phoneNumber != null && doc.phoneNumber!.isNotEmpty) {
+        final parsedPhone = _parsePhoneNumber(doc.phoneNumber!);
+        _countryCode = parsedPhone['countryCode']!;
+        _initialPhoneNumber = parsedPhone['number'];
+        _phoneNumber = doc.phoneNumber;
+        _phoneFieldKey++;
       }
+
+      licenseNumberController.text = doc.licenseNumber ?? '';
+      yearsExperienceController.text = doc.yearsOfExperience?.toString() ?? '';
+      licenseAuthorityController.text = doc.licenseIssuingAuthority ?? '';
+
+      gender = doc.gender == 'M'
+          ? 'Male'
+          : doc.gender == 'F'
+          ? 'Female'
+          : 'Other';
+
+      selectedDate = doc.dob;
+      selectedSpecialization = doc.specialization;
+      selectedLicenseType = doc.licenseType;
+
+      // 🔥 IMPORTANT PART
+      licenseDocumentUrl = doc.licenseDocument;
+      idDocumentUrl = doc.IdDocuments;
+
+      // 🔥 Clear local files so UI prefers server filenames
+      licenseDocumentFile = null;
+      idDocumentFile = null;
+
+      _initializeChangeTracking();
+      notifyListeners();
+
+      debugPrint('✅ Doctor profile populated successfully');
     } catch (e) {
-      debugPrint('Error populating form fields: $e');
+      debugPrint('❌ Error populating form fields: $e');
     }
   }
 
@@ -455,7 +438,10 @@ class DoctorProfileViewModel extends ChangeNotifier {
       return;
     }
 
-    if (selectedLicenseType == null || selectedSpecialization == null || gender == null || selectedDate == null) {
+    if (selectedLicenseType == null ||
+        selectedSpecialization == null ||
+        gender == null ||
+        selectedDate == null) {
       errorMessage = 'Please complete all required fields';
       notifyListeners();
       return;
@@ -484,17 +470,14 @@ class DoctorProfileViewModel extends ChangeNotifier {
         dob: selectedDate,
       );
 
-      debugPrint('Doctor instance before update: ${editViewModel.doctorInstance}');
+      debugPrint(
+        'Doctor instance before update: ${editViewModel.doctorInstance}',
+      );
 
       final response = await editViewModel.updateDoctorInfo();
 
       debugPrint('=== UPDATE DOCTOR RESPONSE ===');
       debugPrint('Full Response: $response');
-      debugPrint('Success: ${response['success']}');
-      debugPrint('Message: ${response['message']}');
-      debugPrint('Data: ${response['data']}');
-      debugPrint('Status Code: ${response['code']}');
-      debugPrint('=============================');
 
       if (response['success'] == true) {
         final firstName = response['data']['first_name'];
@@ -508,7 +491,8 @@ class DoctorProfileViewModel extends ChangeNotifier {
         _shouldNavigateToHome = true;
         notifyListeners();
       } else {
-        final errorMsg = response['message'] ?? "Something went wrong. Please try again.";
+        final errorMsg =
+            response['message'] ?? "Something went wrong. Please try again.";
         errorMessage = errorMsg;
         notifyListeners();
       }
@@ -527,119 +511,43 @@ class DoctorProfileViewModel extends ChangeNotifier {
     _shouldNavigateToHome = false;
   }
 
-  Future<void> uploadLicenseDocument(File file) async {
-    try {
-      debugPrint('📤 Uploading license document...');
+  Future<Map<String, dynamic>> updateDoctorInfo(
+    Map<String, dynamic> body,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final dynamic rawDocId = SaveLoginResponse.loginData?['id'];
+    final String docID =
+        rawDocId?.toString() ?? prefs.getString('doctor_id') ?? '';
+    final accessToken =
+        SaveLoginResponse.loginData?['access_token'] ??
+        prefs.getString('access_token') ??
+        '';
+    final url = '${AppConfig.baseUrl}doc/doctors/$docID/';
+    debugPrint('updated Doctor URL Is $url');
+    debugPrint('Doctor ID: $docID');
+    debugPrint('Access Token exists: ${accessToken.isNotEmpty}');
 
-      // Store the file immediately for UI update
-      licenseDocumentFile = file;
-      notifyListeners();
-
-      isLoading = true;
-      errorMessage = null;
-      notifyListeners();
-
-      final prefs = await SharedPreferences.getInstance();
-      final accessToken = prefs.getString('access_token') ?? '';
-      final doctorId = prefs.getString('doctor_id') ?? '';
-
-      if (doctorId.isEmpty) {
-        errorMessage = 'Doctor ID not found';
-        return;
-      }
-
-      final uri = Uri.parse('${AppConfig.baseUrl}doc/doctors/$doctorId/');
-      final request = http.MultipartRequest('PATCH', uri);
-
-      request.headers['Authorization'] = 'Bearer $accessToken';
-      request.files.add(
-        await http.MultipartFile.fromPath('license_document', file.path),
-      );
-
-      debugPrint('📤 Sending license document to: $uri');
-
-      final client = ChuckerHttpClient(http.Client());
-      final response = await client.send(request);
-      final responseBody = await response.stream.bytesToString();
-
-      debugPrint('📥 License upload response: ${response.statusCode}');
-      debugPrint('📥 Response body: $responseBody');
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        debugPrint('✅ License document uploaded successfully');
-        final jsonResponse = jsonDecode(responseBody);
-        if (jsonResponse['data'] != null) {
-          licenseDocumentUrl = jsonResponse['data']['license_document'];
-        }
-      } else {
-        errorMessage = 'Failed to upload license document';
-        debugPrint('❌ Upload failed with status: ${response.statusCode}');
-      }
-    } catch (e, stackTrace) {
-      errorMessage = 'Error uploading license document: ${e.toString()}';
-      debugPrint('❌ Exception in uploadLicenseDocument: $e');
-      debugPrint('Stack trace: $stackTrace');
-    } finally {
-      isLoading = false;
-      notifyListeners();
+    if (docID.isEmpty) {
+      debugPrint('ERROR: Doctor ID is empty');
+      return {'success': false, 'message': 'Doctor ID not found'};
     }
-  }
 
-  Future<void> uploadIdDocument(File file) async {
+    if (accessToken.isEmpty) {
+      debugPrint('ERROR: Access token is empty');
+      return {'success': false, 'message': 'Access token not found'};
+    }
+
+    debugPrint('Calling updateDocRequest with URL: $url');
+    debugPrint('Request body: $body');
     try {
-      debugPrint('📤 Uploading ID document...');
-
-      // Store the file immediately for UI update
-      idDocumentFile = file;
-      notifyListeners();
-
-      isLoading = true;
-      errorMessage = null;
-      notifyListeners();
-
-      final prefs = await SharedPreferences.getInstance();
-      final accessToken = prefs.getString('access_token') ?? '';
-      final doctorId = prefs.getString('doctor_id') ?? '';
-
-      if (doctorId.isEmpty) {
-        errorMessage = 'Doctor ID not found';
-        return;
-      }
-
-      final uri = Uri.parse('${AppConfig.baseUrl}doc/doctors/$doctorId/');
-      final request = http.MultipartRequest('PATCH', uri);
-
-      request.headers['Authorization'] = 'Bearer $accessToken';
-      request.files.add(
-        await http.MultipartFile.fromPath('id_document', file.path),
-      );
-
-      debugPrint('📤 Sending ID document to: $uri');
-
-      final client = ChuckerHttpClient(http.Client());
-      final response = await client.send(request);
-      final responseBody = await response.stream.bytesToString();
-
-      debugPrint('📥 ID upload response: ${response.statusCode}');
-      debugPrint('📥 Response body: $responseBody');
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        debugPrint('✅ ID document uploaded successfully');
-        final jsonResponse = jsonDecode(responseBody);
-        if (jsonResponse['data'] != null) {
-          idDocumentUrl = jsonResponse['data']['id_document'];
-        }
-      } else {
-        errorMessage = 'Failed to upload ID document';
-        debugPrint('❌ Upload failed with status: ${response.statusCode}');
-      }
-    } catch (e, stackTrace) {
-      errorMessage = 'Error uploading ID document: ${e.toString()}';
-      debugPrint('❌ Exception in uploadIdDocument: $e');
-      debugPrint('Stack trace: $stackTrace');
-    } finally {
-      isLoading = false;
-      notifyListeners();
+      final response = await apiClient.updateDocRequest(url, body: body);
+      debugPrint('Repository response: $response');
+      // notifyListeners();
+      return response;
+    } catch (e) {
+      debugPrint('Error in repository layer: $e');
+      debugPrint('Error type: ${e.runtimeType}');
+      rethrow;
     }
   }
 

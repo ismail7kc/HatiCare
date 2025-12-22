@@ -54,19 +54,19 @@ class Doctor {
     );
   }
 
-   Doctor copyWith({
-    String? licenseDocument,
-  }) {
-    return Doctor(
-      licenseDocument: licenseDocument ?? this.licenseDocument,
-    );
-  }
+  //  Doctor copyWith({
+  //   String? licenseDocument,
+  // }) {
+  //   return Doctor(
+  //     licenseDocument: licenseDocument ?? this.licenseDocument,
+  //   );
+  // }
 
-  Doctor copyWithID({
-    String? IdDocument,
-  }) {
-    return Doctor(
-      IdDocuments: IdDocument ?? this.IdDocuments,
-    );
-  }
+  // Doctor copyWithID({
+  //   String? IdDocument,
+  // }) {
+  //   return Doctor(
+  //     IdDocuments: IdDocument ?? this.IdDocuments,
+  //   );
+  // }
 }

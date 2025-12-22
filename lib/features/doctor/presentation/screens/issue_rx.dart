@@ -26,6 +26,18 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
     },
   ];
 
+  List<String> labTests = [
+    'Blood Test',
+    'X-Ray',
+    'MRI',
+    'CT Scan',
+    'CBC',
+    'HEV',
+    'PCB',
+    'RFT',
+  ];
+  List<String> selectedLabTests = [];
+
   void _addAnotherMedicine() {
     setState(() {
       medicines.add({
@@ -70,6 +82,7 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
           children: [
             Expanded(
               child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -120,8 +133,42 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                     ],
 
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        GestureDetector(
+                          onTap: _openLabTestDialog,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(6),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  selectedLabTests.isNotEmpty
+                                      ? selectedLabTests.first
+                                      : 'Laboratory Test',
+                                  style: const TextStyle(color: Colors.black),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(Icons.keyboard_arrow_down),
+                              ],
+                            ),
+                          ),
+                        ),
+
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -165,83 +212,141 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
         ),
       ),
 
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => Navigator.pop(context),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, 35),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  side: BorderSide(color: Colors.grey.shade300),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: const Text(
-                  "Cancel",
-                  style: TextStyle(fontSize: 16, color: Colors.black),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: ElevatedButton(
-                  onPressed: () async {
-                    final meds = getMedicationsFromControllers();
-                    final response = await widget.appointmentDetailvm
-                        .createPrescription(medications: meds);
-
-                    if (!mounted) return;
-
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: Text(
-                          response['success'] == true ? 'Success' : 'Error',
-                        ),
-                        content: Text(
-                          response['message'] ??
-                              (response['success'] == true
-                                  ? 'Prescription sent successfully!'
-                                  : 'Something went wrong'),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(ctx).pop();
-                              Navigator.of(context).pop();
-                            },
-                            child: const Text('OK'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.all(14),
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 35),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    foregroundColor: Colors.white,
+                    side: BorderSide(color: Colors.grey.shade300),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: const Text("Issue Rx"),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(fontSize: 16, color: Colors.black),
+                  ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final meds = getMedicationsFromControllers();
+                      final response = await widget.appointmentDetailvm
+                          .createPrescription(medications: meds);
+
+                      if (!mounted) return;
+
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text(
+                            response['success'] == true ? 'Success' : 'Error',
+                          ),
+                          content: Text(
+                            response['message'] ??
+                                (response['success'] == true
+                                    ? 'Prescription sent successfully!'
+                                    : 'Something went wrong'),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(ctx).pop();
+                                Navigator.of(context).pop();
+                              },
+                              child: const Text('OK'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.all(14),
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text("Issue Rx"),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  void _openLabTestDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final tempSelected = List<String>.from(selectedLabTests);
+
+        return AlertDialog(
+          title: const Text('Select Laboratory Tests'),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: MediaQuery.of(context).size.height * 0.5,
+            child: StatefulBuilder(
+              builder: (context, setStateDialog) {
+                return ListView.builder(
+                  itemCount: labTests.length,
+                  itemBuilder: (context, index) {
+                    final test = labTests[index];
+                    return CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(test),
+                      value: tempSelected.contains(test),
+                      onChanged: (checked) {
+                        setStateDialog(() {
+                          if (checked == true) {
+                            tempSelected.add(test);
+                          } else {
+                            tempSelected.remove(test);
+                          }
+                        });
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  selectedLabTests = tempSelected;
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
     );
   }
 

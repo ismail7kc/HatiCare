@@ -120,13 +120,8 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
 
-            // Text(
-            // "${appointment.patientAge} years old, Male",
-            // style: const TextStyle(color: Colors.grey),
-            // ),
             const SizedBox(height: 30),
 
-            // Reason for Visit
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -328,7 +323,7 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                             context,
                             screen: AudioCallScreen(
                               appointments: widget.appointment,
-                              visitId: visitId, // ✅ PASS IT
+                              visitId: visitId,
                             ),
                             withNavBar: false,
                             pageTransitionAnimation:

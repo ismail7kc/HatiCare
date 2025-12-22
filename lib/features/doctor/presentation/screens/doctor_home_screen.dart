@@ -7,6 +7,7 @@ import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/appointment_detail.dart';
 import 'package:haticare/features/doctor/presentation/screens/consultation_history.dart';
 import 'package:haticare/features/doctor/presentation/screens/setting_screen.dart';
+import 'package:haticare/features/doctor/presentation/screens/time_circular_progress.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/doctor_viewModel.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel.dart';
 import 'package:haticare/features/doctor/presentation/providers/doctor_user_provider.dart';
@@ -192,7 +193,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             physics: const AlwaysScrollableScrollPhysics(),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
+                minHeight:
+                    MediaQuery.of(context).size.height -
+                    MediaQuery.of(context).padding.top,
               ),
               child: Column(
                 children: [
@@ -254,9 +257,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             color: Colors.grey[100],
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Center(
-            child: CircularProgressIndicator(),
-          ),
+          child: const Center(child: CircularProgressIndicator()),
         ),
       );
     }
@@ -293,16 +294,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     }
 
     return Column(
-      children: List.generate(
-        appointments.length,
-        (index) {
-          final appt = appointments[index];
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: patientAppointmentView(context, appt),
-          );
-        },
-      ),
+      children: List.generate(appointments.length, (index) {
+        final appt = appointments[index];
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: patientAppointmentView(context, appt),
+        );
+      }),
     );
   }
 
@@ -319,7 +317,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     radius: 25,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.primary,
+                      ),
                     ),
                   )
                 : CircleAvatar(
@@ -345,14 +345,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         height: 18,
                         child: LinearProgressIndicator(
                           backgroundColor: Colors.grey,
-                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppColors.primary,
+                          ),
                         ),
                       )
                     : Text(
                         doctorProvider.doctorName.isNotEmpty
                             ? (doctorProvider.doctorName.length > 15
-                                ? '${doctorProvider.doctorName.substring(0, 15)}...'
-                                : doctorProvider.doctorName)
+                                  ? '${doctorProvider.doctorName.substring(0, 15)}...'
+                                  : doctorProvider.doctorName)
                             : 'Doctor',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
@@ -384,10 +386,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             const Positioned(
               right: 8,
               top: 8,
-              child: CircleAvatar(
-                radius: 4,
-                backgroundColor: Colors.red,
-              ),
+              child: CircleAvatar(radius: 4, backgroundColor: Colors.red),
             ),
           ],
         ),
@@ -406,7 +405,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            isOnline ? "Online & Available" : "Offline",
+            isOnline ? "Online" : "Offline",
             style: TextStyle(
               fontSize: 16,
               color: isOnline ? const Color(0xFF34C759) : Colors.black,
@@ -504,7 +503,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     Text(
                       "Avg. Time",
                       style: TextStyle(
-                        color: hasAdminApproval == true ? Colors.white : Colors.grey,
+                        color: hasAdminApproval == true
+                            ? Colors.white
+                            : Colors.grey,
                       ),
                     ),
                   ],
