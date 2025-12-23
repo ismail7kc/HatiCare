@@ -9,7 +9,7 @@ import '../../../../core/config/app_config.dart';
 import '../../ApiClient/api_client.dart';
 import '../../RepositoryLayer/repository_layer.dart';
 import '../../models/updated_doctor_model.dart';
-import '../viewModel/edit_viewModel.dart';
+import 'edit_viewModel.dart';
 
 class DoctorProfileViewModel extends ChangeNotifier {
   final firstNameController = TextEditingController();

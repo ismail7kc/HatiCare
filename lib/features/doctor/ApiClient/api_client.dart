@@ -52,8 +52,10 @@ class ApiClient {
 
       // Get access token from SharedPreferences as fallback
       final prefs = await SharedPreferences.getInstance();
-      final accessToken = SaveLoginResponse.loginData?['access_token'] ?? 
-                          prefs.getString('access_token') ?? '';
+      final accessToken =
+          SaveLoginResponse.loginData?['access_token'] ??
+          prefs.getString('access_token') ??
+          '';
       request.headers['Authorization'] = 'Bearer $accessToken';
       request.headers['Accept'] = 'application/json';
 
@@ -79,16 +81,16 @@ class ApiClient {
     final uri = Uri.parse(url);
 
     // Get access token from SharedPreferences as fallback
-      final prefs = await SharedPreferences.getInstance();
-      final accessToken = SaveLoginResponse.loginData?['access_token'] ?? 
-                          prefs.getString('access_token') ?? '';
-      
-      final response = await http.get(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-        },
-      );
+    final prefs = await SharedPreferences.getInstance();
+    final accessToken =
+        SaveLoginResponse.loginData?['access_token'] ??
+        prefs.getString('access_token') ??
+        '';
+
+    final response = await http.get(
+      uri,
+      headers: {'Authorization': 'Bearer $accessToken'},
+    );
 
     debugPrint('✅ PATCH URL: $uri');
     debugPrint('✅ Status Code: ${response.statusCode}');
@@ -107,8 +109,10 @@ class ApiClient {
 
       // Get access token from SharedPreferences as fallback
       final prefs = await SharedPreferences.getInstance();
-      final accessToken = SaveLoginResponse.loginData?['access_token'] ?? 
-                          prefs.getString('access_token') ?? '';
+      final accessToken =
+          SaveLoginResponse.loginData?['access_token'] ??
+          prefs.getString('access_token') ??
+          '';
 
       request.headers.addAll({
         'Authorization': 'Bearer $accessToken',
@@ -153,9 +157,11 @@ class ApiClient {
 
       // Get access token from SharedPreferences as fallback
       final prefs = await SharedPreferences.getInstance();
-      final accessToken = SaveLoginResponse.loginData?['access_token'] ?? 
-                          prefs.getString('access_token') ?? '';
-      
+      final accessToken =
+          SaveLoginResponse.loginData?['access_token'] ??
+          prefs.getString('access_token') ??
+          '';
+
       final response = await _client.get(
         uri,
         headers: {
@@ -181,14 +187,14 @@ class ApiClient {
 
       // Get access token from SharedPreferences as fallback
       final prefs = await SharedPreferences.getInstance();
-      final accessToken = SaveLoginResponse.loginData?['access_token'] ?? 
-                          prefs.getString('access_token') ?? '';
-      
+      final accessToken =
+          SaveLoginResponse.loginData?['access_token'] ??
+          prefs.getString('access_token') ??
+          '';
+
       final response = await _client.post(
         uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-        },
+        headers: {'Authorization': 'Bearer $accessToken'},
       );
 
       debugPrint('Patient Accecpt Response URL: $uri');
@@ -211,9 +217,11 @@ class ApiClient {
 
       // Get access token from SharedPreferences as fallback
       final prefs = await SharedPreferences.getInstance();
-      final accessToken = SaveLoginResponse.loginData?['access_token'] ?? 
-                          prefs.getString('access_token') ?? '';
-      
+      final accessToken =
+          SaveLoginResponse.loginData?['access_token'] ??
+          prefs.getString('access_token') ??
+          '';
+
       final response = await _client.post(
         uri,
         headers: {
@@ -230,6 +238,20 @@ class ApiClient {
       return _handleResponse(response);
     } catch (error) {
       debugPrint('Patient Prescription: $error');
+      return {'success': false, 'message': error.toString(), 'data': {}};
+    }
+  }
+
+  Future<Map<String, dynamic>> getLabTestFromServer(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      final response = await _client.get(uri);
+
+      debugPrint('Server Success Response is $response');
+
+      return _handleResponse(response);
+    } catch (error) {
+      debugPrint('Getting Errir while Laboratory Test');
       return {'success': false, 'message': error.toString(), 'data': {}};
     }
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/features/doctor/models/lab_test_model.dart';
 import 'package:haticare/features/doctor/models/prescription_model.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/appointment_detailVM.dart';
 
@@ -26,17 +27,8 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
     },
   ];
 
-  List<String> labTests = [
-    'Blood Test',
-    'X-Ray',
-    'MRI',
-    'CT Scan',
-    'CBC',
-    'HEV',
-    'PCB',
-    'RFT',
-  ];
-  List<String> selectedLabTests = [];
+  late List<LabTest> labTests = [];
+  List<int> selectedLabTestIds = [];
 
   void _addAnotherMedicine() {
     setState(() {
@@ -60,6 +52,25 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
         notes: med['note']?.text ?? '',
       );
     }).toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    labTests = [];
+    _loadLabTests();
+  }
+
+  Future<void> _loadLabTests() async {
+    await widget.appointmentDetailvm.getLaboratoryTests();
+
+    if (!mounted) return;
+
+    setState(() {
+      labTests = widget.appointmentDetailvm.labTests;
+    });
+
+    debugPrint('Lab tests loaded: ${labTests.map((e) => e.name).toList()}');
   }
 
   @override
@@ -138,6 +149,10 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                         GestureDetector(
                           onTap: _openLabTestDialog,
                           child: Container(
+                            constraints: const BoxConstraints(
+                              maxWidth:
+                                  220, // 👈 adjust if needed (200–240 works well)
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(6),
@@ -154,13 +169,15 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                               vertical: 12,
                             ),
                             child: Row(
-                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  selectedLabTests.isNotEmpty
-                                      ? selectedLabTests.first
-                                      : 'Laboratory Test',
-                                  style: const TextStyle(color: Colors.black),
+                                Expanded(
+                                  child: Text(
+                                    getSelectedLabTestLabel(),
+                                    maxLines: 1,
+                                    overflow:
+                                        TextOverflow.ellipsis, // 👈 important
+                                    style: const TextStyle(color: Colors.black),
+                                  ),
                                 ),
                                 const SizedBox(width: 8),
                                 const Icon(Icons.keyboard_arrow_down),
@@ -295,40 +312,45 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
   }
 
   void _openLabTestDialog() {
+    final tempSelected = List<int>.from(selectedLabTestIds);
+
     showDialog(
       context: context,
       builder: (context) {
-        final tempSelected = List<String>.from(selectedLabTests);
-
         return AlertDialog(
           title: const Text('Select Laboratory Tests'),
-          content: SizedBox(
-            width: double.maxFinite,
-            height: MediaQuery.of(context).size.height * 0.5,
-            child: StatefulBuilder(
-              builder: (context, setStateDialog) {
-                return ListView.builder(
-                  itemCount: labTests.length,
-                  itemBuilder: (context, index) {
-                    final test = labTests[index];
-                    return CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(test),
-                      value: tempSelected.contains(test),
-                      onChanged: (checked) {
-                        setStateDialog(() {
-                          if (checked == true) {
-                            tempSelected.add(test);
-                          } else {
-                            tempSelected.remove(test);
-                          }
-                        });
-                      },
-                    );
-                  },
-                );
-              },
-            ),
+          content: StatefulBuilder(
+            builder: (context, setStateDialog) {
+              return SizedBox(
+                width: double.maxFinite,
+                height: MediaQuery.of(context).size.height * 0.5,
+                child: labTests.isEmpty
+                    ? const Center(child: Text('No tests found'))
+                    : ListView.builder(
+                        itemCount: labTests.length,
+                        itemBuilder: (context, index) {
+                          final test = labTests[index];
+                          return CheckboxListTile(
+                            title: Text(
+                              test.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            value: tempSelected.contains(test.id),
+                            onChanged: (checked) {
+                              setStateDialog(() {
+                                if (checked == true) {
+                                  tempSelected.add(test.id);
+                                } else {
+                                  tempSelected.remove(test.id);
+                                }
+                              });
+                            },
+                          );
+                        },
+                      ),
+              );
+            },
           ),
           actions: [
             TextButton(
@@ -338,7 +360,7 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
             ElevatedButton(
               onPressed: () {
                 setState(() {
-                  selectedLabTests = tempSelected;
+                  selectedLabTestIds = tempSelected;
                 });
                 Navigator.pop(context);
               },
@@ -348,6 +370,21 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
         );
       },
     );
+  }
+
+  String getSelectedLabTestLabel() {
+    if (selectedLabTestIds.isEmpty) {
+      return 'Laboratory Test';
+    }
+
+    final firstId = selectedLabTestIds.first;
+
+    final test = labTests.firstWhere(
+      (e) => e.id == firstId,
+      orElse: () => LabTest(id: 0, name: ''),
+    );
+
+    return test.name.isNotEmpty ? test.name : 'Laboratory Test';
   }
 
   Widget _input(String label, TextEditingController controller) {

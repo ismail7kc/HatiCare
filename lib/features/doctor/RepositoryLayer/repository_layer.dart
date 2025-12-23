@@ -115,4 +115,13 @@ class RepositoryLayer {
     final url = '${AppConfig.baseUrl}doc/doctors/$docID/';
     return await _apiClient.getSingleDoctor(url);
   }
+
+  Future<Map<String, dynamic>> getLabTests() async {
+    // if u want to fetch only Name send 'names_only' with true in query params
+    // if u want fetch dropdown with id then send 'dropdown' with true in query params
+    // if u want fetch entire page then send 'page=1', 'page=2' etc 
+
+    final uri = '${AppConfig.baseUrl}lab/lab-tests/?dropdown=true';
+    return await _apiClient.getLabTestFromServer(uri);
+  }
 }

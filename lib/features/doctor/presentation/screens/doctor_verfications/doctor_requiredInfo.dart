@@ -94,16 +94,6 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
         licenseAuthorityController.text.isNotEmpty;
   }
 
-  void _onLicenseTypeChanged(String? val) {
-    setState(() => selectedLicenseType = val);
-    isFormComplete.value = _areAllFieldsFilled();
-  }
-
-  void _onSpecializationChanged(String? val) {
-    setState(() => selectedSpecialization = val);
-    isFormComplete.value = _areAllFieldsFilled();
-  }
-
   Future<void> _onSubmitPressed() async {
     // Validate form first
     if (!_formKey.currentState!.validate()) {
@@ -500,10 +490,6 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
         ),
       ),
     );
-  }
-
-  void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   Widget _buildTextField({
