@@ -150,6 +150,7 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
               'file': croppedFile,
               'fileName': croppedFileName,
             });
+
           }
         }
       }

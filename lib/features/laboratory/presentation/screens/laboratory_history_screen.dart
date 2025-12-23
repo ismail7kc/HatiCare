@@ -21,7 +21,18 @@ class _LaboratoryHistoryScreenState extends State<LaboratoryHistoryScreen>
     final provider = context.read<LaboratoryUserProvider>();
     // Fetch profile to refresh approval status and data
     await provider.fetchProfile(forceRefresh: true);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('History refreshed successfully'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: Colors.green[700],
+        ),
+      );
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +42,7 @@ class _LaboratoryHistoryScreenState extends State<LaboratoryHistoryScreen>
 
     return Scaffold(
       backgroundColor: Colors.white,
+
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),

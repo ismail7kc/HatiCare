@@ -27,6 +27,16 @@ class _PharmacyHistoryScreenState extends State<PharmacyHistoryScreen> {
       historyItems = PrescriptionRequest.getDummyHistory();
     });
     await Future.delayed(const Duration(milliseconds: 500));
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('History refreshed successfully'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: Colors.green[700],
+        ),
+      );
+    }
   }
 
   @override
