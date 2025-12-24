@@ -82,7 +82,7 @@ class DoctorProfileViewModel extends ChangeNotifier {
     repository = RepositoryLayer(apiClient);
     editViewModel = EditViewmodel(repository);
 
-    isLoading = true; // Always start with loading
+    isLoading = true;
     _addTextControllerListeners();
     _initialize();
   }
@@ -297,7 +297,7 @@ class DoctorProfileViewModel extends ChangeNotifier {
   void updatePhoneNumber(PhoneNumber? phoneNumber) {
     if (phoneNumber != null) {
       _phoneNumber = phoneNumber.completeNumber;
-      _countryCode = phoneNumber.countryISOCode ?? 'US';
+      _countryCode = phoneNumber.countryISOCode;
       _checkForChanges();
     } else {
       _phoneNumber = null;
