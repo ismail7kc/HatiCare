@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/doctor/models/lab_test_model.dart';
 import 'package:haticare/features/doctor/models/prescription_model.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/appointment_detailVM.dart';
 
 class CreatePrescriptionScreen extends StatefulWidget {
@@ -29,17 +30,35 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
 
   late List<LabTest> labTests = [];
   List<int> selectedLabTestIds = [];
+  bool _sendingRx = false;
 
   void _addAnotherMedicine() {
-    setState(() {
-      medicines.add({
-        "name": TextEditingController(),
-        "dose": TextEditingController(),
-        "freq": TextEditingController(),
-        "duration": TextEditingController(),
-        "note": TextEditingController(),
-      });
+    final newMed = {
+      "name": TextEditingController(),
+      "dose": TextEditingController(),
+      "freq": TextEditingController(),
+      "duration": TextEditingController(),
+      "note": TextEditingController(),
+    };
+
+    newMed.forEach((key, controller) {
+      controller.addListener(() => setState(() {}));
     });
+
+    setState(() {
+      medicines.add(newMed);
+    });
+  }
+
+  bool canIssuePrescription() {
+    for (var med in medicines) {
+      for (var controller in med.values) {
+        if (controller.text.trim().isEmpty) {
+          return false;
+        }
+      }
+    }
+    return medicines.isNotEmpty;
   }
 
   List<DoctorMedication> getMedicationsFromControllers() {
@@ -59,6 +78,12 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
     super.initState();
     labTests = [];
     _loadLabTests();
+
+    for (var med in medicines) {
+      med.forEach((key, controller) {
+        controller.addListener(() => setState(() {}));
+      });
+    }
   }
 
   Future<void> _loadLabTests() async {
@@ -149,10 +174,7 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                         GestureDetector(
                           onTap: _openLabTestDialog,
                           child: Container(
-                            constraints: const BoxConstraints(
-                              maxWidth:
-                                  220, // 👈 adjust if needed (200–240 works well)
-                            ),
+                            constraints: const BoxConstraints(maxWidth: 220),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(6),
@@ -259,37 +281,49 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: ElevatedButton(
-                    onPressed: () async {
-                      final meds = getMedicationsFromControllers();
-                      final response = await widget.appointmentDetailvm
-                          .createPrescription(medications: meds, selectedLabTests: selectedLabTestIds);
+                    onPressed: !_sendingRx && canIssuePrescription()
+                        ? () async {
+                            setState(() => _sendingRx = true);
 
-                      if (!mounted) return;
+                            final meds = getMedicationsFromControllers();
+                            final response = await widget.appointmentDetailvm
+                                .createPrescription(
+                                  medications: meds,
+                                  notes: "What should I with Appointmentdetail Notes Field.",
+                                  selectedLabTests: selectedLabTestIds,
+                                );
 
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: Text(
-                            response['success'] == true ? 'Success' : 'Error',
-                          ),
-                          content: Text(
-                            response['message'] ??
-                                (response['success'] == true
-                                    ? 'Prescription sent successfully!'
-                                    : 'Something went wrong'),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(ctx).pop();
-                                Navigator.of(context).pop();
-                              },
-                              child: const Text('OK'),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                            if (!mounted) return;
+
+                            setState(() => _sendingRx = false);
+
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: Text(
+                                  response['success'] == true
+                                      ? 'Success'
+                                      : 'Error',
+                                ),
+                                content: Text(response['message']),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(ctx).pop();
+                                      Navigator.of(context).pushAndRemoveUntil(
+                                        MaterialPageRoute(
+                                          builder: (_) => DoctorHomeScreen(),
+                                        ),
+                                        (route) => false,
+                                      );
+                                    },
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                        : null,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.all(14),
                       backgroundColor: Colors.transparent,
@@ -299,7 +333,16 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                       ),
                       foregroundColor: Colors.white,
                     ),
-                    child: const Text("Issue Rx"),
+                    child: _sendingRx
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text("Issue Rx"),
                   ),
                 ),
               ),

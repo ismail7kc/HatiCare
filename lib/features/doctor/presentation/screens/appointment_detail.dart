@@ -28,6 +28,7 @@ class AppointmentDetailScreen extends StatefulWidget {
 class _AppointmentDetailState extends State<AppointmentDetailScreen> {
   late AppointmentDetailvm appointmentDetailvm;
   final symptoms = ["Fever", "Headache", "Cough"];
+  bool _accepting = false;
 
   @override
   void initState() {
@@ -302,34 +303,43 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: ElevatedButton(
-                        onPressed: () {
-                          appointmentDetailvm.acceptPatientResponse(
-                            widget.appointment.id,
-                          );
-                          final visitId = appointmentDetailvm.visitId;
+                        onPressed: _accepting
+                            ? null
+                            : () async {
+                                setState(() => _accepting = true);
 
-                          if (visitId == 0) {
-                            if (!context.mounted) return;
-                            showDialog(
-                              context: context,
-                              builder: (_) => const AlertDialog(
-                                title: Text('Error'),
-                                content: Text('Failed to accept patient'),
-                              ),
-                            );
-                            return;
-                          }
-                          PersistentNavBarNavigator.pushNewScreen(
-                            context,
-                            screen: AudioCallScreen(
-                              appointments: widget.appointment,
-                              visitId: visitId,
-                            ),
-                            withNavBar: false,
-                            pageTransitionAnimation:
-                                PageTransitionAnimation.cupertino,
-                          );
-                        },
+                                await appointmentDetailvm.acceptPatientResponse(
+                                  widget.appointment.id,
+                                );
+
+                                final visitId = appointmentDetailvm.visitId;
+
+                                setState(() => _accepting = false);
+
+                                if (!mounted) return;
+
+                                if (visitId == 0) {
+                                  showDialog(
+                                    context: context,
+                                    builder: (_) => const AlertDialog(
+                                      title: Text('Error'),
+                                      content: Text('Failed to accept patient'),
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                PersistentNavBarNavigator.pushNewScreen(
+                                  context,
+                                  screen: AudioCallScreen(
+                                    appointments: widget.appointment,
+                                    visitId: visitId,
+                                  ),
+                                  withNavBar: false,
+                                  pageTransitionAnimation:
+                                      PageTransitionAnimation.cupertino,
+                                );
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
@@ -338,13 +348,22 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        child: const Text(
-                          "Accept & Call",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        child: _accepting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                "Accept & Call",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                       ),
                     ),
                   ),
