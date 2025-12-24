@@ -1,3 +1,4 @@
+import 'dart:ffi';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:haticare/core/config/app_config.dart';
@@ -82,6 +83,7 @@ class RepositoryLayer {
     required int visitId,
     required List<DoctorMedication> medications,
     String? notes,
+    required List<int> selectedLabTests,
   }) async {
     final url = '${AppConfig.baseUrl}prescriptions/';
 
@@ -89,6 +91,7 @@ class RepositoryLayer {
       "visit_id": visitId,
       "medications": medications.map((m) => m.toJson()).toList(),
       "notes": notes ?? "",
+      "selected_labTest": selectedLabTests , 
     };
 
     debugPrint('prescription data is $data');

@@ -174,8 +174,7 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                                   child: Text(
                                     getSelectedLabTestLabel(),
                                     maxLines: 1,
-                                    overflow:
-                                        TextOverflow.ellipsis, // 👈 important
+                                    overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(color: Colors.black),
                                   ),
                                 ),
@@ -263,7 +262,7 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                     onPressed: () async {
                       final meds = getMedicationsFromControllers();
                       final response = await widget.appointmentDetailvm
-                          .createPrescription(medications: meds);
+                          .createPrescription(medications: meds, selectedLabTests: selectedLabTestIds);
 
                       if (!mounted) return;
 
@@ -362,6 +361,7 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                 setState(() {
                   selectedLabTestIds = tempSelected;
                 });
+                debugPrint("selected Lab Test IDs: $selectedLabTestIds");
                 Navigator.pop(context);
               },
               child: const Text('OK'),

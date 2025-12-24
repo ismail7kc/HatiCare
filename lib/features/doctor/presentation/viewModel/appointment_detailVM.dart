@@ -60,6 +60,7 @@ class AppointmentDetailvm extends ChangeNotifier {
   Future<Map<String, dynamic>> createPrescription({
     required List<DoctorMedication> medications,
     String? notes,
+    required List<int> selectedLabTests,
   }) async {
     _isLoading = true;
     _errorMessage = '';
@@ -70,6 +71,7 @@ class AppointmentDetailvm extends ChangeNotifier {
         visitId: visitId,
         medications: medications,
         notes: notes,
+        selectedLabTests: selectedLabTests 
       );
 
       if (response['success'] != true) {
