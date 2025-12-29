@@ -38,7 +38,7 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
     "Institutional practice limited license",
     "Faculty license",
     "Residency training license",
-    "Fellowship training license"
+    "Fellowship training license",
   ];
 
   @override
@@ -58,7 +58,6 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
     editViewModel = EditViewmodel(repository);
 
     _loadDoctorFromPrefs();
-    // _loadDoctorFromAPI();
 
     editViewModel.fetchSpecialization().then((_) {
       if (mounted) setState(() {});
@@ -95,7 +94,6 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
   }
 
   Future<void> _onSubmitPressed() async {
-    // Validate form first
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -106,7 +104,6 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
       return;
     }
 
-    // Check if all fields are filled
     if (!_areAllFieldsFilled()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -230,7 +227,6 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
                 ),
                 const SizedBox(height: 16),
 
-                // License Number
                 _buildTextField(
                   label: 'License Number',
                   controller: licenseNumberController,
@@ -245,7 +241,6 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
                 ),
                 const SizedBox(height: 16),
 
-                // License Type Dropdown
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -292,7 +287,6 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
                         ),
                       ),
                       onTap: () async {
-                        // Dismiss keyboard first
                         FocusScope.of(context).unfocus();
 
                         final selected = await showCustomDropdownDialog(
@@ -312,7 +306,6 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
                 ),
                 const SizedBox(height: 16),
 
-                // Years of Experience
                 _buildTextField(
                   label: 'Years of Experience',
                   controller: yearsExperienceController,
@@ -334,7 +327,6 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
                 ),
                 const SizedBox(height: 16),
 
-                // Specialization Dropdown
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -396,7 +388,6 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
                       onTap: editViewModel.specializationNames.isEmpty
                           ? null
                           : () async {
-                              // Dismiss keyboard first
                               FocusScope.of(context).unfocus();
 
                               debugPrint(
@@ -421,7 +412,6 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
                 ),
                 const SizedBox(height: 16),
 
-                // License Issuing Authority
                 _buildTextField(
                   label: 'License Issuing Authority',
                   controller: licenseAuthorityController,
@@ -444,7 +434,6 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
                 ),
                 const SizedBox(height: 24),
 
-                // Submit Button
                 SizedBox(
                   width: double.infinity,
                   height: 52,
