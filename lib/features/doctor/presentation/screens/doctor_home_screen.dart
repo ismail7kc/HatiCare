@@ -245,7 +245,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       );
     }
 
-    // Show loading state while approval status is being fetched
     if (hasAdminApproval == null) {
       return Padding(
         padding: const EdgeInsets.all(16.0),
@@ -541,17 +540,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     AppointmentModel appointment,
   ) {
     return GestureDetector(
-      onTap: () {
-        // PersistentNavBarNavigator.pushNewScreen(
-        //   context,
-        //   screen: AppointmentDetail(
-        //     appointment: appointment,
-        //     isCameFromAccept: true,
-        //   ),
-        //   withNavBar: false,
-        //   pageTransitionAnimation: PageTransitionAnimation.cupertino,
-        // );
-      },
+      onTap: () { },
       child: Container(
         margin: EdgeInsets.zero,
         padding: const EdgeInsets.all(18),
@@ -685,22 +674,22 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
           Row(
             children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {},
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE3E8EF),
-                    side: const BorderSide(color: Color(0xFFE3E8EF)),
-                    foregroundColor: Colors.redAccent.shade400,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text("Decline"),
-                ),
-              ),
-              const SizedBox(width: 10),
+              // Expanded(
+              //   child: OutlinedButton(
+              //     onPressed: () {},
+              //     style: OutlinedButton.styleFrom(
+              //       backgroundColor: const Color(0xFFE3E8EF),
+              //       side: const BorderSide(color: Color(0xFFE3E8EF)),
+              //       foregroundColor: Colors.redAccent.shade400,
+              //       padding: const EdgeInsets.symmetric(vertical: 12),
+              //       shape: RoundedRectangleBorder(
+              //         borderRadius: BorderRadius.circular(8),
+              //       ),
+              //     ),
+              //     child: const Text("Decline"),
+              //   ),
+              // ),
+              // const SizedBox(width: 10),
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(

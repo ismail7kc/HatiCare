@@ -281,21 +281,21 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
             if (widget.isCameFromAccept) ...[
               Row(
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {},
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF1F3F6),
-                        foregroundColor: Colors.black87,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: const Text("Decline"),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
+                  // Expanded(
+                  //   child: OutlinedButton(
+                  //     onPressed: () {},
+                  //     style: OutlinedButton.styleFrom(
+                  //       backgroundColor: const Color(0xFFF1F3F6),
+                  //       foregroundColor: Colors.black87,
+                  //       padding: const EdgeInsets.symmetric(vertical: 14),
+                  //       shape: RoundedRectangleBorder(
+                  //         borderRadius: BorderRadius.circular(10),
+                  //       ),
+                  //     ),
+                  //     child: const Text("Decline"),
+                  //   ),
+                  // ),
+                  // const SizedBox(width: 10),
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
