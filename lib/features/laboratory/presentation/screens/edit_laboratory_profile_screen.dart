@@ -57,6 +57,54 @@ class _EditLaboratoryProfileView extends StatelessWidget {
   Widget build(BuildContext context) {
     final viewModel = context.watch<LaboratoryProfileViewModel>();
 
+    // Show error toast (API errors only)
+    if (viewModel.errorMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(viewModel.errorMessage!),
+              duration: const Duration(seconds: 2),
+              backgroundColor: Colors.red[700],
+            ),
+          );
+          viewModel.clearErrorMessage();
+        }
+      });
+    }
+
+    // Show page 2 validation error toast
+    if (viewModel.getPage2ValidationError() != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(viewModel.getPage2ValidationError()!),
+              duration: const Duration(seconds: 2),
+              backgroundColor: Colors.orange[700],
+            ),
+          );
+          viewModel.clearPage2ValidationError();
+        }
+      });
+    }
+
+    // Show success toast
+    if (viewModel.successMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(viewModel.successMessage!),
+              duration: const Duration(seconds: 2),
+              backgroundColor: Colors.green[700],
+            ),
+          );
+          viewModel.clearSuccessMessage();
+        }
+      });
+    }
+
     if (viewModel.shouldNavigateToHome) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
@@ -189,26 +237,6 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                   _buildPage1(context, viewModel)
                 else
                   _buildPage2(context, viewModel, openedFromSettings),
-
-                const SizedBox(height: 24),
-
-                // Error message
-                if (viewModel.errorMessage != null)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                    ),
-                    child: Text(
-                      viewModel.errorMessage!,
-                      style: const TextStyle(
-                        color: Colors.red,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
 
                 const SizedBox(height: 24),
 
@@ -468,6 +496,14 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
                   ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                  ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 12,
@@ -488,6 +524,17 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                   }
                 },
               ),
+              if (viewModel.getValidationError('country') != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  viewModel.getValidationError('country')!,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 16),
@@ -526,6 +573,14 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
                   ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                  ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 12,
@@ -553,6 +608,17 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                       }
                     : null,
               ),
+              if (viewModel.getValidationError('state') != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  viewModel.getValidationError('state')!,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 16),
@@ -591,6 +657,14 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
                   ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                  ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 12,
@@ -618,6 +692,17 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                       }
                     : null,
               ),
+              if (viewModel.getValidationError('city') != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  viewModel.getValidationError('city')!,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 16),
@@ -1051,6 +1136,9 @@ class _EditLaboratoryProfileView extends StatelessWidget {
     VoidCallback? onChanged,
     LaboratoryProfileViewModel? viewModel,
   }) {
+    // Get validation error from validator
+    final validationError = validator(controller.text);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1108,35 +1196,65 @@ class _EditLaboratoryProfileView extends StatelessWidget {
             ],
           )
         else
-          TextFormField(
-            controller: controller,
-            validator: validator,
-            autovalidateMode: AutovalidateMode.onUnfocus,
-            onChanged: (value) {
-              if (onChanged != null) onChanged();
-            },
-            decoration: InputDecoration(
-              hintText: hintText,
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey[300]!),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: controller,
+                validator: validator,
+                autovalidateMode: AutovalidateMode.disabled,
+                onChanged: (value) {
+                  if (onChanged != null) onChanged();
+                },
+                decoration: InputDecoration(
+                  hintText: hintText,
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: validationError != null ? Colors.red : Colors.grey[300]!,
+                      width: validationError != null ? 1.5 : 1.0,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: validationError != null ? Colors.red : AppColors.primaryDark,
+                      width: 2,
+                    ),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.red, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+                inputFormatters: inputFormatters,
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
-              ),
-            ),
-            inputFormatters: inputFormatters,
+              if (validationError != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  validationError,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ],
           ),
       ],
     );

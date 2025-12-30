@@ -289,16 +289,20 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
         debugPrint('Extracted Data: $data');
         _populateFormFields(data);
         successMessage = null;
+      } else if (response.statusCode == 404) {
+        // Handle 404 silently - profile doesn't exist yet, user can create it
+        debugPrint('Profile not found (404) - allowing user to create new profile');
       } else {
         final responseBody = response.body;
         errorMessage = 'Failed to load profile: ${response.statusCode}';
         debugPrint('Error response: $responseBody');
       }
     } on SocketException catch (e) {
-      errorMessage = 'Network error: ${e.message}. Please check your internet connection.';
+      errorMessage = 'Network error. Please check your internet connection.';
       debugPrint('SocketException: $e');
     } on TimeoutException catch (e) {
       errorMessage = 'Request timed out. Please try again.';
+      debugPrint('TimeoutException: $e');
     } catch (e) {
       errorMessage = 'Error loading profile: ${e.toString()}';
       debugPrint('Exception: $e');
@@ -511,31 +515,60 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
     return null;
   }
 
+  bool validatePage2() {
+    bool isValid = true;
+    String? validationError;
+
+    // Validate Tax ID
+    if (taxIdentificationNumberController.text.isEmpty) {
+      validationError = 'Tax identification number is required';
+      isValid = false;
+    }
+
+    // Validate License Number
+    if (licenseNumberController.text.isEmpty && validationError == null) {
+      validationError = 'License number is required';
+      isValid = false;
+    }
+
+    // Validate Profile Picture (only if not opened from settings)
+    if (profilePictureFile == null && (profilePictureUrl == null || profilePictureUrl!.isEmpty) && validationError == null) {
+      validationError = 'Profile picture is required';
+      isValid = false;
+    }
+
+    // Validate License Document
+    if (licenseDocumentFile == null && (licenseDocumentUrl == null || licenseDocumentUrl!.isEmpty) && validationError == null) {
+      validationError = 'License document is required';
+      isValid = false;
+    }
+
+    // Show validation error as toast only (don't use errorMessage)
+    if (!isValid && validationError != null) {
+      // Set a temporary validation message that will be shown as toast
+      _validationErrors['page2'] = validationError;
+      notifyListeners();
+    }
+    return isValid;
+  }
+
+  String? getPage2ValidationError() {
+    return _validationErrors['page2'];
+  }
+
+  void clearPage2ValidationError() {
+    _validationErrors.remove('page2');
+    notifyListeners();
+  }
+
   Future<void> submitProfile() async {
     _attemptedSubmit = true;
     errorMessage = null;
     successMessage = null;
     notifyListeners();
 
-    // Validate basic forms if available
-    if (formKeyPage1.currentState != null && !formKeyPage1.currentState!.validate()) {
-      return;
-    }
-    if (formKeyPage2.currentState != null && !formKeyPage2.currentState!.validate()) {
-      return;
-    }
-
-    // Require profile picture
-    if (profilePictureFile == null && (profilePictureUrl == null || profilePictureUrl!.isEmpty)) {
-      errorMessage = 'Profile picture is required';
-      notifyListeners();
-      return;
-    }
-
-    // Require license document (either newly uploaded or existing)
-    if (licenseDocumentFile == null && (licenseDocumentUrl == null || licenseDocumentUrl!.isEmpty)) {
-      errorMessage = 'License document is required';
-      notifyListeners();
+    // Validate page 2 fields
+    if (!validatePage2()) {
       return;
     }
 
@@ -638,6 +671,16 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
     _shouldNavigateToHome = false;
   }
 
+  void clearErrorMessage() {
+    errorMessage = null;
+    notifyListeners();
+  }
+
+  void clearSuccessMessage() {
+    successMessage = null;
+    notifyListeners();
+  }
+
   String get countryCode => _countryCode;
   String? get initialPhoneNumber => _initialPhoneNumber;
 
@@ -669,55 +712,70 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
 
   bool validatePage1() {
     bool isValid = true;
-    
+
+    // Clear all previous validation errors for page 1
+    _validationErrors.remove('laboratoryName');
+    _validationErrors.remove('phoneNumber');
+    _validationErrors.remove('address');
+    _validationErrors.remove('country');
+    _validationErrors.remove('state');
+    _validationErrors.remove('city');
+    _validationErrors.remove('zipCode');
+
     // Validate Laboratory Name
     if (laboratoryNameController.text.isEmpty) {
       setValidationError('laboratoryName', 'Laboratory name is required');
       isValid = false;
     }
-    
+
     // Validate Phone Number
     if (_phoneNumber == null || _phoneNumber!.isEmpty) {
       setValidationError('phoneNumber', 'Phone number is required');
       isValid = false;
     }
-    
+
     // Validate Address
     if (addressLine1Controller.text.isEmpty) {
       setValidationError('address', 'Address is required');
       isValid = false;
     }
-    
+
     // Validate Country
     if (countryController.text.isEmpty) {
       setValidationError('country', 'Country is required');
       isValid = false;
     }
-    
+
     // Validate State
     if (stateController.text.isEmpty) {
       setValidationError('state', 'State is required');
       isValid = false;
     }
-    
+
     // Validate City
     if (cityController.text.isEmpty) {
       setValidationError('city', 'City is required');
       isValid = false;
     }
-    
+
     // Validate Zip Code
     if (zipCodeController.text.isEmpty) {
       setValidationError('zipCode', 'Zip code is required');
       isValid = false;
     }
-    
+
     notifyListeners();
     return isValid;
   }
 
   void moveToNextPage() {
-    if (_currentStep < 2 && validatePage1()) {
+    if (_currentStep == 1) {
+      // Validate page 1 before moving to page 2
+      if (!validatePage1()) {
+        return;
+      }
+    }
+    if (_currentStep < 2) {
       _currentStep++;
       notifyListeners();
     }
@@ -754,12 +812,15 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
 
     if (country != null && country.isNotEmpty) {
       _loadStatesForCountry(country);
-      
+
       // If no states available, auto-populate state with country name
       if (states.isEmpty) {
         selectedState = country;
         stateController.text = country;
         cityController.text = country;
+        // Clear validation errors since we auto-filled them
+        clearValidationError('state');
+        clearValidationError('city');
       } else {
         stateController.text = '';
         cityController.text = '';
@@ -781,11 +842,13 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
 
     if (state != null && state.isNotEmpty && selectedCountry != null) {
       _loadCitiesForState(selectedCountry!, state);
-      
+
       // If no cities available, auto-populate city with state name
       if (cities.isEmpty) {
         selectedCity = state;
         cityController.text = state;
+        // Clear city validation error since we auto-filled it
+        clearValidationError('city');
       } else {
         cityController.text = '';
       }
