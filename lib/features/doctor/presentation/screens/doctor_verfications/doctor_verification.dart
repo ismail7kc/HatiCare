@@ -258,13 +258,11 @@ class DoctorVerificationScreenState extends State<DoctorVerificationScreen> {
                               ),
                               onPressed: isAllChecked
                                   ? () async {
-                                      // Save profile completion status with doctor ID
                                       final prefs = await SharedPreferences.getInstance();
                                       final doctorId = SaveLoginResponse.loginData?['id']?.toString() ?? '';
 
                                       await prefs.setBool('is_profile_completed', true);
 
-                                      // Save verification completed flag with doctor ID to prevent cross-account issues
                                       if (doctorId.isNotEmpty) {
                                         await prefs.setBool('doctor_verification_completed_$doctorId', true);
                                       }

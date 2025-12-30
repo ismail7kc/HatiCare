@@ -6,7 +6,7 @@ import 'package:haticare/core/widgets/app_primary_button.dart';
 import 'package:haticare/core/widgets/app_dropdown_field.dart';
 import 'package:haticare/core/widgets/custom_dropdown_dialog.dart';
 import 'package:haticare/features/common/presentation/screens/upload_document_screen.dart';
-import 'package:haticare/features/doctor/presentation/viewmodels/doctor_profile_view_model.dart';
+import 'package:haticare/features/doctor/presentation/viewModel/doctor_profile_view_model.dart';
 import 'package:intl/intl.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:provider/provider.dart';
@@ -16,10 +16,7 @@ import '../providers/doctor_user_provider.dart';
 class EditProfileScreen extends StatelessWidget {
   final bool openedFromSettings;
 
-  const EditProfileScreen({
-    super.key,
-    this.openedFromSettings = false,
-  });
+  const EditProfileScreen({super.key, this.openedFromSettings = false});
 
   @override
   Widget build(BuildContext context) {
@@ -103,7 +100,7 @@ class _EditProfileView extends StatelessWidget {
               ),
             ),
             centerTitle: true,
-            automaticallyImplyLeading: false,
+            automaticallyImplyLeading: true,
             leading: (openedFromSettings || viewModel.currentStep == 2)
                 ? IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -114,7 +111,7 @@ class _EditProfileView extends StatelessWidget {
                         if (viewModel.hasChanges) {
                           final shouldExit =
                               await _showExitConfirmationDialog(context) ??
-                                  false;
+                              false;
                           if (shouldExit && context.mounted) {
                             Navigator.of(context).pop();
                           }
@@ -131,9 +128,7 @@ class _EditProfileView extends StatelessWidget {
                 : null,
           ),
           body: viewModel.isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(),
-                )
+              ? const Center(child: CircularProgressIndicator())
               : SingleChildScrollView(
                   child: Column(
                     children: [
@@ -162,7 +157,8 @@ class _EditProfileView extends StatelessWidget {
                                   color: Colors.red.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                      color: Colors.red.withOpacity(0.3)),
+                                    color: Colors.red.withOpacity(0.3),
+                                  ),
                                 ),
                                 child: Text(
                                   viewModel.errorMessage!,
@@ -280,9 +276,7 @@ class _EditProfileView extends StatelessWidget {
                   controller: viewModel.firstNameController,
                   hintText: "Enter first name",
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                      RegExp(r'[a-zA-Z]'),
-                    ),
+                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')),
                   ],
                   validator: viewModel.validateFirstName,
                 ),
@@ -294,9 +288,7 @@ class _EditProfileView extends StatelessWidget {
                   controller: viewModel.lastNameController,
                   hintText: "Enter last name",
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                      RegExp(r'[a-zA-Z]'),
-                    ),
+                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')),
                   ],
                   validator: viewModel.validateLastName,
                 ),
@@ -327,14 +319,10 @@ class _EditProfileView extends StatelessWidget {
               IntlPhoneField(
                 key: ValueKey('phone_${viewModel.phoneFieldKey}'),
                 initialValue: viewModel.initialPhoneNumber,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                ],
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: InputDecoration(
                   hintText: 'Enter phone number',
-                  hintStyle: const TextStyle(
-                    color: AppColors.textSecondary,
-                  ),
+                  hintStyle: const TextStyle(color: AppColors.textSecondary),
                   counterText: '',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -353,17 +341,11 @@ class _EditProfileView extends StatelessWidget {
                   ),
                   errorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(
-                      color: Colors.red,
-                      width: 1.5,
-                    ),
+                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
                   ),
                   focusedErrorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(
-                      color: Colors.red,
-                      width: 1.5,
-                    ),
+                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -380,10 +362,7 @@ class _EditProfileView extends StatelessWidget {
                   Icons.arrow_drop_down,
                   color: Colors.grey,
                 ),
-                flagsButtonPadding: const EdgeInsets.only(
-                  left: 12,
-                  right: 8,
-                ),
+                flagsButtonPadding: const EdgeInsets.only(left: 12, right: 8),
                 onChanged: (phone) {
                   viewModel.updatePhoneNumber(phone);
                 },
@@ -407,18 +386,9 @@ class _EditProfileView extends StatelessWidget {
                 child: AppDropdownField<String>(
                   label: 'Gender',
                   items: const [
-                    DropdownMenuItem(
-                      value: 'Male',
-                      child: Text('Male'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'Female',
-                      child: Text('Female'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'Other',
-                      child: Text('Other'),
-                    ),
+                    DropdownMenuItem(value: 'Male', child: Text('Male')),
+                    DropdownMenuItem(value: 'Female', child: Text('Female')),
+                    DropdownMenuItem(value: 'Other', child: Text('Other')),
                   ],
                   value: viewModel.gender,
                   onChanged: (value) {
@@ -439,7 +409,9 @@ class _EditProfileView extends StatelessWidget {
                   label: 'Date of Birth',
                   items: const [],
                   value: viewModel.selectedDate != null
-                      ? DateFormat('MMM dd, yyyy').format(viewModel.selectedDate!)
+                      ? DateFormat(
+                          'MMM dd, yyyy',
+                        ).format(viewModel.selectedDate!)
                       : null,
                   onChanged: (value) {
                     // This will be handled by onTap
@@ -606,24 +578,29 @@ class _EditProfileView extends StatelessWidget {
             context: context,
             label: _getLicenseDocumentLabel(viewModel),
             onPressed: () async {
-              final result = await Navigator.of(context, rootNavigator: true).push<Map<String, dynamic>>(
-                MaterialPageRoute(
-                  builder: (_) => const UploadDocumentScreen(
-                    title: 'Upload License Document',
-                    subtitle: 'Please capture or upload your license document',
-                  ),
-                ),
-              );
+              final result = await Navigator.of(context, rootNavigator: true)
+                  .push<Map<String, dynamic>>(
+                    MaterialPageRoute(
+                      builder: (_) => const UploadDocumentScreen(
+                        title: 'Upload License Document',
+                        subtitle:
+                            'Please capture or upload your license document',
+                      ),
+                    ),
+                  );
 
               if (result != null && result['file'] != null) {
                 final file = result['file'] as File;
-                await viewModel.uploadLicenseDocument(file);
+                final body = {'license_document': file};
+                await viewModel.updateDoctorInfo(body);
                 // Refresh doctor profile after upload
                 viewModel.fetchDoctorProfile(forceRefresh: true);
               }
             },
-            isSelected: viewModel.licenseDocumentFile != null ||
-                       (viewModel.licenseDocumentUrl != null && viewModel.licenseDocumentUrl!.isNotEmpty),
+            isSelected:
+                viewModel.licenseDocumentFile != null ||
+                (viewModel.licenseDocumentUrl != null &&
+                    viewModel.licenseDocumentUrl!.isNotEmpty),
           ),
 
           const SizedBox(height: 16),
@@ -643,24 +620,28 @@ class _EditProfileView extends StatelessWidget {
             context: context,
             label: _getIdDocumentLabel(viewModel),
             onPressed: () async {
-              final result = await Navigator.of(context, rootNavigator: true).push<Map<String, dynamic>>(
-                MaterialPageRoute(
-                  builder: (_) => const UploadDocumentScreen(
-                    title: 'Upload ID Document',
-                    subtitle: 'Please capture or upload your ID document',
-                  ),
-                ),
-              );
+              final result = await Navigator.of(context, rootNavigator: true)
+                  .push<Map<String, dynamic>>(
+                    MaterialPageRoute(
+                      builder: (_) => const UploadDocumentScreen(
+                        title: 'Upload ID Document',
+                        subtitle: 'Please capture or upload your ID document',
+                      ),
+                    ),
+                  );
 
               if (result != null && result['file'] != null) {
                 final file = result['file'] as File;
-                await viewModel.uploadIdDocument(file);
+                final body = {'id_document': file};
+                await viewModel.updateDoctorInfo(body);
                 // Refresh doctor profile after upload
                 viewModel.fetchDoctorProfile(forceRefresh: true);
               }
             },
-            isSelected: viewModel.idDocumentFile != null ||
-                       (viewModel.idDocumentUrl != null && viewModel.idDocumentUrl!.isNotEmpty),
+            isSelected:
+                viewModel.idDocumentFile != null ||
+                (viewModel.idDocumentUrl != null &&
+                    viewModel.idDocumentUrl!.isNotEmpty),
           ),
 
           const SizedBox(height: 16),
@@ -748,9 +729,7 @@ class _EditProfileView extends StatelessWidget {
             controller: viewModel.licenseAuthorityController,
             hintText: "Enter license issuing authority",
             inputFormatters: [
-              FilteringTextInputFormatter.allow(
-                RegExp(r'[a-zA-Z0-9\s]'),
-              ),
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s]')),
               LengthLimitingTextInputFormatter(50),
             ],
             validator: viewModel.validateLicenseAuthority,
@@ -767,7 +746,8 @@ class _EditProfileView extends StatelessWidget {
         return AlertDialog(
           title: const Text('Discard Changes?'),
           content: const Text(
-              'Are you sure you want to exit? Any unsaved changes will be lost.'),
+            'Are you sure you want to exit? Any unsaved changes will be lost.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -785,26 +765,25 @@ class _EditProfileView extends StatelessWidget {
   }
 
   String _getLicenseDocumentLabel(DoctorProfileViewModel viewModel) {
-    // If a new file is selected
+    // 1️⃣ Show local picked file ONLY if upload still in progress
     if (viewModel.licenseDocumentFile != null) {
       return viewModel.licenseDocumentFile!.path.split('/').last;
     }
 
-    // If there's an existing document URL from API
-    if (viewModel.licenseDocumentUrl != null && viewModel.licenseDocumentUrl!.isNotEmpty) {
+    // 2️⃣ Show server file name
+    final url = viewModel.licenseDocumentUrl;
+    if (url != null && url.isNotEmpty) {
       try {
-        final uri = Uri.parse(viewModel.licenseDocumentUrl!);
-        final segments = uri.pathSegments;
-        if (segments.isNotEmpty) {
-          return segments.last;
-        }
-      } catch (e) {
-        debugPrint('Error parsing document URL: $e');
+        final uri = Uri.parse(url);
+        return uri.pathSegments.isNotEmpty
+            ? uri.pathSegments.last
+            : 'License Document';
+      } catch (_) {
+        return 'License Document';
       }
-      return 'License Document (Uploaded)';
     }
 
-    // Default label when no document
+    // 3️⃣ Default
     return 'Upload License Document';
   }
 
@@ -815,7 +794,8 @@ class _EditProfileView extends StatelessWidget {
     }
 
     // If there's an existing document URL from API
-    if (viewModel.idDocumentUrl != null && viewModel.idDocumentUrl!.isNotEmpty) {
+    if (viewModel.idDocumentUrl != null &&
+        viewModel.idDocumentUrl!.isNotEmpty) {
       try {
         final uri = Uri.parse(viewModel.idDocumentUrl!);
         final segments = uri.pathSegments;
@@ -849,9 +829,7 @@ class _EditProfileView extends StatelessWidget {
         backgroundColor: isSelected ? Colors.green : AppColors.primary,
         foregroundColor: Colors.white,
         minimumSize: const Size(double.infinity, 48),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }

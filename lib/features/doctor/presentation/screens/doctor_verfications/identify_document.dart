@@ -23,7 +23,6 @@ class _IdentifyDocumentScreenState extends State<IdentifyDocumentScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        // titleSpacing: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
           onPressed: () {
@@ -116,7 +115,7 @@ class _IdentifyDocumentScreenState extends State<IdentifyDocumentScreen> {
           children: [
             SvgPicture.asset(icon),
             const SizedBox(width: 16),
-            Text(
+            Text( 
               label,
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
