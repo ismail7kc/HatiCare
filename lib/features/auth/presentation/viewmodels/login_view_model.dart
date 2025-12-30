@@ -178,7 +178,9 @@ class LoginViewModel extends ChangeNotifier {
         if (role == 'doctor') {
           final doctorId = response['data']['id']?.toString() ?? '';
           if (doctorId.isNotEmpty) {
-            final verificationCompleted = prefs.getBool('doctor_verification_completed_$doctorId') ?? false;
+            final verificationCompleted =
+                prefs.getBool('doctor_verification_completed_$doctorId') ??
+                false;
             if (verificationCompleted && !isProfileCompleted) {
               // Local verification flag exists but server hasn't updated yet
               isProfileCompleted = true;
@@ -193,6 +195,11 @@ class LoginViewModel extends ChangeNotifier {
             'laboratory_profile_completed',
             isProfileCompleted,
           );
+
+          // Save Access Toekn
+          final accessToken = response['data']['access_token'];
+          await prefs.setString('access_token', accessToken);
+
         } else if (role == 'pharmacy') {
           await prefs.setBool('pharmacy_profile_completed', isProfileCompleted);
         }
@@ -208,9 +215,12 @@ class LoginViewModel extends ChangeNotifier {
 
         if (roleFromResponse == 'doctor') {
           final currentDoctorId = responseData['id']?.toString() ?? '';
-          final lastDoctorId = prefs.getString('last_logged_in_doctor_id') ?? '';
+          final lastDoctorId =
+              prefs.getString('last_logged_in_doctor_id') ?? '';
 
-          if (currentDoctorId.isNotEmpty && lastDoctorId.isNotEmpty && currentDoctorId != lastDoctorId) {
+          if (currentDoctorId.isNotEmpty &&
+              lastDoctorId.isNotEmpty &&
+              currentDoctorId != lastDoctorId) {
             await prefs.remove('idCardChecked_$lastDoctorId');
             await prefs.remove('selfieChecked_$lastDoctorId');
             await prefs.remove('licenseChecked_$lastDoctorId');
@@ -226,7 +236,9 @@ class LoginViewModel extends ChangeNotifier {
             await prefs.remove('is_profile_completed');
             await prefs.remove('doctor_verification_completed_$lastDoctorId');
 
-            debugPrint('Cleared previous doctor data including profile completion flags');
+            debugPrint(
+              'Cleared previous doctor data including profile completion flags',
+            );
           }
 
           if (currentDoctorId.isNotEmpty) {
@@ -234,7 +246,6 @@ class LoginViewModel extends ChangeNotifier {
           }
         }
         SaveLoginResponse.loginData = responseData;
-
       }
 
       accessToken ??= response['access_token'] ?? response['access'];
@@ -365,12 +376,14 @@ class LoginViewModel extends ChangeNotifier {
           errorMsg.contains('does not exist') ||
           errorMsg.contains('no account found') ||
           errorMsg.contains('user not found')) {
-        dialogMessage = 'No account found with this email. Please try with correct email or register a new account.';
+        dialogMessage =
+            'No account found with this email. Please try with correct email or register a new account.';
       } else if (errorMsg.contains('password') ||
           errorMsg.contains('incorrect') ||
           errorMsg.contains('invalid credentials') ||
           errorMsg.contains('wrong password')) {
-        dialogMessage = 'Incorrect password. Please check your password and try again.';
+        dialogMessage =
+            'Incorrect password. Please check your password and try again.';
       } else if (errorMsg.contains('email') && errorMsg.contains('invalid')) {
         dialogMessage = 'Invalid email address. Please enter a valid email.';
       } else {

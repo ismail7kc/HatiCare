@@ -3,9 +3,12 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
 import 'package:haticare/features/common/presentation/screens/notifications_screen.dart';
+import 'package:haticare/features/doctor/ApiClient/api_client.dart';
+import 'package:haticare/features/laboratory/presentation/lab_repository_layer.dart';
 import 'package:haticare/features/laboratory/presentation/screens/laboratory_history_screen.dart';
 import 'package:haticare/features/laboratory/presentation/screens/laboratory_settings_screen.dart';
 import 'package:haticare/features/laboratory/presentation/screens/test_request_detail_screen.dart';
+import 'package:haticare/features/laboratory/presentation/viewmodels/lab_prescriptionVM.dart';
 import 'package:haticare/features/laboratory/presentation/widgets/test_request_card.dart';
 import 'package:provider/provider.dart';
 
@@ -54,10 +57,16 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   @override
   bool get wantKeepAlive => true;
 
+  late final LabPrescriptionvm labPrescriptionVm;
+
   @override
   void initState() {
     super.initState();
     _rxCodeController = TextEditingController();
+    
+    // show lab prescription list
+    labPrescriptionVm = LabPrescriptionvm(LabRepositoryLayer(ApiClient()));
+    labPrescriptionVm.laboratoryPrescriptionList();
   }
 
   @override

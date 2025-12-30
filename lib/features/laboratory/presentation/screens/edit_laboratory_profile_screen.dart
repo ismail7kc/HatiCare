@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -14,8 +13,6 @@ import 'package:haticare/core/widgets/custom_dropdown_dialog.dart';
 import 'package:haticare/features/laboratory/presentation/viewmodels/laboratory_profile_view_model.dart';
 import 'package:haticare/features/laboratory/presentation/screens/laboratory_home_screen.dart';
 import 'package:haticare/features/common/presentation/screens/upload_document_screen.dart';
-
-import '../../../../core/widgets/app_text_field.dart';
 
 class EditLaboratoryProfileScreen extends StatelessWidget {
   final String laboratoryId;
