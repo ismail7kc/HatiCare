@@ -54,7 +54,6 @@ class _EditLaboratoryProfileView extends StatelessWidget {
   Widget build(BuildContext context) {
     final viewModel = context.watch<LaboratoryProfileViewModel>();
 
-    // Show error toast (API errors only)
     if (viewModel.errorMessage != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {

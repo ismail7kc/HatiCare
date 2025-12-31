@@ -8,7 +8,7 @@ class LabRepositoryLayer {
   LabRepositoryLayer(this._apiClient);
 
   Future<Map<String, dynamic>> laboratoryPrescriptionList() async {
-    final url = '${AppConfig.baseUrl}prescriptions/laboratory/';
+    final url = '${AppConfig.baseUrl}prescriptions/laboratory/list';
 
     final pref = await SharedPreferences.getInstance();
     final accessToken = pref.getString('access_token');

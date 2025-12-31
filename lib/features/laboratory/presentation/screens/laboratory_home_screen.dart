@@ -63,8 +63,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   void initState() {
     super.initState();
     _rxCodeController = TextEditingController();
-    
-    // show lab prescription list
+
     labPrescriptionVm = LabPrescriptionvm(LabRepositoryLayer(ApiClient()));
     labPrescriptionVm.laboratoryPrescriptionList();
   }
@@ -78,10 +77,12 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   Future<void> _onRefresh() async {
     final provider = context.read<LaboratoryUserProvider>();
     await provider.fetchProfile(forceRefresh: true);
+    
+    // refresh prescription that is sent by doctor
+    await labPrescriptionVm.laboratoryPrescriptionList();
   }
 
   Future<void> _verifyRxCode(LaboratoryUserProvider provider) async {
-    // Check approval status first
     if (!provider.isApproved) {
       _showVerificationDialog(
         title: 'Account Not Approved',
