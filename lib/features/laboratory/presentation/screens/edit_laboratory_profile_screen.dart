@@ -944,135 +944,135 @@ class _EditLaboratoryProfileView extends StatelessWidget {
     );
   }
 
-  static Widget _buildCountryDropdown(BuildContext context, LaboratoryProfileViewModel viewModel) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Country',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-          ),
-        ),
-        const SizedBox(height: 8),
-        AppDropdownField<String>(
-          items: viewModel.getCountryNames().map((country) {
-            return DropdownMenuItem<String>(
-              value: country,
-              child: Text(country),
-            );
-          }).toList(),
-          value: viewModel.selectedCountry,
-          onChanged: (String? country) {
-            if (country != null) {
-              viewModel.selectCountry(country);
-              viewModel.clearValidationError('country');
-            }
-          },
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please select a country';
-            }
-            return null;
-          },
-          hint: 'Select country',
-          prefixIcon: const Icon(Icons.public_outlined, color: AppColors.primary),
-        ),
-      ],
-    );
-  }
+  // static Widget _buildCountryDropdown(BuildContext context, LaboratoryProfileViewModel viewModel) {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       const Text(
+  //         'Country',
+  //         style: TextStyle(
+  //           fontSize: 14,
+  //           fontWeight: FontWeight.w600,
+  //           color: Colors.black,
+  //         ),
+  //       ),
+  //       const SizedBox(height: 8),
+  //       AppDropdownField<String>(
+  //         items: viewModel.getCountryNames().map((country) {
+  //           return DropdownMenuItem<String>(
+  //             value: country,
+  //             child: Text(country),
+  //           );
+  //         }).toList(),
+  //         value: viewModel.selectedCountry,
+  //         onChanged: (String? country) {
+  //           if (country != null) {
+  //             viewModel.selectCountry(country);
+  //             viewModel.clearValidationError('country');
+  //           }
+  //         },
+  //         validator: (value) {
+  //           if (value == null || value.isEmpty) {
+  //             return 'Please select a country';
+  //           }
+  //           return null;
+  //         },
+  //         hint: 'Select country',
+  //         prefixIcon: const Icon(Icons.public_outlined, color: AppColors.primary),
+  //       ),
+  //     ],
+  //   );
+  // }
 
-  static Widget _buildStateDropdown(BuildContext context, LaboratoryProfileViewModel viewModel) {
-    final isEnabled = viewModel.selectedCountry != null && viewModel.selectedCountry!.isNotEmpty;
-    final states = isEnabled ? viewModel.getStateNames() : [];
+  // static Widget _buildStateDropdown(BuildContext context, LaboratoryProfileViewModel viewModel) {
+  //   final isEnabled = viewModel.selectedCountry != null && viewModel.selectedCountry!.isNotEmpty;
+  //   final states = isEnabled ? viewModel.getStateNames() : [];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'State',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-          ),
-        ),
-        const SizedBox(height: 8),
-        AppDropdownField<String>(
-          items: states.map((state) {
-            return DropdownMenuItem<String>(
-              value: state,
-              child: Text(state),
-            );
-          }).toList(),
-          value: isEnabled ? viewModel.selectedState : null,
-          onChanged: (String? state) {
-            if (!isEnabled) return;
-            if (state != null) {
-              viewModel.selectState(state);
-              viewModel.clearValidationError('state');
-            }
-          },
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please select a state';
-            }
-            return null;
-          },
-          hint: 'Select state',
-          enabled: isEnabled,
-          prefixIcon: const Icon(Icons.location_city_outlined, color: AppColors.primary),
-        ),
-      ],
-    );
-  }
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       const Text(
+  //         'State',
+  //         style: TextStyle(
+  //           fontSize: 14,
+  //           fontWeight: FontWeight.w600,
+  //           color: Colors.black,
+  //         ),
+  //       ),
+  //       const SizedBox(height: 8),
+  //       AppDropdownField<String>(
+  //         items: states.map((state) {
+  //           return DropdownMenuItem<String>(
+  //             value: state,
+  //             child: Text(state),
+  //           );
+  //         }).toList(),
+  //         value: isEnabled ? viewModel.selectedState : null,
+  //         onChanged: (String? state) {
+  //           if (!isEnabled) return;
+  //           if (state != null) {
+  //             viewModel.selectState(state);
+  //             viewModel.clearValidationError('state');
+  //           }
+  //         },
+  //         validator: (value) {
+  //           if (value == null || value.isEmpty) {
+  //             return 'Please select a state';
+  //           }
+  //           return null;
+  //         },
+  //         hint: 'Select state',
+  //         enabled: isEnabled,
+  //         prefixIcon: const Icon(Icons.location_city_outlined, color: AppColors.primary),
+  //       ),
+  //     ],
+  //   );
+  // }
 
-  static Widget _buildCityDropdown(BuildContext context, LaboratoryProfileViewModel viewModel) {
-    final isEnabled = viewModel.selectedState != null && viewModel.selectedState!.isNotEmpty;
-    final cities = isEnabled ? viewModel.getCityNames() : [];
+  // static Widget _buildCityDropdown(BuildContext context, LaboratoryProfileViewModel viewModel) {
+  //   final isEnabled = viewModel.selectedState != null && viewModel.selectedState!.isNotEmpty;
+  //   final cities = isEnabled ? viewModel.getCityNames() : [];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'City',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-          ),
-        ),
-        const SizedBox(height: 8),
-        AppDropdownField<String>(
-          items: cities.map((city) {
-            return DropdownMenuItem<String>(
-              value: city,
-              child: Text(city),
-            );
-          }).toList(),
-          value: isEnabled ? viewModel.selectedCity : null,
-          onChanged: (String? city) {
-            if (!isEnabled) return;
-            if (city != null) {
-              viewModel.selectCity(city);
-              viewModel.clearValidationError('city');
-            }
-          },
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please select a city';
-            }
-            return null;
-          },
-          hint: 'Select city',
-          enabled: isEnabled,
-          prefixIcon: const Icon(Icons.location_city_outlined, color: AppColors.primary),
-        ),
-      ],
-    );
-  }
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       const Text(
+  //         'City',
+  //         style: TextStyle(
+  //           fontSize: 14,
+  //           fontWeight: FontWeight.w600,
+  //           color: Colors.black,
+  //         ),
+  //       ),
+  //       const SizedBox(height: 8),
+  //       AppDropdownField<String>(
+  //         items: cities.map((city) {
+  //           return DropdownMenuItem<String>(
+  //             value: city,
+  //             child: Text(city),
+  //           );
+  //         }).toList(),
+  //         value: isEnabled ? viewModel.selectedCity : null,
+  //         onChanged: (String? city) {
+  //           if (!isEnabled) return;
+  //           if (city != null) {
+  //             viewModel.selectCity(city);
+  //             viewModel.clearValidationError('city');
+  //           }
+  //         },
+  //         validator: (value) {
+  //           if (value == null || value.isEmpty) {
+  //             return 'Please select a city';
+  //           }
+  //           return null;
+  //         },
+  //         hint: 'Select city',
+  //         enabled: isEnabled,
+  //         prefixIcon: const Icon(Icons.location_city_outlined, color: AppColors.primary),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   static Widget _buildNonEditableField({
     required String label,

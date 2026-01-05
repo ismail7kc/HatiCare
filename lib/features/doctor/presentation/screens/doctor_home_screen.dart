@@ -17,6 +17,9 @@ import 'package:provider/provider.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'dart:async';
+
 class ProfileNotifier {
   static final ValueNotifier<String?> profileImageUrl = ValueNotifier(null);
   static final ValueNotifier<String?> doctorName = ValueNotifier(null);
@@ -119,12 +122,55 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   late DoctorViewModel doctorViewModel;
 
+  WebSocketChannel? _channel;
+
   @override
   void initState() {
     super.initState();
     doctorViewModel = DoctorViewModel(RepositoryLayer(ApiClient()));
-    doctorViewModel.fetchPatientQueue();
+
+    callWhenMethodIntialize();
+
+    // doctorViewModel.fetchPatientQueue();
     _loadApprovalStatus();
+  }
+
+  void callWhenMethodIntialize() async {
+    final isConnected = await webSocketConnectionApi();
+
+    if (isConnected == true) {
+      debugPrint('Connected Condition Executed');
+    }
+  }
+
+  Future<bool> webSocketConnectionApi() async {
+    try {
+      final uri = Uri.parse('wss://b72e095a6dc0.ngrok-free.app/ws/doctor/queue/');
+
+      _channel = WebSocketChannel.connect(uri);
+
+      debugPrint("WS Connected");
+
+      _channel!.stream.listen(
+        (message) async {
+          debugPrint('Received WS message: $message');
+
+          await doctorViewModel.fetchPatientQueue();
+          debugPrint('fetchPatientQueue() triggered for testing');
+        },
+        onDone: () {
+          debugPrint("WS closed");
+        },
+        onError: (error) {
+          debugPrint("WS error: $error");
+        },
+      );
+
+      return true;
+    } catch (e) {
+      debugPrint("WS connect error: $e");
+      return false;
+    }
   }
 
   Future<void> _loadApprovalStatus() async {
@@ -540,7 +586,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     AppointmentModel appointment,
   ) {
     return GestureDetector(
-      onTap: () { },
+      onTap: () {},
       child: Container(
         margin: EdgeInsets.zero,
         padding: const EdgeInsets.all(18),

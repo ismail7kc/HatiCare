@@ -18,7 +18,7 @@ class DoctorViewModel extends ChangeNotifier {
 
   Future<void> isDoctorOnline({required bool isOnline}) async {
     final body = {'is_online': isOnline};
-    
+
     // update PATCH request if doctor have patient or not
     final response = await repository.updateDoctorInfo(body);
 
@@ -37,6 +37,7 @@ class DoctorViewModel extends ChangeNotifier {
       final response = await repository.getPatientQueue();
 
       if (response['success'] == true && response['data'] != null) {
+        debugPrint('Fetch Patient Api Triggered');
         final List data = response['data'] as List;
         _appointments = data
             .map((json) => AppointmentModel.fromJson(json))
