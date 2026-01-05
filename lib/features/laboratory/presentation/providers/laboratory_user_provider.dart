@@ -16,7 +16,6 @@ class LaboratoryUserProvider extends ChangeNotifier {
   bool _profileCompleted = false;
   List<dynamic> _testRequests = [];
   List<dynamic> _completedTestRequests = [];
-  bool _testRequestsLoading = false;
   List<dynamic> _filteredTestRequests = [];
   String _verifiedRxCode = '';
   bool _isVerifying = false;
@@ -102,13 +101,11 @@ class LaboratoryUserProvider extends ChangeNotifier {
           _email = data['email'] ?? '';
           _profileCompleted = data['is_profile_complete'] ?? false;
 
-          // Check approval status - multiple field names for compatibility
           _isApproved = (data['is_approved'] == true ||
                         data['approved'] == true ||
                         data['is_approved_by_admin'] == true ||
                         data['laboratory_approved'] == true);
 
-          // Store approval message if present
           if (data.containsKey('approval_message')) {
             _approvalMessage = data['approval_message'] ?? '';
           } else if (data.containsKey('status_message')) {
@@ -135,7 +132,6 @@ class LaboratoryUserProvider extends ChangeNotifier {
 
           await prefs.setBool('laboratory_profile_completed', _profileCompleted);
 
-          // Save approval status to preferences for offline checking
           await prefs.setBool('laboratory_is_approved', _isApproved);
           await prefs.setString('laboratory_approval_message', _approvalMessage);
         }
@@ -158,7 +154,6 @@ class LaboratoryUserProvider extends ChangeNotifier {
 
   Future<void> verifyRxCode(String rxCode) async {
     try {
-      // Validate RX code length before API call
       if (rxCode.isEmpty) {
         _errorMessage = 'Please enter an RX code';
         notifyListeners();
@@ -184,7 +179,6 @@ class LaboratoryUserProvider extends ChangeNotifier {
         return;
       }
 
-      // Check if laboratory is approved before verifying
       final isApproved = prefs.getBool('laboratory_is_approved') ?? false;
       if (!isApproved) {
         _errorMessage = 'Your laboratory account is not approved';
@@ -228,7 +222,6 @@ class LaboratoryUserProvider extends ChangeNotifier {
             _verifiedRxCode = '';
             final errorMessage = jsonResponse['detail']?.toString() ?? 'RX Code not found';
 
-            // Check if it's an approval error and update approval status if needed
             if (errorMessage.toLowerCase().contains('approved') ||
                 errorMessage.toLowerCase().contains('approval') ||
                 errorMessage.toLowerCase().contains('only approved')) {

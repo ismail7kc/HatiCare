@@ -24,6 +24,7 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
       "dose": TextEditingController(),
       "freq": TextEditingController(),
       "duration": TextEditingController(),
+      "quantity": TextEditingController(),
       "note": TextEditingController(),
     },
   ];
@@ -38,6 +39,7 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
       "dose": TextEditingController(),
       "freq": TextEditingController(),
       "duration": TextEditingController(),
+      "quantity": TextEditingController(),
       "note": TextEditingController(),
     };
 
@@ -63,11 +65,15 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
 
   List<DoctorMedication> getMedicationsFromControllers() {
     return medicines.map((med) {
+      final quantityText = med['quantity']?.text ?? '0';
+      final quantity = int.tryParse(quantityText) ?? 0;
+
       return DoctorMedication(
         name: med['name']?.text ?? '',
         dose: med['dose']?.text ?? '',
         frequency: med['freq']?.text ?? '',
         duration: med['duration']?.text ?? '',
+        quantity: quantity,
         notes: med['note']?.text ?? '',
       );
     }).toList();
@@ -163,6 +169,20 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 14),
+                      
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _input(
+                              "Quantity",
+                              medicines[i]["quantity"]!,
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ],
+                      ),
+
                       const SizedBox(height: 14),
                       _multiInput("Notes", medicines[i]["note"]!),
                       const SizedBox(height: 20),
@@ -289,7 +309,8 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                             final response = await widget.appointmentDetailvm
                                 .createPrescription(
                                   medications: meds,
-                                  notes: "What should I with Appointmentdetail Notes Field.",
+                                  notes:
+                                      "What should I with Appointmentdetail Notes Field.",
                                   selectedLabTests: selectedLabTestIds,
                                 );
 
@@ -430,7 +451,11 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
     return test.name.isNotEmpty ? test.name : 'Laboratory Test';
   }
 
-  Widget _input(String label, TextEditingController controller) {
+  Widget _input(
+    String label,
+    TextEditingController controller, {
+    TextInputType keyboardType = TextInputType.text,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -449,6 +474,7 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
           ),
           child: TextField(
             controller: controller,
+            keyboardType: keyboardType,
             style: const TextStyle(fontSize: 14),
             decoration: InputDecoration(
               contentPadding: const EdgeInsets.symmetric(

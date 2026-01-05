@@ -90,7 +90,8 @@ class RepositoryLayer {
       "visit_id": visitId,
       "medications": medications.map((m) => m.toJson()).toList(),
       "notes": notes ?? "",
-      "selected_labTest": selectedLabTests , 
+      "lab_tests": selectedLabTests,
+       
     };
 
     debugPrint('prescription data is $data');
