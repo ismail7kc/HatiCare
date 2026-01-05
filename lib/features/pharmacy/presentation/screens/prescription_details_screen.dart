@@ -1,5 +1,5 @@
 import 'package:haticare/core/theme/app_colors.dart';
-import 'package:haticare/features/pharmacy/domain/entities/prescription_request.dart';
+import 'package:haticare/features/pharmacy/entities/prescription_request.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
