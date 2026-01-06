@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:haticare/core/config/app_config.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/models/appointment_model.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'dart:async';
 
 class DoctorViewModel extends ChangeNotifier {
   final RepositoryLayer repository;
 
   DoctorViewModel(this.repository);
+  WebSocketChannel? _channel;
 
   List<AppointmentModel> _appointments = [];
   List<AppointmentModel> get appointments => _appointments;
@@ -51,6 +55,50 @@ class DoctorViewModel extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> webSocketConnectionApi() async {
+    final uri = Uri.parse(AppConfig.baseUrl);
+    final socketUrl = 'wss://${uri.host}/ws/doctor/queue/';
+
+    debugPrint("Base URL: ${AppConfig.baseUrl}");
+    debugPrint("Parsed host: ${uri.host}");
+    debugPrint("WebSocket URL: $socketUrl");
+
+    try {
+      _channel = WebSocketChannel.connect(Uri.parse(socketUrl));
+
+      _channel!.stream.listen(
+        (message) {
+          debugPrint("WS listen event");
+          debugPrint("WS Message: $message");
+          fetchPatientQueue()
+              .then((_) { 
+                debugPrint("fetchPatientQueue triggered");
+              })
+              .catchError((e) {
+                debugPrint("fetchPatientQueue error: $e");
+              });
+        },
+        onDone: () {
+          debugPrint("WS Closed — reconnecting...");
+          // _reconnect();
+        },
+        onError: (error) {
+          debugPrint("WS Error — reconnecting: $error");
+          // _reconnect();
+        },
+        cancelOnError: false,
+      );
+    } catch (e) {
+      debugPrint("WS connect error: $e");
+      _reconnect();
+    }
+  }
+
+  void _reconnect() async {
+    await Future.delayed(const Duration(seconds: 3));
+    await webSocketConnectionApi();
   }
 
   String formatAppointmentTime(DateTime dateTime) {

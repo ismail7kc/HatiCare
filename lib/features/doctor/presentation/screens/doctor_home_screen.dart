@@ -10,15 +10,13 @@ import 'package:haticare/features/doctor/presentation/screens/setting_screen.dar
 import 'package:haticare/features/doctor/presentation/viewModel/doctor_viewModel.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel.dart';
 import 'package:haticare/features/doctor/presentation/providers/doctor_user_provider.dart';
+
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
 import 'package:haticare/features/doctor/models/appointment_model.dart';
 import 'package:provider/provider.dart';
 import 'package:haticare/features/doctor/ApiClient/api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import 'package:web_socket_channel/web_socket_channel.dart';
-import 'dart:async';
 
 class ProfileNotifier {
   static final ValueNotifier<String?> profileImageUrl = ValueNotifier(null);
@@ -122,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   late DoctorViewModel doctorViewModel;
 
-  WebSocketChannel? _channel;
+  
 
   @override
   void initState() {
@@ -135,42 +133,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     _loadApprovalStatus();
   }
 
-  void callWhenMethodIntialize() async {
-    final isConnected = await webSocketConnectionApi();
-
-    if (isConnected == true) {
-      debugPrint('Connected Condition Executed');
-    }
-  }
-
-  Future<bool> webSocketConnectionApi() async {
-    try {
-      final uri = Uri.parse('wss://b72e095a6dc0.ngrok-free.app/ws/doctor/queue/');
-
-      _channel = WebSocketChannel.connect(uri);
-
-      debugPrint("WS Connected");
-
-      _channel!.stream.listen(
-        (message) async {
-          debugPrint('Received WS message: $message');
-
-          await doctorViewModel.fetchPatientQueue();
-          debugPrint('fetchPatientQueue() triggered for testing');
-        },
-        onDone: () {
-          debugPrint("WS closed");
-        },
-        onError: (error) {
-          debugPrint("WS error: $error");
-        },
-      );
-
-      return true;
-    } catch (e) {
-      debugPrint("WS connect error: $e");
-      return false;
-    }
+  void callWhenMethodIntialize() {
+    doctorViewModel.webSocketConnectionApi();
   }
 
   Future<void> _loadApprovalStatus() async {
