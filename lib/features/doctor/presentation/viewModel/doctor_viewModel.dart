@@ -82,11 +82,11 @@ class DoctorViewModel extends ChangeNotifier {
         },
         onDone: () {
           debugPrint("WS Closed — reconnecting...");
-          // _reconnect();
+          _reconnect();
         },
         onError: (error) {
           debugPrint("WS Error — reconnecting: $error");
-          // _reconnect();
+          _reconnect();
         },
         cancelOnError: false,
       );
