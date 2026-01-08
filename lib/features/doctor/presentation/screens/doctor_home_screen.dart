@@ -8,7 +8,6 @@ import 'package:haticare/features/doctor/presentation/screens/appointment_detail
 import 'package:haticare/features/doctor/presentation/screens/consultation_history.dart';
 import 'package:haticare/features/doctor/presentation/screens/setting_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/doctor_viewModel.dart';
-import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel.dart';
 import 'package:haticare/features/doctor/presentation/providers/doctor_user_provider.dart';
 
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
@@ -46,30 +45,22 @@ class _MainScreenState extends State<DoctorHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => DoctorUserProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => DoctorUserProvider()),
+        ChangeNotifierProvider(
+          create: (_) {
+            final vm = DoctorViewModel(RepositoryLayer(ApiClient()));
+            vm.init();
+            return vm;
+          },
+        ),
+      ],
       child: CustomBottomNav(
-        screens: [
-          ChangeNotifierProvider(
-            create: (_) =>
-                DoctorViewModel(RepositoryLayer(ApiClient()))
-                  ..fetchPatientQueue(),
-            child: const HomeScreen(),
-          ),
-          const ConsultationHistoryScreen(),
-          MultiProvider(
-            providers: [
-              Provider<ApiClient>(create: (_) => ApiClient()),
-              ProxyProvider<ApiClient, RepositoryLayer>(
-                update: (_, apiClient, __) => RepositoryLayer(apiClient),
-              ),
-              ChangeNotifierProvider<AuthDViewModel>(
-                create: (context) =>
-                    AuthDViewModel(context.read<RepositoryLayer>()),
-              ),
-            ],
-            child: const SettingsScreenWithAppBar(),
-          ),
+        screens: const [
+          HomeScreen(),
+          ConsultationHistoryScreen(),
+          SettingsScreenWithAppBar(),
         ],
         tabs: const [
           TabItemData(title: "Home", iconPath: 'assets/icons/home.svg'),
@@ -120,21 +111,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   late DoctorViewModel doctorViewModel;
 
-  
-
   @override
   void initState() {
     super.initState();
-    doctorViewModel = DoctorViewModel(RepositoryLayer(ApiClient()));
-
-    callWhenMethodIntialize();
-
-    // doctorViewModel.fetchPatientQueue();
     _loadApprovalStatus();
   }
 
-  void callWhenMethodIntialize() {
-    doctorViewModel.webSocketConnectionApi();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    doctorViewModel = context.read<DoctorViewModel>();
   }
 
   Future<void> _loadApprovalStatus() async {
@@ -147,11 +133,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         hasAdminApproval = cachedApproval;
       });
 
-      // Fetch fresh data from API
       final provider = context.read<DoctorUserProvider>();
       await provider.fetchProfile(forceRefresh: true);
 
-      // Then update from provider after fetch completes
       if (mounted) {
         setState(() {
           hasAdminApproval = provider.isApproved;
@@ -161,86 +145,56 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   @override
-  void dispose() {
-    doctorViewModel.dispose();
-    super.dispose();
-  }
-
-  @override // this method will called when doctor object change
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    doctorViewModel = Provider.of<DoctorViewModel>(context);
-  }
-
-  Future<void> _onRefresh() async {
-    // Fetch profile to check approval status
-    final provider = context.read<DoctorUserProvider>();
-    await provider.fetchProfile(forceRefresh: true);
-
-    // Update local state from provider
-    setState(() {
-      hasAdminApproval = provider.isApproved;
-    });
-
-    // Fetch patient queue if approved
-    if (hasAdminApproval == true) {
-      await doctorViewModel.fetchPatientQueue();
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
-      body: SafeArea(
-        top: true,
-        bottom: false,
-        child: RefreshIndicator(
-          onRefresh: _onRefresh,
-          color: AppColors.primary,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight:
-                    MediaQuery.of(context).size.height -
-                    MediaQuery.of(context).padding.top,
-              ),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        headerView(),
-                        const SizedBox(height: 20),
-                        toggleView(),
-                        const SizedBox(height: 20),
-                        statsView(),
-                        const SizedBox(height: 20),
+    return Consumer<DoctorViewModel>(
+      builder: (context, vm, _) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFF9FAFB),
+          body: SafeArea(
+            top: true,
+            bottom: false,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight:
+                      MediaQuery.of(context).size.height -
+                      MediaQuery.of(context).padding.top,
+                ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          headerView(),
+                          const SizedBox(height: 20),
+                          toggleView(),
+                          const SizedBox(height: 20),
+                          statsView(),
+                          const SizedBox(height: 20),
 
-                        if (hasAdminApproval == true)
-                          const Text(
-                            "Patient Queue",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
+                          if (hasAdminApproval == true)
+                            const Text(
+                              "Patient Queue",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-
-                        if (hasAdminApproval == true) const SizedBox(height: 2),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
 
-                  handleAppointment(context, doctorViewModel.appointments),
-                ],
+                    handleAppointment(context, vm.appointments),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

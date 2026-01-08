@@ -8,12 +8,12 @@ import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/edit_profile_screen.dart';
 import 'package:haticare/features/doctor/presentation/providers/doctor_user_provider.dart';
+import 'package:haticare/features/doctor/presentation/viewModel/doctor_viewModel.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_contact_support_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_help_center_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_notifications_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_privacy_policy_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:haticare/features/doctor/presentation/viewModel/logout_viewModel.dart';
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -96,10 +96,9 @@ class SettingsContentState extends State<SettingsContent> {
       final uri = Uri.parse('${AppConfig.baseUrl}doc/doctors/$doctorId/');
       final request = http.MultipartRequest('PATCH', uri);
       request.headers['Authorization'] = 'Bearer $accessToken';
-      request.files.add(await http.MultipartFile.fromPath(
-        'profile_picture',
-        imageFile.path,
-      ));
+      request.files.add(
+        await http.MultipartFile.fromPath('profile_picture', imageFile.path),
+      );
 
       final client = ChuckerHttpClient(http.Client());
       final response = await client.send(request);
@@ -141,7 +140,9 @@ class SettingsContentState extends State<SettingsContent> {
           }
         }
       } else {
-        throw Exception('Failed to update profile picture: ${response.statusCode}');
+        throw Exception(
+          'Failed to update profile picture: ${response.statusCode}',
+        );
       }
     } catch (e) {
       debugPrint('Error updating profile picture: $e');
@@ -247,8 +248,9 @@ class SettingsContentState extends State<SettingsContent> {
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch<AuthDViewModel>();
-    final doctorProvider = context.watch<DoctorUserProvider>();
+    final doctorProvider = context
+        .watch<DoctorUserProvider>(); // For profile info
+    final doctorViewModel = context.read<DoctorViewModel>(); // For logout
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -260,7 +262,10 @@ class SettingsContentState extends State<SettingsContent> {
             children: [
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 20,
+                  horizontal: 16,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -353,13 +358,18 @@ class SettingsContentState extends State<SettingsContent> {
                           right: 0,
                           bottom: 0,
                           child: GestureDetector(
-                            onTap: _isUpdating ? null : _showImagePickerBottomSheet,
+                            onTap: _isUpdating
+                                ? null
+                                : _showImagePickerBottomSheet,
                             child: Container(
                               padding: const EdgeInsets.all(3),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
                               ),
                               child: Container(
                                 padding: const EdgeInsets.all(3),
@@ -388,8 +398,8 @@ class SettingsContentState extends State<SettingsContent> {
                         : Text(
                             doctorProvider.doctorName.isNotEmpty
                                 ? (doctorProvider.doctorName.length > 15
-                                    ? '${doctorProvider.doctorName.substring(0, 15)}...'
-                                    : doctorProvider.doctorName)
+                                      ? '${doctorProvider.doctorName.substring(0, 15)}...'
+                                      : doctorProvider.doctorName)
                                 : 'User',
                             style: const TextStyle(
                               fontSize: 20,
@@ -405,8 +415,13 @@ class SettingsContentState extends State<SettingsContent> {
                             child: LinearProgressIndicator(),
                           )
                         : Text(
-                            doctorProvider.specialty.isNotEmpty ? doctorProvider.specialty : 'Specialty',
-                            style: const TextStyle(fontSize: 14, color: Colors.grey),
+                            doctorProvider.specialty.isNotEmpty
+                                ? doctorProvider.specialty
+                                : 'Specialty',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
                           ),
                     const SizedBox(height: 4),
                     doctorProvider.isLoading
@@ -419,7 +434,10 @@ class SettingsContentState extends State<SettingsContent> {
                             doctorProvider.licenseNumber.isNotEmpty
                                 ? 'License: ${doctorProvider.licenseNumber}'
                                 : 'License: N/A',
-                            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[600],
+                            ),
                           ),
                   ],
                 ),
@@ -455,7 +473,9 @@ class SettingsContentState extends State<SettingsContent> {
                         );
                         // Refresh provider data after returning
                         if (context.mounted) {
-                          context.read<DoctorUserProvider>().fetchProfile(forceRefresh: true);
+                          context.read<DoctorUserProvider>().fetchProfile(
+                            forceRefresh: true,
+                          );
                         }
                       },
                     ),
@@ -468,7 +488,8 @@ class SettingsContentState extends State<SettingsContent> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const PharmacyNotificationsScreen(),
+                            builder: (context) =>
+                                const PharmacyNotificationsScreen(),
                           ),
                         );
                       },
@@ -482,7 +503,8 @@ class SettingsContentState extends State<SettingsContent> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const PharmacyPrivacyPolicyScreen(),
+                            builder: (context) =>
+                                const PharmacyPrivacyPolicyScreen(),
                           ),
                         );
                       },
@@ -491,7 +513,7 @@ class SettingsContentState extends State<SettingsContent> {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
@@ -514,7 +536,8 @@ class SettingsContentState extends State<SettingsContent> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const PharmacyHelpCenterScreen(),
+                            builder: (context) =>
+                                const PharmacyHelpCenterScreen(),
                           ),
                         );
                       },
@@ -528,7 +551,8 @@ class SettingsContentState extends State<SettingsContent> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const PharmacyContactSupportScreen(),
+                            builder: (context) =>
+                                const PharmacyContactSupportScreen(),
                           ),
                         );
                       },
@@ -541,7 +565,7 @@ class SettingsContentState extends State<SettingsContent> {
               // Logout Button
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _buildLogoutCard(context, viewModel),
+                child: _buildLogoutCard(context, doctorViewModel),
               ),
               const SizedBox(height: 32),
             ],
@@ -591,7 +615,11 @@ class SettingsContentState extends State<SettingsContent> {
                   ),
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios, color: Colors.black, size: 16),
+              const Icon(
+                Icons.arrow_forward_ios,
+                color: Colors.black,
+                size: 16,
+              ),
             ],
           ),
         ),
@@ -599,7 +627,7 @@ class SettingsContentState extends State<SettingsContent> {
     );
   }
 
-  Widget _buildLogoutCard(BuildContext context, AuthDViewModel viewModel) {
+  Widget _buildLogoutCard(BuildContext context, DoctorViewModel viewModel) {
     return Card(
       color: Colors.white,
       elevation: 0,
@@ -633,7 +661,7 @@ class SettingsContentState extends State<SettingsContent> {
     );
   }
 
-  void _showLogoutDialog(BuildContext context, AuthDViewModel viewModel) {
+  void _showLogoutDialog(BuildContext context, DoctorViewModel viewModel) {
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -647,10 +675,7 @@ class SettingsContentState extends State<SettingsContent> {
               SizedBox(width: 12),
               Text(
                 'Logout',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -690,8 +715,10 @@ class SettingsContentState extends State<SettingsContent> {
     );
   }
 
-  Future<void> _handleLogout(BuildContext context, AuthDViewModel viewModel) async {
-    // Show loading indicator
+  Future<void> _handleLogout(
+    BuildContext context,
+    DoctorViewModel viewModel,
+  ) async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -707,14 +734,11 @@ class SettingsContentState extends State<SettingsContent> {
 
       if (context.mounted) {
         Navigator.of(context, rootNavigator: true).pop();
-
-        // Small delay to ensure dialog is closed
         await Future.delayed(const Duration(milliseconds: 100));
 
         if (!context.mounted) return;
 
         if (success) {
-          // Navigate to login screen and clear all previous routes
           Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => const LoginScreen()),
             (route) => false,
@@ -732,8 +756,6 @@ class SettingsContentState extends State<SettingsContent> {
     } catch (e) {
       if (context.mounted) {
         Navigator.of(context, rootNavigator: true).pop();
-
-        // Small delay to ensure dialog is closed
         await Future.delayed(const Duration(milliseconds: 100));
 
         if (!context.mounted) return;

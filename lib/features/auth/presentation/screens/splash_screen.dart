@@ -94,7 +94,7 @@ class _SplashScreenState extends State<SplashScreen>
           final prefs = await SharedPreferences.getInstance();
           final bool isProfileCompleted = prefs.getBool('is_profile_completed') ?? false;
 
-          if (isProfileCompleted) {
+          if (!isProfileCompleted) {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => DoctorHomeScreen()),
             );

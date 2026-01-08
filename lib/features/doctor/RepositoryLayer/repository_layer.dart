@@ -84,7 +84,7 @@ class RepositoryLayer {
     String? notes,
     required List<int> selectedLabTests,
   }) async {
-    final url = '${AppConfig.baseUrl}prescriptions/';
+    final url = '${AppConfig.baseUrl}prescriptions/create/';
 
     final Map<String, dynamic> data = {
       "visit_id": visitId,
