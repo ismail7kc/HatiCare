@@ -1,5 +1,5 @@
 import 'package:haticare/core/config/app_config.dart';
-import 'package:haticare/features/doctor/ApiClient/api_client.dart';
+import 'package:haticare/features/common/api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LabRepositoryLayer {
@@ -12,8 +12,6 @@ class LabRepositoryLayer {
 
     final pref = await SharedPreferences.getInstance();
     final accessToken = pref.getString('access_token');
-
-    print('Here is access token got from Login laboratory $accessToken');
 
     return await _apiClient.getRequest(
       url,

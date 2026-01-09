@@ -13,7 +13,7 @@ import 'package:haticare/core/widgets/app_primary_button.dart';
 import 'package:haticare/core/widgets/custom_dropdown_dialog.dart';
 import 'package:haticare/features/pharmacy/presentation/viewmodels/pharmacy_profile_view_model.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
-import 'package:haticare/features/common/presentation/screens/upload_document_screen.dart';
+import 'package:haticare/features/common/screens/upload_document_screen.dart';
 
 // Custom formatter to prevent double spaces
 class SingleSpaceFormatter extends TextInputFormatter {

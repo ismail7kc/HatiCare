@@ -165,7 +165,7 @@ class PharmacyUserProvider extends ChangeNotifier {
         return;
       }
 
-      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/');
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/list');
       final client = ChuckerHttpClient(http.Client());
       final response = await client.get(
         uri,
@@ -179,7 +179,13 @@ class PharmacyUserProvider extends ChangeNotifier {
         final jsonResponse = jsonDecode(response.body);
         
         if (jsonResponse is Map<String, dynamic>) {
-          if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
+          if (jsonResponse.containsKey('results') && 
+              jsonResponse['results'] is Map<String, dynamic> &&
+              jsonResponse['results'].containsKey('data') && 
+              jsonResponse['results']['data'] is List) {
+            // Handle the actual API response structure: results.data
+            _prescriptions = jsonResponse['results']['data'] as List<dynamic>;
+          } else if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
             _prescriptions = jsonResponse['data'] as List<dynamic>;
           } else if (jsonResponse.containsKey('results') && jsonResponse['results'] is List) {
             _prescriptions = jsonResponse['results'] as List<dynamic>;

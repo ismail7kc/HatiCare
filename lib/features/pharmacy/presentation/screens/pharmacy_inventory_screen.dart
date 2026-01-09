@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
-import 'package:haticare/features/pharmacy/entities/prescription_request.dart';
+import 'package:haticare/features/pharmacy/models/prescription_request.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
+import 'package:haticare/features/common/repository_layer.dart';
 import 'package:haticare/features/doctor/models/appointment_model.dart';
 
 class DoctorViewModel extends ChangeNotifier {

@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:haticare/core/config/app_config.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
-import 'package:haticare/features/doctor/ApiClient/api_client.dart';
+import 'package:haticare/features/common/api_client.dart';
 import 'package:haticare/features/doctor/models/prescription_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

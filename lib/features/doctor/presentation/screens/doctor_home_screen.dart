@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
-import 'package:haticare/features/common/presentation/screens/notifications_screen.dart';
+import 'package:haticare/features/common/screens/notifications_screen.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
-import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
+import 'package:haticare/features/common/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/appointment_detail.dart';
 import 'package:haticare/features/doctor/presentation/screens/consultation_history.dart';
 import 'package:haticare/features/doctor/presentation/screens/setting_screen.dart';
@@ -14,7 +14,7 @@ import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
 import 'package:haticare/features/doctor/models/appointment_model.dart';
 import 'package:provider/provider.dart';
-import 'package:haticare/features/doctor/ApiClient/api_client.dart';
+import 'package:haticare/features/common/api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileNotifier {

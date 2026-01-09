@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
-import 'package:haticare/features/pharmacy/entities/prescription_request.dart';
+import 'package:haticare/features/pharmacy/models/prescription_request.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_history_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_inventory_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_notifications_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_settings_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/prescription_details_screen.dart';
-import 'package:haticare/features/pharmacy/presentation/widgets/prescription_request_card.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -130,9 +129,6 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     if (newRequestsRaw.isNotEmpty) {
       newRequestPrescriptions
           .addAll(newRequestsRaw.map(_mapToPrescriptionRequest));
-    } else if (!hasFetchedPrescriptions) {
-      newRequestPrescriptions
-          .addAll(_dummyRequests.map(_mapDummyRequestToPrescription));
     }
 
     return Scaffold(
@@ -483,36 +479,6 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     );
   }
 
-  // Dummy new requests data
-  final List<Map<String, dynamic>> _dummyRequests = [
-    {
-      'patientName': 'Alice Johnson',
-      'age': 34,
-      'rxCode': 'RX7834',
-      'doctorName': 'Dr. John Doe',
-      'date': '30-10-2025',
-      'time': '4:30 PM',
-      'medications': ['Amoxicillin 500mg', 'Ibuprofen 400mg'],
-    },
-    {
-      'patientName': 'Michael Chen',
-      'age': 45,
-      'rxCode': 'RX2156',
-      'doctorName': 'Dr. Emily Smith',
-      'date': '30-10-2025',
-      'time': '2:15 PM',
-      'medications': ['Lisinopril 10mg', 'Metformin 500mg'],
-    },
-    {
-      'patientName': 'Sarah Williams',
-      'age': 28,
-      'rxCode': 'RX9432',
-      'doctorName': 'Dr. Robert Lee',
-      'date': '29-10-2025',
-      'time': '6:45 PM',
-      'medications': ['Doxycycline 100mg'],
-    },
-  ];
 
   Future<void> _openPrescriptionDetails(PrescriptionRequest request) async {
     final result = await Navigator.push(
@@ -535,7 +501,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
             if (med is Map<String, dynamic>) {
               return Medication(
                 name: med['name']?.toString() ?? 'Unknown',
-                dosage: med['dose']?.toString() ?? med['dosage']?.toString() ?? '',
+                dosage: med['dose']?.toString() ?? '',
                 instructions:
                     '${med['frequency'] ?? ''} ${med['duration'] ?? ''} ${med['notes'] ?? ''}'
                         .trim(),
@@ -569,7 +535,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     }
 
     final request = PrescriptionRequest(
-      id: data['prescription_id']?.toString() ?? data['id']?.toString() ?? 'N/A',
+      id: data['prescription_id']?.toString() ?? data['status_id']?.toString() ?? 'N/A',
       rxCode: _formatRxCode(data),
       patientName: data['patient_name']?.toString() ?? 'Unknown Patient',
       patientAge: int.tryParse(data['patient_age']?.toString() ?? '0') ?? 0,
@@ -617,65 +583,6 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     return 'N/A';
   }
 
-  PrescriptionRequest _mapDummyRequestToPrescription(Map<String, dynamic> request) {
-    final dateString = request['date']?.toString() ?? '';
-    final timeString = request['time']?.toString() ?? '';
-
-    DateTime parsedDate = DateTime.now();
-    if (dateString.isNotEmpty) {
-      try {
-        final dateParts = dateString.split('-');
-        if (dateParts.length == 3) {
-          final day = int.tryParse(dateParts[0]) ?? parsedDate.day;
-          final month = int.tryParse(dateParts[1]) ?? parsedDate.month;
-          final year = int.tryParse(dateParts[2]) ?? parsedDate.year;
-
-          if (timeString.isNotEmpty) {
-            final timeParts = timeString.split(RegExp(r'[:\s]'));
-            final hour = int.tryParse(timeParts[0]) ?? 0;
-            final minute = int.tryParse(timeParts[1]) ?? 0;
-            final isPm = timeString.toLowerCase().contains('pm');
-            final normalizedHour = (isPm && hour < 12)
-                ? hour + 12
-                : (!isPm && hour == 12)
-                    ? 0
-                    : hour;
-            parsedDate = DateTime(year, month, day, normalizedHour, minute);
-          } else {
-            parsedDate = DateTime(year, month, day);
-          }
-        }
-      } catch (_) {
-        parsedDate = DateTime.now();
-      }
-    }
-
-    final medications = (request['medications'] as List<dynamic>? ?? [])
-        .map((name) => Medication(
-              name: name.toString(),
-              dosage: '',
-              instructions: '',
-            ))
-        .toList();
-
-    final prescription = PrescriptionRequest(
-      id: request['rxCode']?.toString() ?? 'N/A',
-      rxCode: request['rxCode']?.toString() ?? 'N/A',
-      patientName: request['patientName']?.toString() ?? 'Unknown Patient',
-      patientAge: int.tryParse(request['age']?.toString() ?? '0') ?? 0,
-      doctorName: request['doctorName']?.toString() ?? 'Dr. Unknown',
-      dateIssued: parsedDate,
-      status: PrescriptionStatus.issued,
-      medications: medications,
-    );
-
-    prescription.patientPhone = request['patientPhone']?.toString() ?? '';
-    prescription.notes = request['notes']?.toString() ?? '';
-    prescription.fulfillmentScore =
-        double.tryParse(request['fulfillmentScore']?.toString() ?? '0') ?? 0;
-
-    return prescription;
-  }
 
   Widget _buildRequestCard(PrescriptionRequest request) {
     final formattedDate = DateFormat('dd-MM-yyyy').format(request.dateIssued);

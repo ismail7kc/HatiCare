@@ -6,8 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl_phone_field/phone_number.dart';
 
 import '../../../../core/config/app_config.dart';
-import '../../ApiClient/api_client.dart';
-import '../../RepositoryLayer/repository_layer.dart';
+import '../../../common/api_client.dart';
+import '../../../common/repository_layer.dart';
 import '../../models/updated_doctor_model.dart';
 import 'edit_viewModel.dart';
 

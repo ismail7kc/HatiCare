@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
-import 'package:haticare/features/common/presentation/screens/notifications_screen.dart';
-import 'package:haticare/features/doctor/ApiClient/api_client.dart';
-import 'package:haticare/features/laboratory/presentation/lab_repository_layer.dart';
+import 'package:haticare/features/common/screens/notifications_screen.dart';
 import 'package:haticare/features/laboratory/presentation/screens/laboratory_history_screen.dart';
+import 'package:haticare/features/laboratory/presentation/screens/laboratory_inventory_screen.dart';
 import 'package:haticare/features/laboratory/presentation/screens/laboratory_settings_screen.dart';
-import 'package:haticare/features/laboratory/presentation/screens/test_request_detail_screen.dart';
 import 'package:haticare/features/laboratory/presentation/viewmodels/lab_prescriptionVM.dart';
-import 'package:haticare/features/laboratory/presentation/widgets/test_request_card.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
+import '../../../common/api_client.dart';
+import '../lab_repository_layer.dart';
 import '../providers/laboratory_user_provider.dart';
 
 class LaboratoryHomeScreen extends StatefulWidget {
@@ -29,11 +29,13 @@ class _LaboratoryHomeScreenState extends State<LaboratoryHomeScreen> {
       child: CustomBottomNav(
         screens: const [
           LaboratoryHomeTabScreen(),
+          LaboratoryInventoryScreen(),
           LaboratoryHistoryScreen(),
           LaboratorySettingsScreen(),
         ],
         tabs: const [
           TabItemData(title: "Home", iconPath: 'assets/icons/home.svg'),
+          TabItemData(title: "Inventory", iconPath: 'assets/icons/inventory.svg'),
           TabItemData(title: "History", iconPath: 'assets/icons/history.svg'),
           TabItemData(title: "Settings", iconPath: 'assets/icons/setting.svg'),
         ],
@@ -52,8 +54,6 @@ class LaboratoryHomeTabScreen extends StatefulWidget {
 
 class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     with AutomaticKeepAliveClientMixin {
-  late TextEditingController _rxCodeController;
-
   @override
   bool get wantKeepAlive => true;
 
@@ -62,16 +62,14 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   @override
   void initState() {
     super.initState();
-    _rxCodeController = TextEditingController();
 
     labPrescriptionVm = LabPrescriptionvm(LabRepositoryLayer(ApiClient()));
     labPrescriptionVm.laboratoryPrescriptionList();
-  }
-
-  @override
-  void dispose() {
-    _rxCodeController.dispose();
-    super.dispose();
+    
+    // Fetch prescriptions on init
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<LaboratoryUserProvider>().fetchPrescriptions();
+    });
   }
 
   Future<void> _onRefresh() async {
@@ -80,86 +78,9 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     
     // refresh prescription that is sent by doctor
     await labPrescriptionVm.laboratoryPrescriptionList();
-  }
-
-  Future<void> _verifyRxCode(LaboratoryUserProvider provider) async {
-    if (!provider.isApproved) {
-      _showVerificationDialog(
-        title: 'Account Not Approved',
-        message: provider.approvalMessage.isNotEmpty
-            ? provider.approvalMessage
-            : 'Your laboratory account is not approved. Only approved laboratories can verify test requests.',
-        isSuccess: false,
-      );
-      return;
-    }
-
-    await provider.verifyRxCode(_rxCodeController.text);
-
-    if (provider.errorMessage != null) {
-      _showVerificationDialog(
-        title: 'Verification Failed',
-        message: provider.errorMessage!,
-        isSuccess: false,
-      );
-    } else if (provider.verifiedRxCode.isNotEmpty) {
-      _showVerificationDialog(
-        title: 'Verification Successful',
-        message:
-            'RX Code verified successfully. Test request details are now displayed below.',
-        isSuccess: true,
-      );
-    }
-  }
-
-  void _showVerificationDialog({
-    required String title,
-    required String message,
-    required bool isSuccess,
-  }) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Icon(
-                isSuccess ? Icons.check_circle : Icons.error,
-                color: isSuccess ? Colors.green : Colors.red,
-                size: 28,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: Text(message, style: const TextStyle(fontSize: 14)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'OK',
-                style: TextStyle(
-                  color: AppColors.primaryDark,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
+    
+    // Fetch prescriptions from API
+    await provider.fetchPrescriptions();
   }
 
   @override
@@ -267,7 +188,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                             },
                             icon: SvgPicture.asset(
                               'assets/icons/notification.svg',
-                              height: 26,
+                              height:26,
                               color: Colors.black87,
                             ),
                           ),
@@ -285,209 +206,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                   ),
                   const SizedBox(height: 20),
 
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[200]!),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Verify Test Request',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _rxCodeController,
-                                textCapitalization:
-                                    TextCapitalization.characters,
-                                keyboardType: TextInputType.text,
-                                onChanged: (value) {
-                                  if (value != value.toUpperCase()) {
-                                    _rxCodeController.text = value
-                                        .toUpperCase();
-                                    _rxCodeController.selection =
-                                        TextSelection.fromPosition(
-                                          TextPosition(offset: value.length),
-                                        );
-                                  }
-                                },
-                                decoration: InputDecoration(
-                                  hintText: 'Enter Rx Code (e.g., RX12345)',
-                                  hintStyle: const TextStyle(
-                                    color: Color(0xFF858585),
-                                    fontSize: 14,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                      color: AppColors.primaryDark,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 10,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            ElevatedButton(
-                              onPressed:
-                                  laboratoryProvider.verifiedRxCode.isNotEmpty
-                                  ? () {
-                                      laboratoryProvider.clearSearch();
-                                      _rxCodeController.clear();
-                                    }
-                                  : () {
-                                      _verifyRxCode(laboratoryProvider);
-                                    },
-                              style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                elevation: 0,
-                                backgroundColor:
-                                    laboratoryProvider.verifiedRxCode.isNotEmpty
-                                    ? Colors.red
-                                    : Colors.transparent,
-                                shadowColor: Colors.transparent,
-                              ),
-                              child: Ink(
-                                decoration: BoxDecoration(
-                                  gradient:
-                                      laboratoryProvider
-                                          .verifiedRxCode
-                                          .isNotEmpty
-                                      ? null
-                                      : AppColors.primaryGradient,
-                                  color:
-                                      laboratoryProvider
-                                          .verifiedRxCode
-                                          .isNotEmpty
-                                      ? null
-                                      : null,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 26,
-                                    vertical: 12,
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: laboratoryProvider.isVerifying
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                  Colors.white,
-                                                ),
-                                          ),
-                                        )
-                                      : Text(
-                                          laboratoryProvider
-                                                  .verifiedRxCode
-                                                  .isNotEmpty
-                                              ? 'Clear'
-                                              : 'Verify',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  if (!laboratoryProvider.isApproved &&
-                      laboratoryProvider.approvalMessage.isNotEmpty)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.orange.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.warning_amber_outlined,
-                            color: Colors.orange[700],
-                            size: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Account Status',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.orange[700],
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  laboratoryProvider.approvalMessage,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.orange[600],
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                  if (!laboratoryProvider.isApproved &&
-                      laboratoryProvider.approvalMessage.isNotEmpty)
-                    const SizedBox(height: 24),
-
+                  // Lab Tests Section
                   const Text(
                     'New Requests',
                     style: TextStyle(
@@ -498,7 +217,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                   ),
                   const SizedBox(height: 12),
 
-                  laboratoryProvider.isLoading
+                  laboratoryProvider.prescriptionsLoading
                       ? Container(
                           padding: const EdgeInsets.all(40),
                           decoration: BoxDecoration(
@@ -513,7 +232,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                             ),
                           ),
                         )
-                      : laboratoryProvider.testRequests.isEmpty
+                      : laboratoryProvider.prescriptions.isEmpty
                       ? Container(
                           padding: const EdgeInsets.all(40),
                           decoration: BoxDecoration(
@@ -525,7 +244,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  'No New Requests Yet.',
+                                  'No Lab Tests Yet.',
                                   style: TextStyle(
                                     color: Colors.grey[600],
                                     fontSize: 16,
@@ -540,23 +259,11 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                       : ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: laboratoryProvider.testRequests.length,
+                          itemCount: laboratoryProvider.prescriptions.length,
                           itemBuilder: (context, index) {
-                            final testRequest =
-                                laboratoryProvider.testRequests[index];
-                            return TestRequestCard(
-                              testRequest: testRequest,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => TestRequestDetailScreen(
-                                      testRequest: testRequest,
-                                    ),
-                                  ),
-                                );
-                              },
-                            );
+                            final prescription =
+                                laboratoryProvider.prescriptions[index];
+                            return _buildPrescriptionCard(prescription);
                           },
                         ),
                 ],
@@ -565,6 +272,554 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPrescriptionCard(Map<String, dynamic> prescription) {
+    // Extract data from prescription
+    final patientName = prescription['patient_name']?.toString() ?? 'Unknown Patient';
+    final doctorName = prescription['doctor_name']?.toString() ?? 'Dr. Unknown';
+    final rexCodeLast4 = prescription['rex_code_last4']?.toString() ?? '';
+    final createdAt = prescription['created_at']?.toString() ?? '';
+    
+    // Parse date
+    DateTime issuedDate = DateTime.now();
+    if (createdAt.isNotEmpty) {
+      issuedDate = DateTime.tryParse(createdAt) ?? issuedDate;
+    }
+    
+    // Format date and time like pharmacy
+    final formattedDate = DateFormat('dd-MM-yyyy').format(issuedDate);
+    final formattedTime = DateFormat('h:mm a').format(issuedDate);
+    
+    // Get lab tests instead of medications
+    List<String> labTestNames = [];
+    if (prescription['lab_tests'] is List) {
+      labTestNames = (prescription['lab_tests'] as List)
+          .map((test) => test is Map<String, dynamic> 
+              ? test['name']?.toString() ?? 'Unknown Test'
+              : test.toString())
+          .where((name) => name.isNotEmpty)
+          .toList();
+    }
+    
+    final labTestsSummary = labTestNames.join(', ');
+
+    return InkWell(
+      onTap: () => _openPrescriptionDetails(prescription),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SvgPicture.asset(
+                    'assets/icons/new_prescription_icon.svg',
+                    width: 28,
+                    height: 28,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ShaderMask(
+                      shaderCallback: (bounds) =>
+                          AppColors.primaryGradient.createShader(bounds),
+                      child: const Text(
+                        'Lab Tests',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        formattedDate,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        formattedTime,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  SvgPicture.asset(
+                    'assets/icons/patient_icon.svg',
+                    width: 22,
+                    height: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Patient',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      Text(
+                        patientName,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              if (labTestsSummary.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  labTestsSummary,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.primary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  SvgPicture.asset(
+                    'assets/icons/doctor_icon.svg',
+                    width: 22,
+                    height: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Doctor',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        Text(
+                          doctorName,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SvgPicture.asset(
+                    'assets/icons/arrow_forward_line_icon.svg',
+                    width: 26,
+                    height: 26,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openPrescriptionDetails(Map<String, dynamic> prescription) async {
+    // Navigate to prescription details screen
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => _buildPrescriptionDetailsScreen(prescription),
+      ),
+    );
+    // Refresh list after returning from details
+    _onRefresh();
+  }
+
+  Widget _buildPrescriptionDetailsScreen(Map<String, dynamic> prescription) {
+    final statusId = prescription['status_id']?.toString() ?? prescription['prescription_id']?.toString() ?? '';
+    
+    return Scaffold(
+      backgroundColor: Color(0xFFF9FAFB),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text('Lab Tests Details'),
+        titleTextStyle: const TextStyle(
+          color: Colors.black,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Rx Code Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Prescription ID',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '#${prescription['prescription_id']?.toString() ?? 'N/A'}',
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        prescription['availability']?.toString().toUpperCase() ?? 'PENDING',
+                        style: TextStyle(
+                          color: AppColors.primaryDark,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Patient Info Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    _buildInfoRow(
+                      'Patient:',
+                      prescription['patient_name']?.toString() ?? 'Unknown',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildInfoRow('Issuing Doctor:', prescription['doctor_name']?.toString() ?? 'Dr. Unknown'),
+                    if (prescription['patient_phone']?.toString().isNotEmpty == true) ...[
+                      const SizedBox(height: 12),
+                      _buildInfoRow('Patient Phone:', prescription['patient_phone']?.toString() ?? ''),
+                    ],
+                    const SizedBox(height: 12),
+                    _buildInfoRow(
+                      'Date Issued:',
+                      prescription['created_at']?.toString().isNotEmpty == true
+                          ? DateTime.tryParse(prescription['created_at']?.toString() ?? '') != null
+                              ? '${DateTime.tryParse(prescription['created_at']?.toString() ?? '')?.day.toString().padLeft(2, '0')}/${DateTime.tryParse(prescription['created_at']?.toString() ?? '')?.month.toString().padLeft(2, '0')}/${DateTime.tryParse(prescription['created_at']?.toString() ?? '')?.year}'
+                              : 'N/A'
+                          : 'N/A',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Lab Tests Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.science_outlined,
+                          color: Colors.black,
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Lab Tests',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (prescription['lab_tests'] is List)
+                      ...(prescription['lab_tests'] as List).asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final labTest = entry.value;
+                        return Column(
+                          children: [
+                            if (index > 0) const SizedBox(height: 12),
+                            _buildLabTestItem(labTest),
+                          ],
+                        );
+                      }),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Notes Card (if available)
+              if (prescription['notes']?.toString().isNotEmpty == true)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.note_outlined,
+                            color: Colors.black,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Note',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        prescription['notes']?.toString() ?? '',
+                        style: TextStyle(
+                          color: Colors.grey[700],
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              
+              const SizedBox(height: 100), // Space for button
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(
+              color: Colors.grey,
+              width: 0.5,
+            ),
+          ),
+        ),
+        child: Consumer<LaboratoryUserProvider>(
+          builder: (context, provider, child) {
+            return ElevatedButton(
+              onPressed: statusId.isNotEmpty
+                  ? () async {
+                      await provider.acceptPrescription(statusId);
+                      
+                      if (provider.errorMessage == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Prescription accepted successfully!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                        Navigator.pop(context); // Go back to list
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(provider.errorMessage!),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: statusId.isNotEmpty ? AppColors.primary : Colors.grey,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+              child: provider.isVerifying
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text(
+                      'Accept Prescription',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Text(
+            label,
+            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLabTestItem(dynamic labTest) {
+    final name = labTest is Map<String, dynamic> 
+        ? labTest['name']?.toString() ?? 'Unknown Test'
+        : labTest.toString();
+    final id = labTest is Map<String, dynamic> 
+        ? labTest['id']?.toString() ?? ''
+        : '';
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Container(
+            width: 4,
+            height: 4,
+            decoration: const BoxDecoration(
+              color: Colors.black,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: const TextStyle(
+                color: Colors.black87,
+                fontSize: 14,
+                height: 1.5,
+              ),
+              children: [
+                TextSpan(
+                  text: name,
+                  style: const TextStyle(fontWeight: FontWeight.normal),
+                ),
+                if (id.isNotEmpty)
+                  TextSpan(
+                    text: ' (ID: $id)',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

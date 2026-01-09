@@ -720,7 +720,7 @@ To add license document upload to a new section:
 
 1. **Import the screen:**
 ```dart
-import 'package:haticare/features/common/presentation/screens/upload_document_screen.dart';
+import 'package:haticare/features/common/screens/screens/upload_document_screen.dart';
 import 'package:path/path.dart' as path;
 ```
 

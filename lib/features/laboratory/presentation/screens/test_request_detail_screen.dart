@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/core/widgets/app_primary_button.dart';
-import 'package:haticare/features/laboratory/domain/entities/test_request.dart';
+import 'package:haticare/features/laboratory/models/test_request.dart';
 
 class TestRequestDetailScreen extends StatefulWidget {
   const TestRequestDetailScreen({

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:haticare/core/theme/app_colors.dart';
-import 'package:haticare/features/pharmacy/entities/prescription_request.dart';
+import 'package:haticare/features/pharmacy/models/prescription_request.dart';
 import 'package:intl/intl.dart';
 
 class PharmacyHistoryDetailScreen extends StatelessWidget {

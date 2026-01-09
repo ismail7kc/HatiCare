@@ -12,7 +12,7 @@ import 'package:haticare/core/widgets/app_primary_button.dart';
 import 'package:haticare/core/widgets/custom_dropdown_dialog.dart';
 import 'package:haticare/features/laboratory/presentation/viewmodels/laboratory_profile_view_model.dart';
 import 'package:haticare/features/laboratory/presentation/screens/laboratory_home_screen.dart';
-import 'package:haticare/features/common/presentation/screens/upload_document_screen.dart';
+import 'package:haticare/features/common/screens/upload_document_screen.dart';
 
 class EditLaboratoryProfileScreen extends StatelessWidget {
   final String laboratoryId;

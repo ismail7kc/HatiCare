@@ -17,6 +17,8 @@ class LaboratoryUserProvider extends ChangeNotifier {
   List<dynamic> _testRequests = [];
   List<dynamic> _completedTestRequests = [];
   List<dynamic> _filteredTestRequests = [];
+  List<dynamic> _prescriptions = [];
+  bool _prescriptionsLoading = false;
   String _verifiedRxCode = '';
   bool _isVerifying = false;
   bool _isApproved = true;
@@ -31,6 +33,8 @@ class LaboratoryUserProvider extends ChangeNotifier {
   bool get profileCompleted => _profileCompleted;
   List<dynamic> get testRequests => _verifiedRxCode.isNotEmpty ? _filteredTestRequests : _testRequests;
   List<dynamic> get completedTestRequests => _completedTestRequests;
+  List<dynamic> get prescriptions => _prescriptions;
+  bool get prescriptionsLoading => _prescriptionsLoading;
   String? get errorMessage => _errorMessage;
   String get verifiedRxCode => _verifiedRxCode;
   bool get isVerifying => _isVerifying;
@@ -150,6 +154,232 @@ class LaboratoryUserProvider extends ChangeNotifier {
   void updateProfilePicture(String newUrl) {
     _profilePictureUrl = newUrl;
     notifyListeners();
+  }
+
+  Future<void> fetchPrescriptions() async {
+    try {
+      _prescriptionsLoading = true;
+      notifyListeners();
+
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token') ?? '';
+
+      if (accessToken.isEmpty) {
+        _errorMessage = 'No authentication token found';
+        _prescriptionsLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      // Check if laboratory is approved
+      final isApproved = prefs.getBool('laboratory_is_approved') ?? false;
+      if (!isApproved) {
+        _prescriptions = [];
+        _prescriptionsLoading = false;
+        _approvalMessage = prefs.getString('laboratory_approval_message') ?? 'Your laboratory account is not approved';
+        notifyListeners();
+        return;
+      }
+
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/list');
+      final client = ChuckerHttpClient(http.Client());
+      final response = await client.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = jsonDecode(response.body);
+        
+        if (jsonResponse is Map<String, dynamic>) {
+          if (jsonResponse.containsKey('results') && 
+              jsonResponse['results'] is Map<String, dynamic> &&
+              jsonResponse['results'].containsKey('data') && 
+              jsonResponse['results']['data'] is List) {
+            // Handle actual API response structure: results.data
+            _prescriptions = jsonResponse['results']['data'] as List<dynamic>;
+          } else if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
+            _prescriptions = jsonResponse['data'] as List<dynamic>;
+          } else if (jsonResponse.containsKey('results') && jsonResponse['results'] is List) {
+            _prescriptions = jsonResponse['results'] as List<dynamic>;
+          } else {
+            _prescriptions = [];
+          }
+        } else if (jsonResponse is List) {
+          _prescriptions = jsonResponse as List<dynamic>;
+        } else {
+          _prescriptions = [];
+        }
+        
+        _errorMessage = null;
+      } else {
+        _prescriptions = [];
+        _errorMessage = 'Failed to load prescriptions: ${response.statusCode}';
+      }
+    } catch (e) {
+      _prescriptions = [];
+      _errorMessage = 'Error loading prescriptions: $e';
+      debugPrint('Error fetching prescriptions: $e');
+    } finally {
+      _prescriptionsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchAssignedPrescriptions() async {
+    try {
+      _prescriptionsLoading = true;
+      notifyListeners();
+
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token') ?? '';
+
+      if (accessToken.isEmpty) {
+        _errorMessage = 'No authentication token found';
+        _prescriptionsLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      // Check if laboratory is approved
+      final isApproved = prefs.getBool('laboratory_is_approved') ?? false;
+      if (!isApproved) {
+        _prescriptions = [];
+        _prescriptionsLoading = false;
+        _approvalMessage = prefs.getString('laboratory_approval_message') ?? 'Your laboratory account is not approved';
+        notifyListeners();
+        return;
+      }
+
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/assigned/');
+      final client = ChuckerHttpClient(http.Client());
+      final response = await client.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = jsonDecode(response.body);
+        
+        if (jsonResponse is Map<String, dynamic>) {
+          if (jsonResponse.containsKey('results') && 
+              jsonResponse['results'] is Map<String, dynamic> &&
+              jsonResponse['results'].containsKey('data') && 
+              jsonResponse['results']['data'] is List) {
+            // Handle actual API response structure: results.data
+            _prescriptions = jsonResponse['results']['data'] as List<dynamic>;
+          } else if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
+            _prescriptions = jsonResponse['data'] as List<dynamic>;
+          } else if (jsonResponse.containsKey('results') && jsonResponse['results'] is List) {
+            _prescriptions = jsonResponse['results'] as List<dynamic>;
+          } else {
+            _prescriptions = [];
+          }
+        } else if (jsonResponse is List) {
+          _prescriptions = jsonResponse as List<dynamic>;
+        } else {
+          _prescriptions = [];
+        }
+        
+        _errorMessage = null;
+      } else {
+        _prescriptions = [];
+        _errorMessage = 'Failed to load assigned prescriptions: ${response.statusCode}';
+      }
+    } catch (e) {
+      _prescriptions = [];
+      _errorMessage = 'Error loading assigned prescriptions: $e';
+      debugPrint('Error fetching assigned prescriptions: $e');
+    } finally {
+      _prescriptionsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> acceptPrescription(String statusId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token') ?? '';
+
+      if (accessToken.isEmpty) {
+        _errorMessage = 'No authentication token found';
+        notifyListeners();
+        return;
+      }
+
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/$statusId/accept/');
+      final client = ChuckerHttpClient(http.Client());
+      final response = await client.post(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        _errorMessage = null;
+        // Show success message
+        debugPrint('Prescription accepted successfully');
+      } else {
+        _errorMessage = 'Failed to accept prescription: ${response.statusCode}';
+      }
+    } catch (e) {
+      _errorMessage = 'Error accepting prescription: $e';
+      debugPrint('Error accepting prescription: $e');
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateTestAvailability(String prescriptionId, bool isAvailable) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token') ?? '';
+
+      if (accessToken.isEmpty) {
+        _errorMessage = 'No authentication token found';
+        notifyListeners();
+        return;
+      }
+
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/$prescriptionId/availability/');
+      final client = ChuckerHttpClient(http.Client());
+      final response = await client.patch(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'is_available': isAvailable,
+        }),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Update local state
+        final prescriptionIndex = _prescriptions.indexWhere(
+          (p) => p['prescription_id']?.toString() == prescriptionId
+        );
+        if (prescriptionIndex != -1) {
+          _prescriptions[prescriptionIndex]['is_available'] = isAvailable;
+        }
+        _errorMessage = null;
+      } else {
+        _errorMessage = 'Failed to update test availability: ${response.statusCode}';
+      }
+    } catch (e) {
+      _errorMessage = 'Error updating test availability: $e';
+      debugPrint('Error updating test availability: $e');
+    } finally {
+      notifyListeners();
+    }
   }
 
   Future<void> verifyRxCode(String rxCode) async {

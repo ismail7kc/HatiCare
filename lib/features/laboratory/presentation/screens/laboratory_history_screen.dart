@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:haticare/core/theme/app_colors.dart';
-import 'package:haticare/features/laboratory/presentation/widgets/test_request_card.dart';
+import 'package:haticare/features/laboratory/models/test_request_card.dart';
 import 'package:haticare/features/laboratory/presentation/screens/test_request_detail_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/laboratory_user_provider.dart';

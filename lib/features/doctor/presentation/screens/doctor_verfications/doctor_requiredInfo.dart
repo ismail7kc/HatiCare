@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:haticare/core/theme/app_colors.dart';
-import 'package:haticare/features/doctor/ApiClient/api_client.dart';
-import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
+import 'package:haticare/features/common/api_client.dart';
+import 'package:haticare/features/common/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/edit_profile_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/edit_viewModel.dart';
 import 'package:shared_preferences/shared_preferences.dart';

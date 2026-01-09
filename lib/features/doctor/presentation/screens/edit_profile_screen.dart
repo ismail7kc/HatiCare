@@ -5,7 +5,7 @@ import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/core/widgets/app_primary_button.dart';
 import 'package:haticare/core/widgets/app_dropdown_field.dart';
 import 'package:haticare/core/widgets/custom_dropdown_dialog.dart';
-import 'package:haticare/features/common/presentation/screens/upload_document_screen.dart';
+import 'package:haticare/features/common/screens/upload_document_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/doctor_profile_view_model.dart';
 import 'package:intl/intl.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
