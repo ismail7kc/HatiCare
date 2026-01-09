@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:haticare/core/config/app_config.dart';
 import 'package:haticare/core/services/device_id_provider.dart';
@@ -75,7 +77,8 @@ class DoctorViewModel extends ChangeNotifier {
     _isConnecting = true;
 
     final uri = Uri.parse(AppConfig.baseUrl);
-    final socketUrl = 'wss://${uri.host}/ws/doctor/queue/';
+    // final socketUrl = 'wss://${uri.host}/ws/doctor/queue/';
+    final socketUrl = 'wss://b72e095a6dc0.ngrok-free.app/ws/doctor/queue/';
 
     debugPrint("WebSocket URL: $socketUrl");
 

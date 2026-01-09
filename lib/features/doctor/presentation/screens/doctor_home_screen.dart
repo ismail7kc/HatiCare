@@ -123,6 +123,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     doctorViewModel = context.read<DoctorViewModel>();
   }
 
+  Future<void> _onRefresh() async {
+    final provider = context.read<DoctorUserProvider>();
+    await provider.fetchProfile(forceRefresh: true);
+    setState(() {
+      hasAdminApproval = provider.isApproved;
+    });
+
+    if (hasAdminApproval == true) {
+      await doctorViewModel.fetchPatientQueue();
+    }
+  }
+
   Future<void> _loadApprovalStatus() async {
     // Load from SharedPreferences first
     final prefs = await SharedPreferences.getInstance();
@@ -153,42 +165,42 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           body: SafeArea(
             top: true,
             bottom: false,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight:
-                      MediaQuery.of(context).size.height -
-                      MediaQuery.of(context).padding.top,
-                ),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          headerView(),
-                          const SizedBox(height: 20),
-                          toggleView(),
-                          const SizedBox(height: 20),
-                          statsView(),
-                          const SizedBox(height: 20),
+            child: RefreshIndicator(
+              onRefresh: _onRefresh,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            headerView(),
+                            const SizedBox(height: 20),
+                            toggleView(),
+                            const SizedBox(height: 20),
+                            statsView(),
+                            const SizedBox(height: 20),
 
-                          if (hasAdminApproval == true)
-                            const Text(
-                              "Patient Queue",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
+                            if (hasAdminApproval == true)
+                              const Text(
+                                "Patient Queue",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-
-                    handleAppointment(context, vm.appointments),
-                  ],
+                      
+                      handleAppointment(context, vm.appointments),
+                    ],
+                  ),
                 ),
               ),
             ),
