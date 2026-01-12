@@ -592,7 +592,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     const Text("Patient", style: TextStyle(color: Colors.grey)),
                     const SizedBox(height: 2),
                     Text(
-                      "${appointment.patientName}, ${appointment.patient.age}",
+                      "${appointment.patientName}, ${appointment.patient?.age}",
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
@@ -621,7 +621,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      appointment.rawComplaint,
+                      appointment.rawComplaint ?? '',
                       style: const TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 14,
@@ -639,7 +639,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             children: [
               Expanded(
                 child: Text(
-                  doctorViewModel.formatAppointmentTime(appointment.createdAt),
+                  doctorViewModel.formatAppointmentTime(appointment.createdAt ?? DateTime(1998)),
                   style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
               ),

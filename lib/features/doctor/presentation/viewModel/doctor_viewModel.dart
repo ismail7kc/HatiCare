@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -76,10 +77,7 @@ class DoctorViewModel extends ChangeNotifier {
     if (_isConnecting || _isDisposed) return;
     _isConnecting = true;
 
-    final uri = Uri.parse(AppConfig.baseUrl);
-    // final socketUrl = 'wss://${uri.host}/ws/doctor/queue/';
-    final socketUrl = 'wss://b72e095a6dc0.ngrok-free.app/ws/doctor/queue/';
-
+    final socketUrl = 'wss://api.haticare.com/ws/doctor/queue/';
     debugPrint("WebSocket URL: $socketUrl");
 
     try {
@@ -89,15 +87,19 @@ class DoctorViewModel extends ChangeNotifier {
         (message) async {
           if (_isDisposed) return;
 
-          debugPrint("WS Message: $message");
+          debugPrint("WS RAW: $message");
 
           try {
+            final data = jsonDecode(message);
+            if (!data.containsKey("visit_id")) return;
+            final int visitId = data["visit_id"];
+            if (_appointments.any((e) => e.id == visitId)) return;
+            debugPrint("New visit $visitId detected → syncing from API");
             await fetchPatientQueue();
-            notifyListeners();
-
-            debugPrint("fetchPatientQueue + UI updated");
+            
+            if (_isDisposed) return;
           } catch (e) {
-            debugPrint("fetchPatientQueue error: $e");
+            debugPrint("WS parse error: $e");
           }
         },
         onDone: () {

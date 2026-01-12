@@ -117,7 +117,7 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
 
             const SizedBox(height: 18),
             Text(
-              widget.appointment.patientName,
+              widget.appointment.patientName ?? '',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
 
@@ -147,7 +147,7 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          widget.appointment.rawComplaint,
+                          widget.appointment.rawComplaint ?? '',
                           style: const TextStyle(color: Colors.grey),
                         ),
                       ],
@@ -309,7 +309,7 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                                 setState(() => _accepting = true);
 
                                 await appointmentDetailvm.acceptPatientResponse(
-                                  widget.appointment.id,
+                                  widget.appointment.id ?? 0,
                                 );
 
                                 final visitId = appointmentDetailvm.visitId;

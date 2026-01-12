@@ -21,7 +21,7 @@ class RemoteAuthApiService implements AuthApiService {
     required String password,
     required String deviceId,
   }) async {
-    final uri = Uri.parse('${AppConfig.baseUrl}/users/login/');
+    final uri = Uri.parse('${AppConfig.baseUrl}users/login/');
     final response = await _client.post(
       uri,
       headers: const {
