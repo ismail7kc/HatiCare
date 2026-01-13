@@ -1,8 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:haticare/core/config/app_config.dart';
 import 'package:haticare/core/services/device_id_provider.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
@@ -64,7 +61,7 @@ class DoctorViewModel extends ChangeNotifier {
             .toList();
       } else {
         _errorMessage = response['message'] ?? 'Failed to fetch patient queue';
-      }
+      } 
     } catch (e) {
       _errorMessage = e.toString();
     } finally {

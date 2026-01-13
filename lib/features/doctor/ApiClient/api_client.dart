@@ -256,6 +256,35 @@ class ApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> fetchPatientVisitHistory(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      final pref = await SharedPreferences.getInstance();
+
+      final accessToken =
+          SaveLoginResponse.loginData?['access_token'] ??
+          pref.getString('access_token') ??
+          '';
+
+      final response = await _client.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('Fetch Visit Patient Api : $uri');
+      debugPrint('Status Code: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
+
+      return _handlePatientVisitHistoryResponse(response);
+    } catch (error) {
+      debugPrint('Patient Prescription: $error');
+      return {'success': false, 'message': error.toString(), 'data': {}};
+    }
+  }
+
   Map<String, dynamic> _handleResponse(http.Response response) {
     try {
       final decoded = jsonDecode(response.body);
@@ -279,4 +308,15 @@ class ApiClient {
       };
     }
   }
+
+  Map<String, dynamic> _handlePatientVisitHistoryResponse(http.Response response) {
+  try {
+    final decoded = jsonDecode(response.body);
+    return Map<String, dynamic>.from(decoded);
+  } catch (e) {
+    debugPrint("Error decoding PatientVisitHistory response: $e");
+    return {};
+  }
+}
+
 }

@@ -9,6 +9,7 @@ import 'package:haticare/features/doctor/presentation/screens/consultation_histo
 import 'package:haticare/features/doctor/presentation/screens/setting_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/doctor_viewModel.dart';
 import 'package:haticare/features/doctor/presentation/providers/doctor_user_provider.dart';
+import 'package:haticare/features/doctor/presentation/viewModel/patient_history_VM.dart';
 
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
@@ -55,6 +56,10 @@ class _MainScreenState extends State<DoctorHomeScreen> {
             return vm;
           },
         ),
+
+        ChangeNotifierProvider(
+        create: (_) => PatientHistoryVm(RepositoryLayer(ApiClient())),
+      ),
       ],
       child: CustomBottomNav(
         screens: const [
