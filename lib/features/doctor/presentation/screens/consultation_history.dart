@@ -72,10 +72,11 @@ class _ConsultationHistoryScreenState extends State<ConsultationHistoryScreen> {
                             child: GestureDetector(
                               onTap: () => {
                                 Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                builder: (context) => HistoryDetail(visit: history),
-                                ),
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        HistoryDetail(visit: history),
+                                  ),
                                 ),
                               },
                               child: Container(
@@ -117,7 +118,7 @@ class _ConsultationHistoryScreenState extends State<ConsultationHistoryScreen> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            "${history.patientName}, ${history.patient?.age ?? ''}",
+                                            "${history.patientName}, ${history.patient.age}",
                                             style: const TextStyle(
                                               fontSize: 15,
                                               fontWeight: FontWeight.w600,
@@ -125,13 +126,11 @@ class _ConsultationHistoryScreenState extends State<ConsultationHistoryScreen> {
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            history.createdAt == null
-                                                ? ""
-                                                : "${history.createdAt!.day.toString().padLeft(2, '0')}/"
-                                                      "${history.createdAt!.month.toString().padLeft(2, '0')}/"
-                                                      "${history.createdAt!.year} "
-                                                      "${history.createdAt!.hour.toString().padLeft(2, '0')}:"
-                                                      "${history.createdAt!.minute.toString().padLeft(2, '0')}",
+                                            "${history.createdAt.day.toString().padLeft(2, '0')}/"
+                                            "${history.createdAt.month.toString().padLeft(2, '0')}/"
+                                            "${history.createdAt.year} "
+                                            "${history.createdAt.hour.toString().padLeft(2, '0')}:"
+                                            "${history.createdAt.minute.toString().padLeft(2, '0')}",
                                             style: const TextStyle(
                                               color: Colors.grey,
                                               fontSize: 13,

@@ -90,9 +90,7 @@ class HistoryDetail extends StatelessWidget {
                     child: _buildInfoChip(
                       icon: 'assets/icons/calendar.svg',
                       label: 'Date',
-                      value: visit.createdAt != null
-                          ? "${visit.createdAt.day}/${visit.createdAt.month}/${visit.createdAt.year}"
-                          : ''
+                      value: "${visit.createdAt.day}/${visit.createdAt.month}/${visit.createdAt.year}",
                     ),
                   ),
                   const SizedBox(width: 12),
