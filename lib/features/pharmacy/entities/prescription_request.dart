@@ -2,6 +2,7 @@ enum PrescriptionStatus {
   issued,
   fullyDispensed,
   partiallyDispensed,
+  delivered,
 }
 
 class PrescriptionRequest {
@@ -44,8 +45,8 @@ class PrescriptionRequest {
         return 'Fully Dispensed';
       case PrescriptionStatus.partiallyDispensed:
         return 'Partially Dispensed';
-      default:
-        return 'Unknown';
+      case PrescriptionStatus.delivered:
+        return 'Delivered';
     }
   }
 

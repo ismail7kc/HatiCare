@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
-import 'package:haticare/features/pharmacy/domain/entities/prescription_request.dart';
+import 'package:haticare/features/pharmacy/entities/prescription_request.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_history_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_inventory_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_notifications_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_settings_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/prescription_details_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/widgets/prescription_request_card.dart';
-import 'package:haticare/features/pharmacy/presentation/widgets/verification_dialog.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/pharmacy_user_provider.dart';
@@ -29,11 +29,13 @@ class _PharmacyHomeScreenState extends State<PharmacyHomeScreen> {
       child: CustomBottomNav(
         screens: const [
           PharmacyHomeTabScreen(),
+          PharmacyInventoryScreen(),
           PharmacyHistoryScreen(),
           PharmacySettingsScreen(),
         ],
         tabs: const [
           TabItemData(title: "Home", iconPath: 'assets/icons/home.svg'),
+          TabItemData(title: "Inventory", iconPath: 'assets/icons/inventory.svg'),
           TabItemData(title: "History", iconPath: 'assets/icons/history.svg'),
           TabItemData(title: "Settings", iconPath: 'assets/icons/setting.svg'),
         ],
@@ -51,15 +53,12 @@ class PharmacyHomeTabScreen extends StatefulWidget {
 
 class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     with AutomaticKeepAliveClientMixin {
-  late TextEditingController _rxCodeController;
-
   @override
   bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    _rxCodeController = TextEditingController();
     // Fetch prescriptions on init
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PharmacyUserProvider>().fetchPrescriptions();
@@ -76,45 +75,33 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     }
   }
 
-  @override
-  void dispose() {
-    _rxCodeController.dispose();
-    super.dispose();
+  // Calculate available count for summary card
+  int _getAvailableCount(List<dynamic> prescriptions) {
+    int available = 0;
+    int partiallyAvailable = 0;
+    for (final prescription in prescriptions) {
+      final availability =
+          prescription['availability']?.toString().toLowerCase() ?? 'pending';
+      if (availability.contains('full')) {
+        available++;
+      } else if (availability.contains('partial')) {
+        partiallyAvailable++;
+      }
+    }
+    return available + partiallyAvailable;
   }
 
-  Future<void> _verifyRxCode(PharmacyUserProvider provider) async {
-    // Check approval status first
-    if (!provider.isApproved) {
-      showVerificationDialog(
-        context: context,
-        title: 'Account Not Approved',
-        message: provider.approvalMessage.isNotEmpty
-            ? provider.approvalMessage
-            : 'Your pharmacy account is not approved. Only approved pharmacies can verify prescriptions.',
-        isSuccess: false,
-      );
-      return;
+  // Calculate delivered count
+  int _getDeliveredCount(List<dynamic> prescriptions) {
+    int delivered = 0;
+    for (final prescription in prescriptions) {
+      final availability =
+          prescription['availability']?.toString().toLowerCase() ?? 'pending';
+      if (availability.contains('delivered')) {
+        delivered++;
+      }
     }
-
-    await provider.verifyRxCode(_rxCodeController.text);
-
-    // Show dialog based on verification result
-    if (provider.errorMessage != null) {
-      showVerificationDialog(
-        context: context,
-        title: 'Verification Failed',
-        message: provider.errorMessage!,
-        isSuccess: false,
-      );
-    } else if (provider.verifiedRxCode.isNotEmpty) {
-      showVerificationDialog(
-        context: context,
-        title: 'Verification Successful',
-        message:
-            'RX Code verified successfully. Prescription details are now displayed below.',
-        isSuccess: true,
-      );
-    }
+    return delivered;
   }
 
   @override
@@ -122,506 +109,731 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     super.build(context); // Required for AutomaticKeepAliveClientMixin
 
     final pharmacyProvider = context.watch<PharmacyUserProvider>();
+    final availableCount = _getAvailableCount(pharmacyProvider.prescriptions);
+    final deliveredCount = _getDeliveredCount(pharmacyProvider.prescriptions);
+    final prescriptionsRaw = pharmacyProvider.prescriptions;
+    final isLoadingPrescriptions = pharmacyProvider.prescriptionsLoading;
+    final hasFetchedPrescriptions = prescriptionsRaw.isNotEmpty;
+
+    final List<Map<String, dynamic>> newRequestsRaw = prescriptionsRaw
+        .whereType<Map<String, dynamic>>()
+        .where((p) {
+          final statusStr =
+              p['availability']?.toString().toLowerCase() ?? '';
+          return !statusStr.contains('delivered') &&
+              !statusStr.contains('full') &&
+              !statusStr.contains('partial');
+        })
+        .toList();
+
+    final List<PrescriptionRequest> newRequestPrescriptions = [];
+    if (newRequestsRaw.isNotEmpty) {
+      newRequestPrescriptions
+          .addAll(newRequestsRaw.map(_mapToPrescriptionRequest));
+    } else if (!hasFetchedPrescriptions) {
+      newRequestPrescriptions
+          .addAll(_dummyRequests.map(_mapDummyRequestToPrescription));
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _onRefresh,
-          color: AppColors.primary,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header View
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Header View
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          pharmacyProvider.isLoading
-                              ? const CircleAvatar(
-                                  radius: 25,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      AppColors.primary,
-                                    ),
-                                  ),
-                                )
-                              : CircleAvatar(
-                                  radius: 25,
-                                  backgroundImage:
-                                      pharmacyProvider
-                                          .profilePictureUrl
-                                          .isNotEmpty
+                      pharmacyProvider.isLoading
+                          ? const CircleAvatar(
+                              radius: 25,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.primary,
+                                ),
+                              ),
+                            )
+                          : CircleAvatar(
+                              radius: 25,
+                              backgroundImage:
+                                  pharmacyProvider.profilePictureUrl.isNotEmpty
                                       ? NetworkImage(
                                           pharmacyProvider.profilePictureUrl,
                                         )
                                       : null,
-                                  child:
-                                      pharmacyProvider.profilePictureUrl.isEmpty
-                                      ? const Icon(Icons.person, size: 30)
-                                      : null,
-                                ),
-                          const SizedBox(width: 10),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Welcome Back,",
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                              pharmacyProvider.isLoading
-                                  ? const SizedBox(
-                                      width: 100,
-                                      height: 18,
-                                      child: LinearProgressIndicator(
-                                        backgroundColor: Colors.grey,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              AppColors.primary,
-                                            ),
-                                      ),
-                                    )
-                                  : Text(
-                                      pharmacyProvider.pharmacyName.isNotEmpty
-                                          ? (pharmacyProvider
-                                                        .pharmacyName
-                                                        .length >
-                                                    15
-                                                ? '${pharmacyProvider.pharmacyName.substring(0, 15)}...'
-                                                : pharmacyProvider.pharmacyName)
-                                          : 'Pharmacy',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Stack(
+                              child: pharmacyProvider.profilePictureUrl.isEmpty
+                                  ? const Icon(Icons.person, size: 30)
+                                  : null,
+                            ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          IconButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const PharmacyNotificationsScreen(),
+                          const Text(
+                            "Welcome Back,",
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                          pharmacyProvider.isLoading
+                              ? const SizedBox(
+                                  width: 100,
+                                  height: 18,
+                                  child: LinearProgressIndicator(
+                                    backgroundColor: Colors.grey,
+                                    valueColor:
+                                        AlwaysStoppedAnimation<Color>(
+                                      AppColors.primary,
+                                    ),
+                                  ),
+                                )
+                              : Text(
+                                  pharmacyProvider.pharmacyName.isNotEmpty
+                                      ? (pharmacyProvider.pharmacyName.length >
+                                              15
+                                          ? '${pharmacyProvider.pharmacyName.substring(0, 15)}...'
+                                          : pharmacyProvider.pharmacyName)
+                                      : 'Pharmacy',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
                                 ),
-                              );
-                            },
-                            icon: SvgPicture.asset(
-                              'assets/icons/notification.svg',
-                              height: 26,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const Positioned(
-                            right: 8,
-                            top: 8,
-                            child: CircleAvatar(
-                              radius: 4,
-                              backgroundColor: Colors.red,
-                            ),
-                          ),
                         ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-
-                  // Verify Prescription Section
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[200]!),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Verify Prescription',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                  Stack(
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const PharmacyNotificationsScreen(),
+                            ),
+                          );
+                        },
+                        icon: SvgPicture.asset(
+                          'assets/icons/notification.svg',
+                          height: 26,
+                          color: Colors.black87,
                         ),
-                        const SizedBox(height: 12),
-                        Row(
+                      ),
+                      const Positioned(
+                        right: 8,
+                        top: 8,
+                        child: CircleAvatar(
+                          radius: 4,
+                          backgroundColor: Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              if (!pharmacyProvider.isApproved &&
+                  pharmacyProvider.approvalMessage.isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.orange.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_outlined,
+                        color: Colors.orange[700],
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _rxCodeController,
-                                textCapitalization:
-                                    TextCapitalization.characters,
-                                keyboardType: TextInputType.text,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(
-                                    RegExp(r'[A-Z0-9]'),
-                                  ),
-                                ],
-                                onChanged: (value) {
-                                  if (value != value.toUpperCase()) {
-                                    _rxCodeController.text = value
-                                        .toUpperCase();
-                                    _rxCodeController.selection =
-                                        TextSelection.fromPosition(
-                                          TextPosition(offset: value.length),
-                                        );
-                                  }
-                                },
-                                decoration: InputDecoration(
-                                  hintText: 'Enter Rx Code (e.g., RX12345)',
-                                  hintStyle: const TextStyle(
-                                    color: Color(0xFF858585),
-                                    fontSize: 14,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                      color: AppColors.primaryDark,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 10,
-                                  ),
-                                ),
+                            Text(
+                              'Account Status',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.orange[700],
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            ElevatedButton(
-                              onPressed:
-                                  pharmacyProvider.verifiedRxCode.isNotEmpty
-                                  ? () {
-                                      pharmacyProvider.clearSearch();
-                                      _rxCodeController.clear();
-                                    }
-                                  : () {
-                                      _verifyRxCode(pharmacyProvider);
-                                    },
-                              style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                elevation: 0,
-                                backgroundColor:
-                                    pharmacyProvider.verifiedRxCode.isNotEmpty
-                                    ? Colors.red
-                                    : Colors.transparent,
-                                shadowColor: Colors.transparent,
-                              ),
-                              child: Ink(
-                                decoration: BoxDecoration(
-                                  gradient:
-                                      pharmacyProvider.verifiedRxCode.isNotEmpty
-                                      ? null
-                                      : AppColors.primaryGradient,
-                                  color:
-                                      pharmacyProvider.verifiedRxCode.isNotEmpty
-                                      ? null
-                                      : null,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 26,
-                                    vertical: 12,
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: pharmacyProvider.isVerifying
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                  Colors.white,
-                                                ),
-                                          ),
-                                        )
-                                      : Text(
-                                          pharmacyProvider
-                                                  .verifiedRxCode
-                                                  .isNotEmpty
-                                              ? 'Clear'
-                                              : 'Verify',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                ),
+                            const SizedBox(height: 4),
+                            Text(
+                              pharmacyProvider.approvalMessage,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.orange[600],
+                                height: 1.4,
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              if (!pharmacyProvider.isApproved &&
+                  pharmacyProvider.approvalMessage.isNotEmpty)
+                const SizedBox(height: 24),
+
+              if (!pharmacyProvider.isApproved)
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.lock_outline,
+                          size: 48,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Waiting for Approval',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Your pharmacy account must be approved to view prescription statistics.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[500],
+                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-
-                  // Approval Status Message (if not approved)
-                  if (!pharmacyProvider.isApproved &&
-                      pharmacyProvider.approvalMessage.isNotEmpty)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.orange.withValues(alpha: 0.3),
+                )
+              else ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 80,
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF54DCDF),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 16.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '$availableCount',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2443A9),
+                                ),
+                              ),
+                              const Text(
+                                'Available Prescriptions',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF2443A9),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.warning_amber_outlined,
-                            color: Colors.orange[700],
-                            size: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Account Status',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.orange[700],
-                                  ),
+                    ),
+                    Expanded(
+                      child: Container(
+                        height: 80,
+                        margin: const EdgeInsets.only(left: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF07498A),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 16.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '$deliveredCount',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  pharmacyProvider.approvalMessage,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.orange[600],
-                                    height: 1.4,
-                                  ),
+                              ),
+                              const Text(
+                                'Delivered Prescriptions',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.white,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'New Requests',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _onRefresh,
+                    color: AppColors.primary,
+                    child:
+                        isLoadingPrescriptions && !hasFetchedPrescriptions
+                            ? ListView(
+                                physics:
+                                    const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.only(
+                                  bottom: 80,
+                                  top: 80,
+                                ),
+                                children: const [
+                                  Center(child: CircularProgressIndicator()),
+                                ],
+                              )
+                            : newRequestPrescriptions.isEmpty
+                                ? ListView(
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.only(
+                                      bottom: 80,
+                                      top: 40,
+                                    ),
+                                    children: const [
+                                      Center(
+                                        child: Text(
+                                          'No new prescription requests yet.',
+                                          style: TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : ListView.builder(
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
+                                    padding:
+                                        const EdgeInsets.only(bottom: 80),
+                                    itemCount: newRequestPrescriptions.length,
+                                    itemBuilder: (context, index) {
+                                      final request =
+                                          newRequestPrescriptions[index];
+                                      return Padding(
+                                        padding: EdgeInsets.only(
+                                          bottom: index <
+                                                  newRequestPrescriptions
+                                                          .length -
+                                                      1
+                                              ? 12
+                                              : 0,
+                                        ),
+                                        child: _buildRequestCard(request),
+                                      );
+                                    },
+                                  ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                  if (!pharmacyProvider.isApproved &&
-                      pharmacyProvider.approvalMessage.isNotEmpty)
-                    const SizedBox(height: 24),
+  // Dummy new requests data
+  final List<Map<String, dynamic>> _dummyRequests = [
+    {
+      'patientName': 'Alice Johnson',
+      'age': 34,
+      'rxCode': 'RX7834',
+      'doctorName': 'Dr. John Doe',
+      'date': '30-10-2025',
+      'time': '4:30 PM',
+      'medications': ['Amoxicillin 500mg', 'Ibuprofen 400mg'],
+    },
+    {
+      'patientName': 'Michael Chen',
+      'age': 45,
+      'rxCode': 'RX2156',
+      'doctorName': 'Dr. Emily Smith',
+      'date': '30-10-2025',
+      'time': '2:15 PM',
+      'medications': ['Lisinopril 10mg', 'Metformin 500mg'],
+    },
+    {
+      'patientName': 'Sarah Williams',
+      'age': 28,
+      'rxCode': 'RX9432',
+      'doctorName': 'Dr. Robert Lee',
+      'date': '29-10-2025',
+      'time': '6:45 PM',
+      'medications': ['Doxycycline 100mg'],
+    },
+  ];
 
-                  // New Requests Section
-                  const Text(
-                    'New Requests',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+  Future<void> _openPrescriptionDetails(PrescriptionRequest request) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PrescriptionDetailsScreen(request: request),
+      ),
+    );
+
+    if (result == true && mounted) {
+      await _onRefresh();
+    }
+  }
+
+  PrescriptionRequest _mapToPrescriptionRequest(Map<String, dynamic> data) {
+    List<Medication> medications = [];
+    if (data['medications'] is List) {
+      medications = (data['medications'] as List)
+          .map((med) {
+            if (med is Map<String, dynamic>) {
+              return Medication(
+                name: med['name']?.toString() ?? 'Unknown',
+                dosage: med['dose']?.toString() ?? med['dosage']?.toString() ?? '',
+                instructions:
+                    '${med['frequency'] ?? ''} ${med['duration'] ?? ''} ${med['notes'] ?? ''}'
+                        .trim(),
+              );
+            }
+            return Medication(
+              name: med.toString(),
+              dosage: '',
+              instructions: '',
+            );
+          })
+          .toList();
+    }
+
+    PrescriptionStatus status = PrescriptionStatus.issued;
+    final statusStr = data['availability']?.toString().toLowerCase() ?? '';
+    if (statusStr.contains('delivered')) {
+      status = PrescriptionStatus.delivered;
+    } else if (statusStr.contains('full')) {
+      status = PrescriptionStatus.fullyDispensed;
+    } else if (statusStr.contains('partial')) {
+      status = PrescriptionStatus.partiallyDispensed;
+    }
+
+    DateTime issuedDate = DateTime.now();
+    final createdAt = data['created_at']?.toString() ??
+        data['issued_at']?.toString() ??
+        data['date_issued']?.toString() ?? '';
+    if (createdAt.isNotEmpty) {
+      issuedDate = DateTime.tryParse(createdAt) ?? issuedDate;
+    }
+
+    final request = PrescriptionRequest(
+      id: data['prescription_id']?.toString() ?? data['id']?.toString() ?? 'N/A',
+      rxCode: _formatRxCode(data),
+      patientName: data['patient_name']?.toString() ?? 'Unknown Patient',
+      patientAge: int.tryParse(data['patient_age']?.toString() ?? '0') ?? 0,
+      patientGender: data['patient_gender']?.toString() ?? 'Male',
+      patientDob: data['patient_dob']?.toString() ?? '1992-11-15',
+      doctorName: data['doctor_name']?.toString() ?? 'Dr. Unknown',
+      doctorSpecialty:
+          data['doctor_specialty']?.toString() ?? 'General Physician',
+      dateIssued: issuedDate,
+      status: status,
+      medications: medications,
+    );
+
+    request.patientPhone = data['patient_phone']?.toString() ?? '';
+    request.notes = data['notes']?.toString() ?? '';
+    final fulfillment = data['fulfillment_score'];
+    request.fulfillmentScore = fulfillment is num
+        ? fulfillment.toDouble()
+        : double.tryParse(fulfillment?.toString() ?? '0') ?? 0;
+
+    return request;
+  }
+
+  String _formatRxCode(Map<String, dynamic> data) {
+    final rexCode = data['rex_code']?.toString();
+    if (rexCode != null && rexCode.isNotEmpty) {
+      return rexCode;
+    }
+
+    final rxCode = data['rx_code']?.toString();
+    if (rxCode != null && rxCode.isNotEmpty) {
+      return rxCode;
+    }
+
+    final prescriptionCode = data['prescription_code']?.toString();
+    if (prescriptionCode != null && prescriptionCode.isNotEmpty) {
+      return prescriptionCode;
+    }
+
+    final last4 = data['rex_code_last4']?.toString();
+    if (last4 != null && last4.isNotEmpty) {
+      return 'RX...$last4';
+    }
+
+    return 'N/A';
+  }
+
+  PrescriptionRequest _mapDummyRequestToPrescription(Map<String, dynamic> request) {
+    final dateString = request['date']?.toString() ?? '';
+    final timeString = request['time']?.toString() ?? '';
+
+    DateTime parsedDate = DateTime.now();
+    if (dateString.isNotEmpty) {
+      try {
+        final dateParts = dateString.split('-');
+        if (dateParts.length == 3) {
+          final day = int.tryParse(dateParts[0]) ?? parsedDate.day;
+          final month = int.tryParse(dateParts[1]) ?? parsedDate.month;
+          final year = int.tryParse(dateParts[2]) ?? parsedDate.year;
+
+          if (timeString.isNotEmpty) {
+            final timeParts = timeString.split(RegExp(r'[:\s]'));
+            final hour = int.tryParse(timeParts[0]) ?? 0;
+            final minute = int.tryParse(timeParts[1]) ?? 0;
+            final isPm = timeString.toLowerCase().contains('pm');
+            final normalizedHour = (isPm && hour < 12)
+                ? hour + 12
+                : (!isPm && hour == 12)
+                    ? 0
+                    : hour;
+            parsedDate = DateTime(year, month, day, normalizedHour, minute);
+          } else {
+            parsedDate = DateTime(year, month, day);
+          }
+        }
+      } catch (_) {
+        parsedDate = DateTime.now();
+      }
+    }
+
+    final medications = (request['medications'] as List<dynamic>? ?? [])
+        .map((name) => Medication(
+              name: name.toString(),
+              dosage: '',
+              instructions: '',
+            ))
+        .toList();
+
+    final prescription = PrescriptionRequest(
+      id: request['rxCode']?.toString() ?? 'N/A',
+      rxCode: request['rxCode']?.toString() ?? 'N/A',
+      patientName: request['patientName']?.toString() ?? 'Unknown Patient',
+      patientAge: int.tryParse(request['age']?.toString() ?? '0') ?? 0,
+      doctorName: request['doctorName']?.toString() ?? 'Dr. Unknown',
+      dateIssued: parsedDate,
+      status: PrescriptionStatus.issued,
+      medications: medications,
+    );
+
+    prescription.patientPhone = request['patientPhone']?.toString() ?? '';
+    prescription.notes = request['notes']?.toString() ?? '';
+    prescription.fulfillmentScore =
+        double.tryParse(request['fulfillmentScore']?.toString() ?? '0') ?? 0;
+
+    return prescription;
+  }
+
+  Widget _buildRequestCard(PrescriptionRequest request) {
+    final formattedDate = DateFormat('dd-MM-yyyy').format(request.dateIssued);
+    final formattedTime = DateFormat('h:mm a').format(request.dateIssued);
+    final medicationSummary = request.medications
+        .map((med) => med.name)
+        .where((name) => name.isNotEmpty)
+        .join(', ');
+
+    return InkWell(
+      onTap: () => _openPrescriptionDetails(request),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SvgPicture.asset(
+                    'assets/icons/new_prescription_icon.svg',
+                    width: 28,
+                    height: 28,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ShaderMask(
+                      shaderCallback: (bounds) =>
+                          AppColors.primaryGradient.createShader(bounds),
+                      child: const Text(
+                        'New Prescription',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-
-                  // Prescription Requests List
-                  if (pharmacyProvider.prescriptionsLoading)
-                    Container(
-                      padding: const EdgeInsets.all(40),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            AppColors.primary,
-                          ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        formattedDate,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade600,
                         ),
                       ),
-                    )
-                  else if (!pharmacyProvider.isApproved)
-                    Container(
-                      padding: const EdgeInsets.all(40),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.lock_outline,
-                              size: 48,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Prescriptions Not Available',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Your pharmacy account must be approved to view prescriptions.',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[500],
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
+                      const SizedBox(height: 2),
+                      Text(
+                        formattedTime,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade500,
                         ),
                       ),
-                    )
-                  else if (pharmacyProvider.prescriptions.isEmpty)
-                    Container(
-                      padding: const EdgeInsets.all(40),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'No New Prescription',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: pharmacyProvider.prescriptions.length,
-                      itemBuilder: (context, index) {
-                        final prescriptionData =
-                            pharmacyProvider.prescriptions[index];
-
-                        // Parse medications list from API response structure
-                        List<Medication> medications = [];
-                        if (prescriptionData['medications'] is List) {
-                          medications = (prescriptionData['medications'] as List)
-                              .map(
-                                (med) => Medication(
-                                  name: med['name'] ?? 'Unknown',
-                                  dosage: med['dose'] ?? 'N/A',
-                                  // API uses 'dose' not 'dosage'
-                                  instructions:
-                                      '${med['frequency'] ?? ''} ${med['duration'] ?? ''} ${med['notes'] ?? ''}'
-                                          .trim(),
-                                ),
-                              )
-                              .toList();
-                        }
-
-                        // Parse status from availability field
-                        PrescriptionStatus status = PrescriptionStatus.issued;
-                        final statusStr =
-                            prescriptionData['availability']
-                                ?.toString()
-                                .toLowerCase() ??
-                            'pending';
-                        if (statusStr.contains('fully')) {
-                          status = PrescriptionStatus.fullyDispensed;
-                        } else if (statusStr.contains('partial')) {
-                          status = PrescriptionStatus.partiallyDispensed;
-                        }
-
-                        // Parse date (using current date since API doesn't provide date)
-                        DateTime dateIssued = DateTime.now();
-
-                        // Convert API response to PrescriptionRequest
-                        final request = PrescriptionRequest(
-                          id:
-                              prescriptionData['prescription_id']?.toString() ??
-                              'N/A',
-                          rxCode:
-                              'RX...${prescriptionData['rex_code_last4'] ?? 'N/A'}',
-                          patientName:
-                              prescriptionData['patient_name'] ??
-                              'Unknown Patient',
-                          patientAge:
-                              int.tryParse(
-                                prescriptionData['patient_age']?.toString() ??
-                                    '0',
-                              ) ??
-                              0,
-                          // API might provide age, default to 0
-                          patientGender:
-                              prescriptionData['patient_gender'] ?? 'Male',
-                          patientDob: '1992-11-15',
-                          doctorName:
-                              prescriptionData['doctor_name'] ?? 'Dr. Unknown',
-                          doctorSpecialty:
-                              prescriptionData['doctor_specialty'] ??
-                              'General Physician',
-                          dateIssued: dateIssued,
-                          status: status,
-                          medications: medications,
-                        );
-
-                        // Store additional data for details screen
-                        request.patientPhone =
-                            prescriptionData['patient_phone'] ?? '';
-                        request.notes = prescriptionData['notes'] ?? '';
-                        request.fulfillmentScore =
-                            prescriptionData['fulfillment_score'] ?? 0.0;
-
-                        return PrescriptionRequestCard(
-                          request: request,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    PrescriptionDetailsScreen(request: request),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
+                    ],
+                  )
                 ],
               ),
-            ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  SvgPicture.asset(
+                    'assets/icons/patient_icon.svg',
+                    width: 22,
+                    height: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Patient',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      Text(
+                        '${request.patientName}, ${request.patientAge}',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              if (medicationSummary.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  medicationSummary,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.primary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  SvgPicture.asset(
+                    'assets/icons/doctor_icon.svg',
+                    width: 22,
+                    height: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Doctor',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        Text(
+                          request.doctorName,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SvgPicture.asset(
+                    'assets/icons/arrow_forward_line_icon.svg',
+                    width: 26,
+                    height: 26,
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

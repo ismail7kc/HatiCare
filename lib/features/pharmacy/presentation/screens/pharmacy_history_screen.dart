@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
-import 'package:haticare/features/pharmacy/domain/entities/prescription_request.dart';
+import 'package:haticare/features/pharmacy/entities/prescription_request.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_history_detail_screen.dart';
 import 'package:intl/intl.dart';
 
@@ -164,26 +164,22 @@ class _PharmacyHistoryScreenState extends State<PharmacyHistoryScreen> {
     String text;
 
     switch (status) {
+      case PrescriptionStatus.delivered:
+        backgroundColor = const Color(0xFFE3F2FD);
+        textColor = const Color(0xFF1976D2);
+        text = 'Delivered';
       case PrescriptionStatus.fullyDispensed:
         backgroundColor = const Color(0xFFE8F5E9);
         textColor = const Color(0xFF4CA054);
         text = 'Fully Dispensed';
-        break;
       case PrescriptionStatus.partiallyDispensed:
         backgroundColor = const Color(0xFFFFF1DA);
         textColor = const Color(0xFFF2B544);
         text = 'Partially Dispensed';
-        break;
       case PrescriptionStatus.issued:
-        backgroundColor = AppColors.primaryLight.withOpacity(0.1);
+        backgroundColor = AppColors.primaryLight.withValues(alpha: 0.1);
         textColor = AppColors.primaryDark;
         text = 'Issued';
-        break;
-      default:
-        backgroundColor = Colors.grey.withOpacity(0.1);
-        textColor = Colors.grey;
-        text = 'Unknown';
-        break;
     }
 
     return Container(
