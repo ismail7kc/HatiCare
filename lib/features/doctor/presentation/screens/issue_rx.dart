@@ -194,7 +194,7 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                         GestureDetector(
                           onTap: _openLabTestDialog,
                           child: Container(
-                            constraints: const BoxConstraints(maxWidth: 220),
+                            constraints: const BoxConstraints(maxWidth: 190),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(6),
@@ -310,7 +310,7 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                                 .createPrescription(
                                   medications: meds,
                                   notes:
-                                      "What should I with Appointmentdetail Notes Field.",
+                                      "What should I do with Appointmentdetail Notes Field.",
                                   selectedLabTests: selectedLabTestIds,
                                 );
 

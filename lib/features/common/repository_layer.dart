@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:haticare/core/config/app_config.dart';
@@ -5,6 +6,8 @@ import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/common/api_client.dart';
 import 'package:haticare/features/doctor/models/prescription_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../doctor/models/patient_visit_history.dart';
 
 class RepositoryLayer {
   final ApiClient _apiClient;
@@ -84,14 +87,13 @@ class RepositoryLayer {
     String? notes,
     required List<int> selectedLabTests,
   }) async {
-    final url = '${AppConfig.baseUrl}prescriptions/';
+    final url = '${AppConfig.baseUrl}prescriptions/create/';
 
     final Map<String, dynamic> data = {
       "visit_id": visitId,
       "medications": medications.map((m) => m.toJson()).toList(),
       "notes": notes ?? "",
       "lab_tests": selectedLabTests,
-       
     };
 
     debugPrint('prescription data is $data');
@@ -108,7 +110,8 @@ class RepositoryLayer {
   Future<Map<String, dynamic>> getSingleDoctor() async {
     final prefs = await SharedPreferences.getInstance();
 
-    final dynamic rawDocId = SaveLoginResponse.loginData?['id'] ?? prefs.getString('doctorId');
+    final dynamic rawDocId =
+        SaveLoginResponse.loginData?['id'] ?? prefs.getString('doctorId');
 
     if (rawDocId == null || rawDocId.toString().isEmpty) {
       throw Exception("Doctor Id not found");
@@ -122,9 +125,21 @@ class RepositoryLayer {
   Future<Map<String, dynamic>> getLabTests() async {
     // if u want to fetch only Name send 'names_only' with true in query params
     // if u want fetch dropdown with id then send 'dropdown' with true in query params
-    // if u want fetch entire page then send 'page=1', 'page=2' etc 
+    // if u want fetch entire page then send 'page=1', 'page=2' etc
 
     final uri = '${AppConfig.baseUrl}lab/lab-tests/?dropdown=true';
     return await _apiClient.getLabTestFromServer(uri);
+  }
+
+  Future<PatientResponse> fetchPatientVisitHistory() async {
+    final uri = '${AppConfig.baseUrl}patient/visits/history/';
+    final response = await _apiClient.fetchPatientVisitHistory(uri);
+
+    debugPrint('Api Response is $response');
+
+    if (response.isEmpty) {
+      throw Exception("Empty API response");
+    }
+    return PatientResponse.fromJson(response);
   }
 }

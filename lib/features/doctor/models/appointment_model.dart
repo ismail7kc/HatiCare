@@ -34,36 +34,37 @@ class Patient {
 }
 
 class AppointmentModel {
-  final int id;
-  final Patient patient;
-  final String patientName;
-  final String rawComplaint;
-  final String severity;
-  final String status;
-  final DateTime createdAt;
-  final String primarySpecialization;
+  final int? id;
+  final Patient? patient;
+  final String? patientName;
+  final String? rawComplaint;
+  final String? severity;
+  final String? status;
+  final DateTime? createdAt;
+  final String? primarySpecialization;
 
   AppointmentModel({
-    required this.id,
-    required this.patient,
-    required this.patientName,
-    required this.rawComplaint,
-    required this.severity,
-    required this.status,
-    required this.createdAt,
-    required this.primarySpecialization,
+    this.id,
+    this.patient,
+    this.patientName,
+    this.rawComplaint,
+    this.severity,
+    this.status,
+    this.createdAt,
+    this.primarySpecialization,
   });
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
     return AppointmentModel(
       id: json['id'] ?? 0,
-      patient: Patient.fromJson(json['patient'] ?? {}),
+      patient: json['patient'] != null ? Patient.fromJson(json['patient']) : null,
       patientName: json['patient_name'] ?? '',
       rawComplaint: json['raw_complaint'] ?? '',
       severity: json['severity'] ?? '',
       status: json['status'] ?? '',
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
-      primarySpecialization: json['triage_data']?['primary_specialization_name'] ?? '',
+      primarySpecialization:
+          json['triage_data']?['primary_specialization_name'] ?? '',
     );
   }
 }

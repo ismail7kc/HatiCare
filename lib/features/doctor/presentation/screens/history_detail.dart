@@ -1,26 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-
-// You can run this file directly to see the result.
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      // Removing the debug banner for a cleaner look
-      debugShowCheckedModeBanner: false,
-      home: HistoryDetail(),
-    );
-  }
-}
+import 'package:haticare/features/doctor/models/patient_visit_history.dart';
 
 class HistoryDetail extends StatelessWidget {
-  const HistoryDetail({super.key});
+  final PatientData visit;
+
+  const HistoryDetail({super.key, required this.visit});
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +29,7 @@ class HistoryDetail extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-                padding: const EdgeInsets.only(top: 30, left: 16, right: 16),
+              padding: const EdgeInsets.only(top: 30, left: 16, right: 16),
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -70,20 +55,23 @@ class HistoryDetail extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    const Column(
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Alex Johnson, 31',
-                          style: TextStyle(
+                          "${visit.patientName}, ${visit.patient.age}",
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
-                          'Male, DOB: 1992-11-15',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                          "${visit.patient.gender}, ${visit.patient.city}",
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
                         ),
                       ],
                     ),
@@ -102,7 +90,7 @@ class HistoryDetail extends StatelessWidget {
                     child: _buildInfoChip(
                       icon: 'assets/icons/calendar.svg',
                       label: 'Date',
-                      value: '30/10/2025',
+                      value: "${visit.createdAt.day}/${visit.createdAt.month}/${visit.createdAt.year}",
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -110,7 +98,7 @@ class HistoryDetail extends StatelessWidget {
                     child: _buildInfoChip(
                       icon: 'assets/icons/clock.svg',
                       label: 'Duration',
-                      value: '1 min',
+                      value: visit.status,
                     ),
                   ),
                 ],
@@ -119,35 +107,35 @@ class HistoryDetail extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Outcome',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 24,
-                      horizontal: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF3F4F6),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'No specific outcome recorded.',
-                      style: TextStyle(fontSize: 15, color: Colors.grey),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            // Padding(
+            //   padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            //   child: Column(
+            //     crossAxisAlignment: CrossAxisAlignment.start,
+            //     children: [
+            //       const Text(
+            //         'Outcome',
+            //         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            //       ),
+            //       const SizedBox(height: 12),
+            //       Container(
+            //         width: double.infinity,
+            //         padding: const EdgeInsets.symmetric(
+            //           vertical: 24,
+            //           horizontal: 16,
+            //         ),
+            //         decoration: BoxDecoration(
+            //           color: const Color(0xFFF3F4F6),
+            //           borderRadius: BorderRadius.circular(12),
+            //         ),
+            //         child: const Text(
+            //           'No specific outcome recorded.',
+            //           style: TextStyle(fontSize: 15, color: Colors.grey),
+            //           textAlign: TextAlign.center,
+            //         ),
+            //       ),
+            //     ],
+            //   ),
+            // ),
 
             const Spacer(),
           ],

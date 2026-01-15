@@ -1,6 +1,13 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:haticare/core/services/device_id_provider.dart';
+import 'package:haticare/features/common/shared_prefs_helper.dart';
+import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/common/repository_layer.dart';
 import 'package:haticare/features/doctor/models/appointment_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'dart:async';
 
 class DoctorViewModel extends ChangeNotifier {
   final RepositoryLayer repository;
@@ -12,13 +19,24 @@ class DoctorViewModel extends ChangeNotifier {
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+  bool logoutSuccess = false;
 
   String _errorMessage = '';
   String get errorMessage => _errorMessage;
 
+  // socket propetties
+  WebSocketChannel? _channel;
+  bool _isConnecting = false;
+  final bool _isDisposed = false;
+
+  init() {
+    fetchPatientQueue();
+    webSocketConnectionApi();
+  }
+
   Future<void> isDoctorOnline({required bool isOnline}) async {
     final body = {'is_online': isOnline};
-    
+
     // update PATCH request if doctor have patient or not
     final response = await repository.updateDoctorInfo(body);
 
@@ -37,6 +55,7 @@ class DoctorViewModel extends ChangeNotifier {
       final response = await repository.getPatientQueue();
 
       if (response['success'] == true && response['data'] != null) {
+        debugPrint('Fetch Patient Api Triggered');
         final List data = response['data'] as List;
         _appointments = data
             .map((json) => AppointmentModel.fromJson(json))
@@ -50,6 +69,63 @@ class DoctorViewModel extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> webSocketConnectionApi() async {
+    if (_isConnecting || _isDisposed) return;
+    _isConnecting = true;
+
+    final socketUrl = 'wss://api.haticare.com/ws/doctor/queue/';
+    debugPrint("WebSocket URL: $socketUrl");
+
+    try {
+      _channel = WebSocketChannel.connect(Uri.parse(socketUrl));
+
+      _channel!.stream.listen(
+        (message) async {
+          if (_isDisposed) return;
+
+          debugPrint("WS RAW: $message");
+
+          try {
+            final data = jsonDecode(message);
+            if (!data.containsKey("visit_id")) return;
+            final int visitId = data["visit_id"];
+            if (_appointments.any((e) => e.id == visitId)) return;
+            debugPrint("New visit $visitId detected → syncing from API");
+            await fetchPatientQueue();
+
+            if (_isDisposed) return;
+          } catch (e) {
+            debugPrint("WS parse error: $e");
+          }
+        },
+        onDone: () {
+          debugPrint("WS Closed");
+          _reconnect();
+        },
+        onError: (error) {
+          debugPrint("WS Error: $error");
+          _reconnect();
+        },
+        cancelOnError: true,
+      );
+    } catch (e) {
+      debugPrint("WS connect error: $e");
+      _reconnect();
+    }
+  }
+
+  void _reconnect() {
+    if (_isDisposed) return;
+
+    _isConnecting = false;
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!_isDisposed) {
+        webSocketConnectionApi();
+      }
+    });
   }
 
   String formatAppointmentTime(DateTime dateTime) {
@@ -90,5 +166,33 @@ class DoctorViewModel extends ChangeNotifier {
       "Dec",
     ];
     return months[m];
+  }
+
+  Future<bool> logout() async {
+    debugPrint(await DeviceIdProvider().getDeviceId());
+    try {
+      final deviceId = await DeviceIdProvider().getDeviceId();
+      final token = await SharedPrefsHelper.getRefreshToken();
+      final result = await repository.logout(deviceId, token);
+      debugPrint('Logout Success: $result');
+
+      logoutSuccess = true;
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('access_token');
+      await prefs.remove('device_id');
+      await prefs.remove('user_type');
+      await prefs.remove('user_email');
+      await prefs.setBool('is_logged_in', false);
+
+      SharedPrefsHelper.clearRefreshToken();
+
+      return true;
+    } catch (error) {
+      debugPrint('Logout Error: $error');
+      return false;
+    } finally {
+      notifyListeners();
+    }
   }
 }
