@@ -14,6 +14,7 @@ import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_contact
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_help_center_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_notifications_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_privacy_policy_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
@@ -26,11 +27,9 @@ import '../providers/pharmacy_user_provider.dart';
 class PharmacySettingsScreen extends StatefulWidget {
   final VoidCallback? onProfileUpdated;
   const PharmacySettingsScreen({super.key, this.onProfileUpdated});
-
   @override
   State<PharmacySettingsScreen> createState() => _PharmacySettingsScreenState();
 }
-
 class _PharmacySettingsScreenState extends State<PharmacySettingsScreen>
     with AutomaticKeepAliveClientMixin {
   bool _isUpdating = false;
@@ -133,6 +132,7 @@ class _PharmacySettingsScreenState extends State<PharmacySettingsScreen>
           // Update provider
           if (mounted) {
             context.read<PharmacyUserProvider>().updateProfilePicture(updatedUrl);
+            ProfileNotifier.profileImageUrl.value = updatedUrl;
           }
 
           // Show success message
@@ -223,7 +223,6 @@ class _PharmacySettingsScreenState extends State<PharmacySettingsScreen>
       },
     );
   }
-
   Future<void> _pickImage(ImageSource source) async {
     try {
       final picker = ImagePicker();

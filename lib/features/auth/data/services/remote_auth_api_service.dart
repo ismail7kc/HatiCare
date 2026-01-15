@@ -21,7 +21,7 @@ class RemoteAuthApiService implements AuthApiService {
     required String password,
     required String deviceId,
   }) async {
-    final uri = Uri.parse('${AppConfig.baseUrl}/users/login/');
+    final uri = Uri.parse('${AppConfig.baseUrl}users/login/');
     final response = await _client.post(
       uri,
       headers: const {
@@ -87,7 +87,7 @@ class RemoteAuthApiService implements AuthApiService {
 
   @override
   Future<Map<String, dynamic>> generateOtp({required String email}) async {
-    final uri = Uri.parse('${AppConfig.baseUrl}/users/generate-otp/');
+    final uri = Uri.parse('${AppConfig.baseUrl}users/generate-otp/');
     final response = await _client.post(
       uri,
       headers: {
@@ -117,7 +117,7 @@ class RemoteAuthApiService implements AuthApiService {
     required SignupRequest request,
     required String otp,
   }) async {
-    final uri = Uri.parse('${AppConfig.baseUrl}/users/signup/');
+    final uri = Uri.parse('${AppConfig.baseUrl}users/signup/');
     final requestData = request.toJson();
     requestData['otp'] = otp;
 
@@ -150,7 +150,7 @@ class RemoteAuthApiService implements AuthApiService {
     required SignupRequest request,
     required String otp,
   }) async {
-    final uri = Uri.parse('${AppConfig.baseUrl}/users/signup/');
+    final uri = Uri.parse('${AppConfig.baseUrl}users/signup/');
     final requestData = request.toJson();
     requestData['otp'] = otp;
 
@@ -183,7 +183,7 @@ class RemoteAuthApiService implements AuthApiService {
     required SignupRequest request,
     required String otp,
   }) async {
-    final uri = Uri.parse('${AppConfig.baseUrl}/users/signup/');
+    final uri = Uri.parse('${AppConfig.baseUrl}users/signup/');
     final requestData = request.toJson();
     requestData['otp'] = otp;
 

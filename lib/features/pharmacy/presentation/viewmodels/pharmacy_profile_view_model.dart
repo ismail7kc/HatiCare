@@ -284,6 +284,10 @@ class PharmacyProfileViewModel extends ChangeNotifier {
         _populateFormFields(data);
         successMessage = null;
         debugPrint('Profile loaded successfully');
+      } else if (response.statusCode == 404) {
+        // Profile not found, treat as a new profile
+        debugPrint('Profile not found (404). Treating as a new profile.');
+        // Don't set an error message, just let the form be empty
       } else {
         final responseBody = response.body;
         errorMessage = 'Failed to load profile: ${response.statusCode}';
@@ -311,15 +315,15 @@ class PharmacyProfileViewModel extends ChangeNotifier {
       if (data is Map<String, dynamic>) {
         debugPrint('Starting to populate form fields...');
 
-        final pharmacyName = data['pharmacy_name'] ?? '';
+        final pharmacyName = data['pharmacy_name'] as String? ?? '';
         pharmacyNameController.text = pharmacyName;
         debugPrint('pharmacy_name: $pharmacyName');
 
-        final addressLine1 = data['address_line1'] ?? '';
+        final addressLine1 = data['address_line1'] as String? ?? '';
         addressLine1Controller.text = addressLine1;
         debugPrint('address_line1: $addressLine1');
 
-        final country = data['country'] ?? '';
+        final country = data['country'] as String? ?? '';
         if (country.isNotEmpty) {
           // Check if country exists in the list
           final countryExists = countries.any((c) => c['Country_name'] == country);
@@ -335,7 +339,7 @@ class PharmacyProfileViewModel extends ChangeNotifier {
         }
         debugPrint('country: $country');
 
-        final state = data['state'] ?? '';
+        final state = data['state'] as String? ?? '';
         if (state.isNotEmpty) {
           // Always try to set state after country is processed
           if (selectedCountry != null && selectedCountry!.isNotEmpty) {
@@ -350,7 +354,7 @@ class PharmacyProfileViewModel extends ChangeNotifier {
         }
         debugPrint('state: $state');
 
-        final city = data['city'] ?? '';
+        final city = data['city'] as String? ?? '';
         if (city.isNotEmpty) {
           // Always try to set city after state is processed
           if (selectedState != null && selectedState!.isNotEmpty) {
@@ -365,25 +369,25 @@ class PharmacyProfileViewModel extends ChangeNotifier {
         }
         debugPrint('city: $city');
 
-        final zipCode = data['zip_code'] ?? '';
+        final zipCode = data['zip_code'] as String? ?? '';
         zipCodeController.text = zipCode;
         debugPrint('zip_code: $zipCode');
 
         // Populate contact person from API response
-        final contactPerson = data['contact_person'] ?? '';
+        final contactPerson = data['contact_person'] as String? ?? '';
         if (contactPerson.isNotEmpty) {
           contactPersonController.text = contactPerson;
           debugPrint('contact_person: $contactPerson');
         }
 
         // Populate email from API response
-        final email = data['email'] ?? '';
+        final email = data['email'] as String? ?? '';
         if (email.isNotEmpty) {
           emailController.text = email;
           debugPrint('email: $email');
         }
         
-        final phoneNumber = data['phone_number'] ?? '';
+        final phoneNumber = data['phone_number'] as String? ?? '';
         if (phoneNumber.isNotEmpty) {
           final parsedPhone = _parsePhoneNumber(phoneNumber);
           final countryCode = parsedPhone['countryCode'] ?? 'US';
@@ -399,31 +403,31 @@ class PharmacyProfileViewModel extends ChangeNotifier {
         }
 
         // Populate Page 2 fields
-        final taxId = data['tax_identification_number'] ?? '';
+        final taxId = data['tax_identification_number'] as String? ?? '';
         taxIdController.text = taxId;
         debugPrint('tax_identification_number: $taxId');
 
-        final licenseNumber = data['license_number'] ?? '';
+        final licenseNumber = data['license_number'] as String? ?? '';
         licenseNumberController.text = licenseNumber;
         debugPrint('license_number: $licenseNumber');
 
         // Load profile picture URL (if available)
-        final profilePictureUrlValue = data['profile_picture'];
-        if (profilePictureUrlValue != null && profilePictureUrlValue.toString().isNotEmpty) {
-          profilePictureUrl = profilePictureUrlValue.toString();
+        final profilePictureUrlValue = data['profile_picture'] as String? ?? '';
+        if (profilePictureUrlValue.isNotEmpty) {
+          profilePictureUrl = profilePictureUrlValue;
           debugPrint('profile_picture URL: $profilePictureUrl');
         }
 
         // Load license documents URLs (if available)
-        final licenseDoc1UrlValue = data['license_document'];
-        if (licenseDoc1UrlValue != null && licenseDoc1UrlValue.toString().isNotEmpty) {
-          licenseDocument1Url = licenseDoc1UrlValue.toString();
+        final licenseDoc1UrlValue = data['license_document'] as String? ?? '';
+        if (licenseDoc1UrlValue.isNotEmpty) {
+          licenseDocument1Url = licenseDoc1UrlValue;
           debugPrint('license_document URL: $licenseDocument1Url');
         }
 
-        final licenseDoc2UrlValue = data['license_document_2'];
-        if (licenseDoc2UrlValue != null && licenseDoc2UrlValue.toString().isNotEmpty) {
-          licenseDocument2Url = licenseDoc2UrlValue.toString();
+        final licenseDoc2UrlValue = data['license_document_2'] as String? ?? '';
+        if (licenseDoc2UrlValue.isNotEmpty) {
+          licenseDocument2Url = licenseDoc2UrlValue;
           debugPrint('license_document_2 URL: $licenseDocument2Url');
         }
 
@@ -788,6 +792,29 @@ class PharmacyProfileViewModel extends ChangeNotifier {
           successMessage = 'Profile updated successfully';
           _shouldNavigateToHome = true;
           await prefs.setBool('pharmacy_profile_completed', true);
+          
+          // Parse response to get updated profile picture URL
+          try {
+            final jsonResponse = jsonDecode(responseBody);
+            dynamic data;
+            if (jsonResponse is Map<String, dynamic> && jsonResponse.containsKey('data')) {
+              data = jsonResponse['data'];
+            } else {
+              data = jsonResponse;
+            }
+            
+            if (data is Map<String, dynamic>) {
+              final updatedProfilePictureUrl = data['profile_picture'] as String? ?? '';
+              if (updatedProfilePictureUrl.isNotEmpty) {
+                profilePictureUrl = updatedProfilePictureUrl;
+                // Save to SharedPreferences for other screens
+                await prefs.setString('pharmacy_profile_picture_url', updatedProfilePictureUrl);
+                debugPrint('Updated profile picture URL: $updatedProfilePictureUrl');
+              }
+            }
+          } catch (e) {
+            debugPrint('Error parsing profile update response: $e');
+          }
         } else {
           errorMessage = 'Failed to update profile: ${response.statusCode}\n$responseBody';
         }

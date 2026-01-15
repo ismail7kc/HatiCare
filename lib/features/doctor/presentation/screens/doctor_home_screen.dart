@@ -305,90 +305,96 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   Widget headerView() {
     final doctorProvider = context.watch<DoctorUserProvider>();
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
+    return ValueListenableBuilder<String?>(
+      valueListenable: ProfileNotifier.profileImageUrl,
+      builder: (context, imageUrl, _) {
+        final profileUrl = imageUrl ?? doctorProvider.profilePictureUrl;
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            doctorProvider.isLoading
-                ? const CircleAvatar(
-                    radius: 25,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.primary,
+            Row(
+              children: [
+                doctorProvider.isLoading
+                    ? const CircleAvatar(
+                  radius: 25,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
+                  ),
+                )
+                    : CircleAvatar(
+                  radius: 25,
+                  backgroundImage: profileUrl.isNotEmpty
+                      ? NetworkImage(profileUrl)
+                      : null,
+                  child: profileUrl.isEmpty
+                      ? const Icon(Icons.person, size: 30)
+                      : null,
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Welcome Back,",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    doctorProvider.isLoading
+                        ? const SizedBox(
+                      width: 100,
+                      height: 18,
+                      child: LinearProgressIndicator(
+                        backgroundColor: Colors.grey,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.primary,
+                        ),
+                      ),
+                    )
+                        : Text(
+                      doctorProvider.doctorName.isNotEmpty
+                          ? (doctorProvider.doctorName.length > 15
+                          ? '${doctorProvider.doctorName.substring(0, 15)}...'
+                          : doctorProvider.doctorName)
+                          : 'Doctor',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
                       ),
                     ),
-                  )
-                : CircleAvatar(
-                    radius: 25,
-                    backgroundImage: doctorProvider.profilePictureUrl.isNotEmpty
-                        ? NetworkImage(doctorProvider.profilePictureUrl)
-                        : null,
-                    child: doctorProvider.profilePictureUrl.isEmpty
-                        ? const Icon(Icons.person, size: 30)
-                        : null,
-                  ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Welcome Back,",
-                  style: TextStyle(color: Colors.grey),
+                  ],
                 ),
-                doctorProvider.isLoading
-                    ? const SizedBox(
-                        width: 100,
-                        height: 18,
-                        child: LinearProgressIndicator(
-                          backgroundColor: Colors.grey,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            AppColors.primary,
-                          ),
-                        ),
-                      )
-                    : Text(
-                        doctorProvider.doctorName.isNotEmpty
-                            ? (doctorProvider.doctorName.length > 15
-                                  ? '${doctorProvider.doctorName.substring(0, 15)}...'
-                                  : doctorProvider.doctorName)
-                            : 'Doctor',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
+              ],
+            ),
+
+            Stack(
+              children: [
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const NotificationsScreen(),
                       ),
+                    );
+                  },
+                  icon: SvgPicture.asset(
+                    'assets/icons/notification.svg',
+                    height: 26,
+                    color: Colors.black87,
+                  ),
+                ),
+                const Positioned(
+                  right: 8,
+                  top: 8,
+                  child: CircleAvatar(radius: 4, backgroundColor: Colors.red),
+                ),
               ],
             ),
           ],
-        ),
-
-        Stack(
-          children: [
-            IconButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const NotificationsScreen(),
-                  ),
-                );
-              },
-              icon: SvgPicture.asset(
-                'assets/icons/notification.svg',
-                height: 26,
-                color: Colors.black87,
-              ),
-            ),
-            const Positioned(
-              right: 8,
-              top: 8,
-              child: CircleAvatar(radius: 4, backgroundColor: Colors.red),
-            ),
-          ],
-        ),
-      ],
+        );
+      },
     );
   }
 

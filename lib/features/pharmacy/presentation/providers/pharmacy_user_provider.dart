@@ -42,6 +42,7 @@ class PharmacyUserProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       _pharmacyName = prefs.getString('user_first_name') ?? '';
+      _profilePictureUrl = prefs.getString('pharmacy_profile_picture_url') ?? '';
       notifyListeners();
       fetchProfile();
     } catch (e) {
@@ -95,6 +96,11 @@ class PharmacyUserProvider extends ChangeNotifier {
           _profilePictureUrl = data['profile_picture'] ?? '';
           _contactPerson = data['contact_person'] ?? '';
           _licenseNumber = data['license_number'] ?? '';
+          
+          // Save profile picture URL to SharedPreferences
+          if (_profilePictureUrl.isNotEmpty) {
+            await prefs.setString('pharmacy_profile_picture_url', _profilePictureUrl);
+          }
           
           // Check approval status - multiple field names for compatibility
           _isApproved = (data['is_approved'] == true || 

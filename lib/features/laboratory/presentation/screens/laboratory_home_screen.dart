@@ -13,7 +13,10 @@ import 'package:intl/intl.dart';
 import '../../../common/api_client.dart';
 import '../lab_repository_layer.dart';
 import '../providers/laboratory_user_provider.dart';
-
+class ProfileNotifier {
+  static final ValueNotifier<String?> profileImageUrl = ValueNotifier(null);
+  static final ValueNotifier<String?> doctorName = ValueNotifier(null);
+}
 class LaboratoryHomeScreen extends StatefulWidget {
   const LaboratoryHomeScreen({super.key});
 
@@ -57,15 +60,10 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   @override
   bool get wantKeepAlive => true;
 
-  late final LabPrescriptionvm labPrescriptionVm;
-
   @override
   void initState() {
     super.initState();
 
-    labPrescriptionVm = LabPrescriptionvm(LabRepositoryLayer(ApiClient()));
-    labPrescriptionVm.laboratoryPrescriptionList();
-    
     // Fetch prescriptions on init
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<LaboratoryUserProvider>().fetchPrescriptions();
@@ -75,9 +73,6 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   Future<void> _onRefresh() async {
     final provider = context.read<LaboratoryUserProvider>();
     await provider.fetchProfile(forceRefresh: true);
-    
-    // refresh prescription that is sent by doctor
-    await labPrescriptionVm.laboratoryPrescriptionList();
     
     // Fetch prescriptions from API
     await provider.fetchPrescriptions();
@@ -102,108 +97,110 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          laboratoryProvider.isLoading
-                              ? const CircleAvatar(
-                                  radius: 25,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      AppColors.primary,
+                  ValueListenableBuilder<String?>(
+                      valueListenable: ProfileNotifier.profileImageUrl,
+                      builder: (context, imageUrl, _) {
+                        final profileUrl =
+                            imageUrl ?? laboratoryProvider.profilePictureUrl;
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                laboratoryProvider.isLoading
+                                    ? const CircleAvatar(
+                                        radius: 25,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                            AppColors.primary,
+                                          ),
+                                        ),
+                                      )
+                                    : CircleAvatar(
+                                        radius: 25,
+                                        backgroundImage: profileUrl.isNotEmpty
+                                            ? NetworkImage(
+                                                profileUrl,
+                                              )
+                                            : null,
+                                        child: profileUrl.isEmpty
+                                            ? const Icon(Icons.person, size: 30)
+                                            : null,
+                                      ),
+                                const SizedBox(width: 10),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Welcome Back,",
+                                      style: TextStyle(color: Colors.grey),
                                     ),
-                                  ),
-                                )
-                              : CircleAvatar(
-                                  radius: 25,
-                                  backgroundImage:
-                                      laboratoryProvider
-                                          .profilePictureUrl
-                                          .isNotEmpty
-                                      ? NetworkImage(
-                                          laboratoryProvider.profilePictureUrl,
-                                        )
-                                      : null,
-                                  child:
-                                      laboratoryProvider
-                                          .profilePictureUrl
-                                          .isEmpty
-                                      ? const Icon(Icons.person, size: 30)
-                                      : null,
-                                ),
-                          const SizedBox(width: 10),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Welcome Back,",
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                              laboratoryProvider.isLoading
-                                  ? const SizedBox(
-                                      width: 100,
-                                      height: 18,
-                                      child: LinearProgressIndicator(
-                                        backgroundColor: Colors.grey,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              AppColors.primary,
+                                    laboratoryProvider.isLoading
+                                        ? const SizedBox(
+                                            width: 100,
+                                            height: 18,
+                                            child: LinearProgressIndicator(
+                                              backgroundColor: Colors.grey,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<
+                                                      Color>(
+                                                AppColors.primary,
+                                              ),
                                             ),
-                                      ),
-                                    )
-                                  : Text(
-                                      laboratoryProvider
-                                              .laboratoryName
-                                              .isNotEmpty
-                                          ? (laboratoryProvider
-                                                        .laboratoryName
-                                                        .length >
-                                                    15
-                                                ? '${laboratoryProvider.laboratoryName.substring(0, 15)}...'
-                                                : laboratoryProvider
-                                                      .laboratoryName)
-                                          : 'Laboratory',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Stack(
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const NotificationsScreen(),
+                                          )
+                                        : Text(
+                                            laboratoryProvider
+                                                    .laboratoryName.isNotEmpty
+                                                ? (laboratoryProvider
+                                                              .laboratoryName
+                                                              .length >
+                                                          15
+                                                      ? '${laboratoryProvider.laboratoryName.substring(0, 15)}...'
+                                                      : laboratoryProvider
+                                                          .laboratoryName)
+                                                : 'Laboratory',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                            ),
+                                          ),
+                                  ],
                                 ),
-                              );
-                            },
-                            icon: SvgPicture.asset(
-                              'assets/icons/notification.svg',
-                              height:26,
-                              color: Colors.black87,
+                              ],
                             ),
-                          ),
-                          const Positioned(
-                            right: 8,
-                            top: 8,
-                            child: CircleAvatar(
-                              radius: 4,
-                              backgroundColor: Colors.red,
+                            Stack(
+                              children: [
+                                IconButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const NotificationsScreen(),
+                                      ),
+                                    );
+                                  },
+                                  icon: SvgPicture.asset(
+                                    'assets/icons/notification.svg',
+                                    height: 26,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                const Positioned(
+                                  right: 8,
+                                  top: 8,
+                                  child: CircleAvatar(
+                                    radius: 4,
+                                    backgroundColor: Colors.red,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                          ],
+                        );
+                      }),
                   const SizedBox(height: 20),
 
                   // Lab Tests Section
@@ -233,39 +230,40 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                           ),
                         )
                       : laboratoryProvider.prescriptions.isEmpty
-                      ? Container(
-                          padding: const EdgeInsets.all(40),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'No Lab Tests Yet.',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  textAlign: TextAlign.center,
+                          ? Container(
+                              padding: const EdgeInsets.all(40),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'No Lab Tests Yet.',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
+                            )
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount:
+                                  laboratoryProvider.prescriptions.length,
+                              itemBuilder: (context, index) {
+                                final prescription =
+                                    laboratoryProvider.prescriptions[index];
+                                return _buildPrescriptionCard(prescription);
+                              },
                             ),
-                          ),
-                        )
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: laboratoryProvider.prescriptions.length,
-                          itemBuilder: (context, index) {
-                            final prescription =
-                                laboratoryProvider.prescriptions[index];
-                            return _buildPrescriptionCard(prescription);
-                          },
-                        ),
                 ],
               ),
             ),
@@ -277,32 +275,34 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
 
   Widget _buildPrescriptionCard(Map<String, dynamic> prescription) {
     // Extract data from prescription
-    final patientName = prescription['patient_name']?.toString() ?? 'Unknown Patient';
-    final doctorName = prescription['doctor_name']?.toString() ?? 'Dr. Unknown';
+    final patientName =
+        prescription['patient_name']?.toString() ?? 'Unknown Patient';
+    final doctorName =
+        prescription['doctor_name']?.toString() ?? 'Dr. Unknown';
     final rexCodeLast4 = prescription['rex_code_last4']?.toString() ?? '';
     final createdAt = prescription['created_at']?.toString() ?? '';
-    
+
     // Parse date
     DateTime issuedDate = DateTime.now();
     if (createdAt.isNotEmpty) {
       issuedDate = DateTime.tryParse(createdAt) ?? issuedDate;
     }
-    
+
     // Format date and time like pharmacy
     final formattedDate = DateFormat('dd-MM-yyyy').format(issuedDate);
     final formattedTime = DateFormat('h:mm a').format(issuedDate);
-    
+
     // Get lab tests instead of medications
     List<String> labTestNames = [];
     if (prescription['lab_tests'] is List) {
       labTestNames = (prescription['lab_tests'] as List)
-          .map((test) => test is Map<String, dynamic> 
+          .map((test) => test is Map<String, dynamic>
               ? test['name']?.toString() ?? 'Unknown Test'
               : test.toString())
           .where((name) => name.isNotEmpty)
           .toList();
     }
-    
+
     final labTestsSummary = labTestNames.join(', ');
 
     return InkWell(
@@ -461,7 +461,8 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     );
   }
 
-  Future<void> _openPrescriptionDetails(Map<String, dynamic> prescription) async {
+  Future<void> _openPrescriptionDetails(
+      Map<String, dynamic> prescription) async {
     // Navigate to prescription details screen
     await Navigator.push(
       context,
@@ -474,8 +475,10 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   }
 
   Widget _buildPrescriptionDetailsScreen(Map<String, dynamic> prescription) {
-    final statusId = prescription['status_id']?.toString() ?? prescription['prescription_id']?.toString() ?? '';
-    
+    final statusId = prescription['status_id']?.toString() ??
+        prescription['prescription_id']?.toString() ??
+        '';
+
     return Scaffold(
       backgroundColor: Color(0xFFF9FAFB),
       appBar: AppBar(
@@ -540,7 +543,8 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        prescription['availability']?.toString().toUpperCase() ?? 'PENDING',
+                        prescription['availability']?.toString().toUpperCase() ??
+                            'PENDING',
                         style: TextStyle(
                           color: AppColors.primaryDark,
                           fontSize: 12,
@@ -568,16 +572,22 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                       prescription['patient_name']?.toString() ?? 'Unknown',
                     ),
                     const SizedBox(height: 12),
-                    _buildInfoRow('Issuing Doctor:', prescription['doctor_name']?.toString() ?? 'Dr. Unknown'),
-                    if (prescription['patient_phone']?.toString().isNotEmpty == true) ...[
+                    _buildInfoRow('Issuing Doctor:',
+                        prescription['doctor_name']?.toString() ?? 'Dr. Unknown'),
+                    if (prescription['patient_phone']?.toString().isNotEmpty ==
+                        true) ...[
                       const SizedBox(height: 12),
-                      _buildInfoRow('Patient Phone:', prescription['patient_phone']?.toString() ?? ''),
+                      _buildInfoRow('Patient Phone:',
+                          prescription['patient_phone']?.toString() ?? ''),
                     ],
                     const SizedBox(height: 12),
                     _buildInfoRow(
                       'Date Issued:',
                       prescription['created_at']?.toString().isNotEmpty == true
-                          ? DateTime.tryParse(prescription['created_at']?.toString() ?? '') != null
+                          ? DateTime.tryParse(
+                                      prescription['created_at']?.toString() ??
+                                          '') !=
+                                  null
                               ? '${DateTime.tryParse(prescription['created_at']?.toString() ?? '')?.day.toString().padLeft(2, '0')}/${DateTime.tryParse(prescription['created_at']?.toString() ?? '')?.month.toString().padLeft(2, '0')}/${DateTime.tryParse(prescription['created_at']?.toString() ?? '')?.year}'
                               : 'N/A'
                           : 'N/A',
@@ -618,7 +628,10 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                     ),
                     const SizedBox(height: 16),
                     if (prescription['lab_tests'] is List)
-                      ...(prescription['lab_tests'] as List).asMap().entries.map((entry) {
+                      ...(prescription['lab_tests'] as List)
+                          .asMap()
+                          .entries
+                          .map((entry) {
                         final index = entry.key;
                         final labTest = entry.value;
                         return Column(
@@ -675,7 +688,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                     ],
                   ),
                 ),
-              
+
               const SizedBox(height: 100), // Space for button
             ],
           ),
@@ -698,11 +711,12 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
               onPressed: statusId.isNotEmpty
                   ? () async {
                       await provider.acceptPrescription(statusId);
-                      
+
                       if (provider.errorMessage == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Prescription accepted successfully!'),
+                            content:
+                                Text('Prescription accepted successfully!'),
                             backgroundColor: Colors.green,
                           ),
                         );
@@ -718,7 +732,8 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                     }
                   : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: statusId.isNotEmpty ? AppColors.primary : Colors.grey,
+                backgroundColor:
+                    statusId.isNotEmpty ? AppColors.primary : Colors.grey,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -732,7 +747,8 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
                   : const Text(
@@ -775,12 +791,11 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   }
 
   Widget _buildLabTestItem(dynamic labTest) {
-    final name = labTest is Map<String, dynamic> 
+    final name = labTest is Map<String, dynamic>
         ? labTest['name']?.toString() ?? 'Unknown Test'
         : labTest.toString();
-    final id = labTest is Map<String, dynamic> 
-        ? labTest['id']?.toString() ?? ''
-        : '';
+    final id =
+        labTest is Map<String, dynamic> ? labTest['id']?.toString() ?? '' : '';
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,

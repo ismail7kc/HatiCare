@@ -13,6 +13,11 @@ import 'package:provider/provider.dart';
 
 import '../providers/pharmacy_user_provider.dart';
 
+class ProfileNotifier {
+  static final ValueNotifier<String?> profileImageUrl = ValueNotifier(null);
+  static final ValueNotifier<String?> doctorName = ValueNotifier(null);
+}
+
 class PharmacyHomeScreen extends StatefulWidget {
   const PharmacyHomeScreen({super.key});
 
@@ -140,99 +145,105 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header View
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      pharmacyProvider.isLoading
-                          ? const CircleAvatar(
-                              radius: 25,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.primary,
-                                ),
-                              ),
-                            )
-                          : CircleAvatar(
-                              radius: 25,
-                              backgroundImage:
-                                  pharmacyProvider.profilePictureUrl.isNotEmpty
-                                      ? NetworkImage(
-                                          pharmacyProvider.profilePictureUrl,
-                                        )
-                                      : null,
-                              child: pharmacyProvider.profilePictureUrl.isEmpty
-                                  ? const Icon(Icons.person, size: 30)
-                                  : null,
-                            ),
-                      const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Welcome Back,",
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          pharmacyProvider.isLoading
-                              ? const SizedBox(
-                                  width: 100,
-                                  height: 18,
-                                  child: LinearProgressIndicator(
-                                    backgroundColor: Colors.grey,
-                                    valueColor:
-                                        AlwaysStoppedAnimation<Color>(
-                                      AppColors.primary,
+              ValueListenableBuilder<String?>(
+                  valueListenable: ProfileNotifier.profileImageUrl,
+                  builder: (context, imageUrl, _) {
+                    final profileUrl =
+                        imageUrl ?? pharmacyProvider.profilePictureUrl;
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            pharmacyProvider.isLoading
+                                ? const CircleAvatar(
+                                    radius: 25,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        AppColors.primary,
+                                      ),
                                     ),
+                                  )
+                                : CircleAvatar(
+                                    radius: 25,
+                                    backgroundImage: profileUrl.isNotEmpty
+                                        ? NetworkImage(
+                                            profileUrl,
+                                          )
+                                        : null,
+                                    child: profileUrl.isEmpty
+                                        ? const Icon(Icons.person, size: 30)
+                                        : null,
                                   ),
-                                )
-                              : Text(
-                                  pharmacyProvider.pharmacyName.isNotEmpty
-                                      ? (pharmacyProvider.pharmacyName.length >
-                                              15
-                                          ? '${pharmacyProvider.pharmacyName.substring(0, 15)}...'
-                                          : pharmacyProvider.pharmacyName)
-                                      : 'Pharmacy',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Welcome Back,",
+                                  style: TextStyle(color: Colors.grey),
                                 ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Stack(
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const PharmacyNotificationsScreen(),
+                                pharmacyProvider.isLoading
+                                    ? const SizedBox(
+                                        width: 100,
+                                        height: 18,
+                                        child: LinearProgressIndicator(
+                                          backgroundColor: Colors.grey,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                            AppColors.primary,
+                                          ),
+                                        ),
+                                      )
+                                    : Text(
+                                        pharmacyProvider.pharmacyName.isNotEmpty
+                                            ? (pharmacyProvider
+                                                        .pharmacyName.length >
+                                                    15
+                                                ? '${pharmacyProvider.pharmacyName.substring(0, 15)}...'
+                                                : pharmacyProvider.pharmacyName)
+                                            : 'Pharmacy',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18,
+                                        ),
+                                      ),
+                              ],
                             ),
-                          );
-                        },
-                        icon: SvgPicture.asset(
-                          'assets/icons/notification.svg',
-                          height: 26,
-                          color: Colors.black87,
+                          ],
                         ),
-                      ),
-                      const Positioned(
-                        right: 8,
-                        top: 8,
-                        child: CircleAvatar(
-                          radius: 4,
-                          backgroundColor: Colors.red,
+                        Stack(
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const PharmacyNotificationsScreen(),
+                                  ),
+                                );
+                              },
+                              icon: SvgPicture.asset(
+                                'assets/icons/notification.svg',
+                                height: 26,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const Positioned(
+                              right: 8,
+                              top: 8,
+                              child: CircleAvatar(
+                                radius: 4,
+                                backgroundColor: Colors.red,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                      ],
+                    );
+                  }),
               const SizedBox(height: 24),
 
               if (!pharmacyProvider.isApproved &&
@@ -599,14 +610,8 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            ),
-          ],
+.
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(18),
