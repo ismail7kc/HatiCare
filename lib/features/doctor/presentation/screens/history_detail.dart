@@ -90,7 +90,8 @@ class HistoryDetail extends StatelessWidget {
                     child: _buildInfoChip(
                       icon: 'assets/icons/calendar.svg',
                       label: 'Date',
-                      value: "${visit.createdAt.day}/${visit.createdAt.month}/${visit.createdAt.year}",
+                      value:
+                          "${visit.createdAt.day}/${visit.createdAt.month}/${visit.createdAt.year}",
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -98,7 +99,7 @@ class HistoryDetail extends StatelessWidget {
                     child: _buildInfoChip(
                       icon: 'assets/icons/clock.svg',
                       label: 'Duration',
-                      value: visit.status,
+                      value:"${visit.createdAt.hour.toString().padLeft(2, '0')}:" "${visit.createdAt.minute.toString().padLeft(2, '0')}",
                     ),
                   ),
                 ],
@@ -136,7 +137,6 @@ class HistoryDetail extends StatelessWidget {
             //     ],
             //   ),
             // ),
-
             const Spacer(),
           ],
         ),

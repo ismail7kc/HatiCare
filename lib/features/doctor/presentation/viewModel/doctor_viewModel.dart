@@ -88,11 +88,12 @@ class DoctorViewModel extends ChangeNotifier {
 
           try {
             final data = jsonDecode(message);
-            if (!data.containsKey("visit_id")) return;
-            final int visitId = data["visit_id"];
-            if (_appointments.any((e) => e.id == visitId)) return;
-            debugPrint("New visit $visitId detected → syncing from API");
-            await fetchPatientQueue();
+            
+            // if (!data.containsKey("visit_id")) return;
+            // final int visitId = data["visit_id"];
+            // if (_appointments.any((e) => e.id == visitId)) return;
+            // debugPrint("New visit $visitId detected → syncing from API");
+            // await fetchPatientQueue();
             
             if (_isDisposed) return;
           } catch (e) {
