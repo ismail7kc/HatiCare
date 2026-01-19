@@ -125,7 +125,6 @@ class PharmacyUserProvider extends ChangeNotifier {
              await prefs.setString('user_first_name', _pharmacyName);
           }
           
-          // Save approval status to preferences for offline checking
           await prefs.setBool('pharmacy_is_approved', _isApproved);
           await prefs.setString('pharmacy_approval_message', _approvalMessage);
         }

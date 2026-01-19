@@ -39,7 +39,10 @@ class _PharmacyHomeScreenState extends State<PharmacyHomeScreen> {
         ],
         tabs: const [
           TabItemData(title: "Home", iconPath: 'assets/icons/home.svg'),
-          TabItemData(title: "Inventory", iconPath: 'assets/icons/inventory.svg'),
+          TabItemData(
+            title: "Inventory",
+            iconPath: 'assets/icons/inventory.svg',
+          ),
           TabItemData(title: "History", iconPath: 'assets/icons/history.svg'),
           TabItemData(title: "Settings", iconPath: 'assets/icons/setting.svg'),
         ],
@@ -122,8 +125,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     final List<Map<String, dynamic>> newRequestsRaw = prescriptionsRaw
         .whereType<Map<String, dynamic>>()
         .where((p) {
-          final statusStr =
-              p['availability']?.toString().toLowerCase() ?? '';
+          final statusStr = p['availability']?.toString().toLowerCase() ?? '';
           return !statusStr.contains('delivered') &&
               !statusStr.contains('full') &&
               !statusStr.contains('partial');
@@ -132,8 +134,9 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
 
     final List<PrescriptionRequest> newRequestPrescriptions = [];
     if (newRequestsRaw.isNotEmpty) {
-      newRequestPrescriptions
-          .addAll(newRequestsRaw.map(_mapToPrescriptionRequest));
+      newRequestPrescriptions.addAll(
+        newRequestsRaw.map(_mapToPrescriptionRequest),
+      );
     }
 
     return Scaffold(
@@ -146,104 +149,104 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
             children: [
               // Header View
               ValueListenableBuilder<String?>(
-                  valueListenable: ProfileNotifier.profileImageUrl,
-                  builder: (context, imageUrl, _) {
-                    final profileUrl =
-                        imageUrl ?? pharmacyProvider.profilePictureUrl;
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            pharmacyProvider.isLoading
-                                ? const CircleAvatar(
-                                    radius: 25,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        AppColors.primary,
-                                      ),
+                valueListenable: ProfileNotifier.profileImageUrl,
+                builder: (context, imageUrl, _) {
+                  final profileUrl =
+                      imageUrl ?? pharmacyProvider.profilePictureUrl;
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          pharmacyProvider.isLoading
+                              ? const CircleAvatar(
+                                  radius: 25,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      AppColors.primary,
                                     ),
-                                  )
-                                : CircleAvatar(
-                                    radius: 25,
-                                    backgroundImage: profileUrl.isNotEmpty
-                                        ? NetworkImage(
-                                            profileUrl,
-                                          )
-                                        : null,
-                                    child: profileUrl.isEmpty
-                                        ? const Icon(Icons.person, size: 30)
-                                        : null,
                                   ),
-                            const SizedBox(width: 10),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "Welcome Back,",
-                                  style: TextStyle(color: Colors.grey),
+                                )
+                              : profileUrl.isNotEmpty
+                              ? CircleAvatar(
+                                  radius: 25,
+                                  backgroundImage: NetworkImage(profileUrl),
+                                )
+                              : const CircleAvatar(
+                                  radius: 25,
+                                  child: Icon(Icons.person, size: 30),
                                 ),
-                                pharmacyProvider.isLoading
-                                    ? const SizedBox(
-                                        width: 100,
-                                        height: 18,
-                                        child: LinearProgressIndicator(
-                                          backgroundColor: Colors.grey,
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                            AppColors.primary,
-                                          ),
-                                        ),
-                                      )
-                                    : Text(
-                                        pharmacyProvider.pharmacyName.isNotEmpty
-                                            ? (pharmacyProvider
-                                                        .pharmacyName.length >
+                          const SizedBox(width: 10),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Welcome Back,",
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                              pharmacyProvider.isLoading
+                                  ? const SizedBox(
+                                      width: 100,
+                                      height: 18,
+                                      child: LinearProgressIndicator(
+                                        backgroundColor: Colors.grey,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              AppColors.primary,
+                                            ),
+                                      ),
+                                    )
+                                  : Text(
+                                      pharmacyProvider.pharmacyName.isNotEmpty
+                                          ? (pharmacyProvider
+                                                        .pharmacyName
+                                                        .length >
                                                     15
                                                 ? '${pharmacyProvider.pharmacyName.substring(0, 15)}...'
                                                 : pharmacyProvider.pharmacyName)
-                                            : 'Pharmacy',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 18,
-                                        ),
+                                          : 'Pharmacy',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
                                       ),
-                              ],
+                                    ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      Stack(
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const PharmacyNotificationsScreen(),
+                                ),
+                              );
+                            },
+                            icon: SvgPicture.asset(
+                              'assets/icons/notification.svg',
+                              height: 26,
+                              color: Colors.black87,
                             ),
-                          ],
-                        ),
-                        Stack(
-                          children: [
-                            IconButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const PharmacyNotificationsScreen(),
-                                  ),
-                                );
-                              },
-                              icon: SvgPicture.asset(
-                                'assets/icons/notification.svg',
-                                height: 26,
-                                color: Colors.black87,
-                              ),
+                          ),
+                          const Positioned(
+                            right: 8,
+                            top: 8,
+                            child: CircleAvatar(
+                              radius: 4,
+                              backgroundColor: Colors.red,
                             ),
-                            const Positioned(
-                              right: 8,
-                              top: 8,
-                              child: CircleAvatar(
-                                radius: 4,
-                                backgroundColor: Colors.red,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    );
-                  }),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
               const SizedBox(height: 24),
 
               if (!pharmacyProvider.isApproved &&
@@ -425,61 +428,47 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                   child: RefreshIndicator(
                     onRefresh: _onRefresh,
                     color: AppColors.primary,
-                    child:
-                        isLoadingPrescriptions && !hasFetchedPrescriptions
-                            ? ListView(
-                                physics:
-                                    const AlwaysScrollableScrollPhysics(),
-                                padding: const EdgeInsets.only(
-                                  bottom: 80,
-                                  top: 80,
-                                ),
-                                children: const [
-                                  Center(child: CircularProgressIndicator()),
-                                ],
-                              )
-                            : newRequestPrescriptions.isEmpty
-                                ? ListView(
-                                    physics:
-                                        const AlwaysScrollableScrollPhysics(),
-                                    padding: const EdgeInsets.only(
-                                      bottom: 80,
-                                      top: 40,
-                                    ),
-                                    children: const [
-                                      Center(
-                                        child: Text(
-                                          'No new prescription requests yet.',
-                                          style: TextStyle(
-                                            color: Colors.grey,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : ListView.builder(
-                                    physics:
-                                        const AlwaysScrollableScrollPhysics(),
-                                    padding:
-                                        const EdgeInsets.only(bottom: 80),
-                                    itemCount: newRequestPrescriptions.length,
-                                    itemBuilder: (context, index) {
-                                      final request =
-                                          newRequestPrescriptions[index];
-                                      return Padding(
-                                        padding: EdgeInsets.only(
-                                          bottom: index <
-                                                  newRequestPrescriptions
-                                                          .length -
-                                                      1
-                                              ? 12
-                                              : 0,
-                                        ),
-                                        child: _buildRequestCard(request),
-                                      );
-                                    },
+                    child: isLoadingPrescriptions && !hasFetchedPrescriptions
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.only(bottom: 80, top: 80),
+                            children: const [
+                              Center(child: CircularProgressIndicator()),
+                            ],
+                          )
+                        : newRequestPrescriptions.isEmpty
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.only(bottom: 80, top: 40),
+                            children: const [
+                              Center(
+                                child: Text(
+                                  'No new prescription requests yet.',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 14,
                                   ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.only(bottom: 80),
+                            itemCount: newRequestPrescriptions.length,
+                            itemBuilder: (context, index) {
+                              final request = newRequestPrescriptions[index];
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom:
+                                      index < newRequestPrescriptions.length - 1
+                                      ? 12
+                                      : 0,
+                                ),
+                                child: _buildRequestCard(request),
+                              );
+                            },
+                          ),
                   ),
                 ),
               ],
@@ -489,7 +478,6 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
       ),
     );
   }
-
 
   Future<void> _openPrescriptionDetails(PrescriptionRequest request) async {
     final result = await Navigator.push(
@@ -507,24 +495,18 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
   PrescriptionRequest _mapToPrescriptionRequest(Map<String, dynamic> data) {
     List<Medication> medications = [];
     if (data['medications'] is List) {
-      medications = (data['medications'] as List)
-          .map((med) {
-            if (med is Map<String, dynamic>) {
-              return Medication(
-                name: med['name']?.toString() ?? 'Unknown',
-                dosage: med['dose']?.toString() ?? '',
-                instructions:
-                    '${med['frequency'] ?? ''} ${med['duration'] ?? ''} ${med['notes'] ?? ''}'
-                        .trim(),
-              );
-            }
-            return Medication(
-              name: med.toString(),
-              dosage: '',
-              instructions: '',
-            );
-          })
-          .toList();
+      medications = (data['medications'] as List).map((med) {
+        if (med is Map<String, dynamic>) {
+          return Medication(
+            name: med['name']?.toString() ?? 'Unknown',
+            dosage: med['dose']?.toString() ?? '',
+            instructions:
+                '${med['frequency'] ?? ''} ${med['duration'] ?? ''} ${med['notes'] ?? ''}'
+                    .trim(),
+          );
+        }
+        return Medication(name: med.toString(), dosage: '', instructions: '');
+      }).toList();
     }
 
     PrescriptionStatus status = PrescriptionStatus.issued;
@@ -538,15 +520,20 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     }
 
     DateTime issuedDate = DateTime.now();
-    final createdAt = data['created_at']?.toString() ??
+    final createdAt =
+        data['created_at']?.toString() ??
         data['issued_at']?.toString() ??
-        data['date_issued']?.toString() ?? '';
+        data['date_issued']?.toString() ??
+        '';
     if (createdAt.isNotEmpty) {
       issuedDate = DateTime.tryParse(createdAt) ?? issuedDate;
     }
 
     final request = PrescriptionRequest(
-      id: data['prescription_id']?.toString() ?? data['status_id']?.toString() ?? 'N/A',
+      id:
+          data['prescription_id']?.toString() ??
+          data['status_id']?.toString() ??
+          'N/A',
       rxCode: _formatRxCode(data),
       patientName: data['patient_name']?.toString() ?? 'Unknown Patient',
       patientAge: int.tryParse(data['patient_age']?.toString() ?? '0') ?? 0,
@@ -594,7 +581,6 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     return 'N/A';
   }
 
-
   Widget _buildRequestCard(PrescriptionRequest request) {
     final formattedDate = DateFormat('dd-MM-yyyy').format(request.dateIssued);
     final formattedTime = DateFormat('h:mm a').format(request.dateIssued);
@@ -610,8 +596,6 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-.
-          ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(18),
@@ -661,7 +645,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                         ),
                       ),
                     ],
-                  )
+                  ),
                 ],
               ),
               const SizedBox(height: 18),

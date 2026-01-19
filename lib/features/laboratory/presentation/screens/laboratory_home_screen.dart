@@ -118,17 +118,16 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                                           ),
                                         ),
                                       )
-                                    : CircleAvatar(
-                                        radius: 25,
-                                        backgroundImage: profileUrl.isNotEmpty
-                                            ? NetworkImage(
-                                                profileUrl,
-                                              )
-                                            : null,
-                                        child: profileUrl.isEmpty
-                                            ? const Icon(Icons.person, size: 30)
-                                            : null,
-                                      ),
+                                    : profileUrl.isNotEmpty
+                                        ? CircleAvatar(
+                                            radius: 25,
+                                            backgroundImage:
+                                                NetworkImage(profileUrl),
+                                          )
+                                        : const CircleAvatar(
+                                            radius: 25,
+                                            child: Icon(Icons.person, size: 30),
+                                          ),
                                 const SizedBox(width: 10),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,

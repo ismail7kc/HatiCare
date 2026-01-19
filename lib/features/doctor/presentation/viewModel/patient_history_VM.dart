@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/doctor/models/patient_visit_history.dart';
+
+import '../../../common/repository_layer.dart';
 
 class PatientHistoryVm extends ChangeNotifier {
   final RepositoryLayer repositoryLayer;

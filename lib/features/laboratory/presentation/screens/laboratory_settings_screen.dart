@@ -14,6 +14,7 @@ import 'package:haticare/features/common/screens/contact_support_screen.dart';
 import 'package:haticare/features/common/screens/privacy_policy_screen.dart';
 import 'package:haticare/features/common/screens/notifications_screen.dart';
 import 'package:haticare/features/laboratory/presentation/screens/edit_laboratory_profile_screen.dart' hide WillPopScope;
+import 'package:haticare/features/laboratory/presentation/screens/laboratory_home_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
@@ -133,6 +134,7 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
           // Update provider
           if (mounted) {
             context.read<LaboratoryUserProvider>().updateProfilePicture(updatedUrl);
+            ProfileNotifier.profileImageUrl.value = updatedUrl;
           }
 
           // Show success message

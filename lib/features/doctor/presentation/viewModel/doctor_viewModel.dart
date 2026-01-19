@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:haticare/core/services/device_id_provider.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
-import 'package:haticare/features/doctor/RepositoryLayer/repository_layer.dart';
 import 'package:haticare/features/common/repository_layer.dart';
 import 'package:haticare/features/doctor/models/appointment_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';

@@ -305,14 +305,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     ),
                   ),
                 )
-                    : CircleAvatar(
+                    : profileUrl.isNotEmpty
+                    ? CircleAvatar(
                   radius: 25,
-                  backgroundImage: profileUrl.isNotEmpty
-                      ? NetworkImage(profileUrl)
-                      : null,
-                  child: profileUrl.isEmpty
-                      ? const Icon(Icons.person, size: 30)
-                      : null,
+                  backgroundImage: NetworkImage(profileUrl),
+                )
+                    : const CircleAvatar(
+                  radius: 25,
+                  child: Icon(Icons.person, size: 30),
                 ),
                 const SizedBox(width: 10),
                 Column(
