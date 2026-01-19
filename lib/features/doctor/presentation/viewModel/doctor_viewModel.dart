@@ -56,9 +56,9 @@ class DoctorViewModel extends ChangeNotifier {
       if (response['success'] == true && response['data'] != null) {
         debugPrint('Fetch Patient Api Triggered');
         final List data = response['data'] as List;
-        _appointments = data
-            .map((json) => AppointmentModel.fromJson(json))
-            .toList();
+        _appointments =
+            data.map((json) => AppointmentModel.fromJson(json)).toList()
+              ..sort((a, b) => b.createdAt!.compareTo(a.createdAt!));
       } else {
         _errorMessage = response['message'] ?? 'Failed to fetch patient queue';
       }
@@ -81,34 +81,48 @@ class DoctorViewModel extends ChangeNotifier {
       _channel = WebSocketChannel.connect(Uri.parse(socketUrl));
 
       _channel!.stream.listen(
-        (message) async {
+        (message) {
           if (_isDisposed) return;
 
           debugPrint("WS RAW: $message");
 
           try {
-            final data = jsonDecode(message);
+            final decoded = jsonDecode(message);
 
-            // if (!data.containsKey("visit_id")) return;
-            // final int visitId = data["visit_id"];
-            // if (_appointments.any((e) => e.id == visitId)) return;
-            // debugPrint("New visit $visitId detected → syncing from API");
-            // await fetchPatientQueue();
+            if (decoded['success'] != true || decoded['data'] == null) return;
+
+            final List<dynamic> patients = decoded['data'];
             
-            if (_isDisposed) return;
+            bool shouldNotify = false;
+
+            for (final item in patients) {
+              final int visitId = item['id'];
+              final String status = item['status'] ?? '';
+
+              _appointments.removeWhere((e) => e.id == visitId);
+
+              if (status == 'pending') {
+                _appointments.insert(0, AppointmentModel.fromJson(item));
+                shouldNotify = true;
+              }
+
+              if (status == 'assigned') {
+                shouldNotify = true;
+              }
+            }
+
+            if (shouldNotify) {
+              debugPrint(
+                "New pending patients added → ${_appointments.length}",
+              );
+              notifyListeners();
+            }
           } catch (e) {
             debugPrint("WS parse error: $e");
           }
         },
-        onDone: () {
-          debugPrint("WS Closed");
-          _reconnect();
-        },
-        onError: (error) {
-          debugPrint("WS Error: $error");
-          _reconnect();
-        },
-        cancelOnError: true,
+        onError: (_) => _reconnect(),
+        onDone: _reconnect,
       );
     } catch (e) {
       debugPrint("WS connect error: $e");
