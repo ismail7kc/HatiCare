@@ -78,25 +78,48 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     await provider.fetchPrescriptions();
   }
 
+  // Calculate available count for summary card
+  int _getAvailableCount(List<dynamic> prescriptions) {
+    int available = 0;
+    for (final prescription in prescriptions) {
+      final status = prescription['status']?.toString().toLowerCase() ?? 'pending';
+      if (status.contains('pending') || status.contains('new')) {
+        available++;
+      }
+    }
+    return available;
+  }
+
+  // Calculate delivered count
+  int _getDeliveredCount(List<dynamic> prescriptions) {
+    int delivered = 0;
+    for (final prescription in prescriptions) {
+      final status = prescription['status']?.toString().toLowerCase() ?? 'pending';
+      if (status.contains('completed') || status.contains('delivered')) {
+        delivered++;
+      }
+    }
+    return delivered;
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
 
     final laboratoryProvider = context.watch<LaboratoryUserProvider>();
+    final availableCount = _getAvailableCount(laboratoryProvider.prescriptions);
+    final deliveredCount = _getDeliveredCount(laboratoryProvider.prescriptions);
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _onRefresh,
-          color: AppColors.primary,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                   ValueListenableBuilder<String?>(
                       valueListenable: ProfileNotifier.profileImageUrl,
                       builder: (context, imageUrl, _) {
@@ -203,6 +226,126 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                   const SizedBox(height: 20),
 
                   // Lab Tests Section
+                  if (!laboratoryProvider.isApproved) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.orange.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.warning_amber_outlined,
+                            color: Colors.orange[700],
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              laboratoryProvider.approvalMessage.isNotEmpty
+                                  ? laboratoryProvider.approvalMessage
+                                  : 'Account is not verified',
+                              style: TextStyle(
+                                color: Colors.orange[700],
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Counter Cards
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 80,
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF54DCDF), Color(0xFF4CA054)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 16.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '$availableCount',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2443A9),
+                                  ),
+                                ),
+                                const Text(
+                                  'Available Lab Tests',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF2443A9),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Container(
+                          height: 80,
+                          margin: const EdgeInsets.only(left: 8),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF07498A), Color(0xFF0A2463)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 16.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '$deliveredCount',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const Text(
+                                  'Completed Lab Tests',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
                   const Text(
                     'New Requests',
                     style: TextStyle(
@@ -213,7 +356,13 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                   ),
                   const SizedBox(height: 12),
 
-                  laboratoryProvider.prescriptionsLoading
+                  // List section with refresh
+                  RefreshIndicator(
+                    onRefresh: _onRefresh,
+                    color: AppColors.primary,
+                    child: SizedBox(
+                      height: 400, // Fixed height for refresh area
+                      child: laboratoryProvider.prescriptionsLoading
                       ? Container(
                           padding: const EdgeInsets.all(40),
                           decoration: BoxDecoration(
@@ -229,28 +378,24 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                           ),
                         )
                       : laboratoryProvider.prescriptions.isEmpty
-                          ? Container(
-                              padding: const EdgeInsets.all(40),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[100],
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      'No Lab Tests Yet.',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
+                          ? LayoutBuilder(
+                              builder: (context, constraints) {
+                                return SingleChildScrollView(
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  child: SizedBox(
+                                    height: constraints.maxHeight,
+                                    child: const Center(
+                                      child: Text(
+                                        'No New Request',
+                                        style: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 14,
+                                        ),
                                       ),
-                                      textAlign: TextAlign.center,
                                     ),
-                                  ],
-                                ),
-                              ),
+                                  ),
+                                );
+                              },
                             )
                           : ListView.builder(
                               shrinkWrap: true,
@@ -263,12 +408,13 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                                 return _buildPrescriptionCard(prescription);
                               },
                             ),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
         ),
-      ),
     );
   }
 
@@ -312,12 +458,12 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: Colors.grey[200]!),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
             ),
           ],
         ),

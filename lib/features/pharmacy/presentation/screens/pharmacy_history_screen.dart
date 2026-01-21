@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
-import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/pharmacy/models/prescription_request.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_history_detail_screen.dart';
-import 'package:intl/intl.dart';
+import 'package:haticare/features/pharmacy/presentation/widgets/pharmacy_history_card.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/config/app_config.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class PharmacyHistoryScreen extends StatefulWidget {
   const PharmacyHistoryScreen({super.key});
@@ -13,21 +16,83 @@ class PharmacyHistoryScreen extends StatefulWidget {
 }
 
 class _PharmacyHistoryScreenState extends State<PharmacyHistoryScreen> {
-  late List<PrescriptionRequest> historyItems;
+  List<PrescriptionRequest> historyItems = [];
+  bool isLoading = false;
+  String? errorMessage;
 
   @override
   void initState() {
     super.initState();
-    historyItems = PrescriptionRequest.getDummyHistory();
+    _fetchHistory();
+  }
+
+  Future<void> _fetchHistory() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token') ?? '';
+
+      if (accessToken.isEmpty) {
+        setState(() {
+          errorMessage = 'No authentication token found';
+          isLoading = false;
+        });
+        return;
+      }
+
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/history/');
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = jsonDecode(response.body);
+        
+        List<dynamic> prescriptionsList = [];
+        if (jsonResponse is Map<String, dynamic>) {
+          if (jsonResponse.containsKey('results') && 
+              jsonResponse['results'] is Map<String, dynamic> &&
+              jsonResponse['results'].containsKey('data') && 
+              jsonResponse['results']['data'] is List) {
+            prescriptionsList = jsonResponse['results']['data'] as List<dynamic>;
+          } else if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
+            prescriptionsList = jsonResponse['data'] as List<dynamic>;
+          }
+        } else if (jsonResponse is List) {
+          prescriptionsList = jsonResponse as List<dynamic>;
+        }
+
+        setState(() {
+          historyItems = prescriptionsList.map((item) {
+            return PrescriptionRequest.fromJson(item as Map<String, dynamic>);
+          }).toList();
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Failed to load history: ${response.statusCode}';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Error loading history: $e';
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> _onRefresh() async {
-    // Reload dummy history data
-    setState(() {
-      historyItems = PrescriptionRequest.getDummyHistory();
-    });
-    await Future.delayed(const Duration(milliseconds: 500));
-
+    await _fetchHistory();
+    
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -59,143 +124,100 @@ class _PharmacyHistoryScreenState extends State<PharmacyHistoryScreen> {
       body: RefreshIndicator(
         onRefresh: _onRefresh,
         color: AppColors.primary,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(16),
-          physics: const AlwaysScrollableScrollPhysics(),
-          itemCount: historyItems.length,
-          itemBuilder: (context, index) {
-            final item = historyItems[index];
-            return _buildHistoryCard(item);
-          },
-        ),
+        child: _buildBody(),
       ),
     );
   }
 
-  Widget _buildHistoryCard(PrescriptionRequest request) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, 0), // shadow on all sides
-          ),
-        ],
-      ),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  PharmacyHistoryDetailScreen(request: request),
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(12),
+  Widget _buildBody() {
+    if (isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (errorMessage != null) {
+      return Center(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Avatar with gradient
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(8), // adjust padding if needed
-                  child: SvgPicture.asset(
-                    'assets/icons/person_card_icon.svg',
-                    color: Colors.white, // tint color
-                    width: 28,
-                    height: 28,
-                  ),
-                ),
+              Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Colors.grey[400],
               ),
-              const SizedBox(width: 12),
-              // Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${request.patientName}, ${request.patientAge}',
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${DateFormat('dd/MM/yyyy').format(request.dateIssued)} • ${request.rxCode}',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                    ),
-                    const SizedBox(height: 8),
-                    _buildStatusBadge(request.status),
-                  ],
+              const SizedBox(height: 16),
+              Text(
+                errorMessage!,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
                 ),
+                textAlign: TextAlign.center,
               ),
-              // Arrow icon
-              SvgPicture.asset(
-                'assets/icons/arrow_forward_icon.svg',
-                width: 26,
-                height: 26,
-                color: Colors.black,
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _fetchHistory,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Retry'),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge(PrescriptionStatus status) {
-    Color backgroundColor;
-    Color textColor;
-    String text;
-
-    switch (status) {
-      case PrescriptionStatus.delivered:
-        backgroundColor = const Color(0xFFE3F2FD);
-        textColor = const Color(0xFF1976D2);
-        text = 'Delivered';
-      case PrescriptionStatus.fullyDispensed:
-        backgroundColor = const Color(0xFFE8F5E9);
-        textColor = const Color(0xFF4CA054);
-        text = 'Fully Dispensed';
-      case PrescriptionStatus.partiallyDispensed:
-        backgroundColor = const Color(0xFFFFF1DA);
-        textColor = const Color(0xFFF2B544);
-        text = 'Partially Dispensed';
-      case PrescriptionStatus.issued:
-        backgroundColor = AppColors.primaryLight.withValues(alpha: 0.1);
-        textColor = AppColors.primaryDark;
-        text = 'Issued';
+      );
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+    if (historyItems.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.history_outlined,
+                size: 48,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No history found',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
-      ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: historyItems.length,
+      itemBuilder: (context, index) {
+        final item = historyItems[index];
+        return PharmacyHistoryCard(
+          request: item,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    PharmacyHistoryDetailScreen(request: item),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

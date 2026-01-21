@@ -54,7 +54,7 @@ class _EditLaboratoryProfileView extends StatelessWidget {
   Widget build(BuildContext context) {
     final viewModel = context.watch<LaboratoryProfileViewModel>();
 
-    if (viewModel.errorMessage != null) {
+    if (viewModel.errorMessage != null && viewModel.hasInitialized && !viewModel.isInitializationError) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -70,7 +70,7 @@ class _EditLaboratoryProfileView extends StatelessWidget {
     }
 
     // Show page 2 validation error toast
-    if (viewModel.getPage2ValidationError() != null) {
+    if (viewModel.getPage2ValidationError() != null && viewModel.hasInitialized) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -86,7 +86,7 @@ class _EditLaboratoryProfileView extends StatelessWidget {
     }
 
     // Show success toast
-    if (viewModel.successMessage != null) {
+    if (viewModel.successMessage != null && viewModel.hasInitialized) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -798,7 +798,7 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  if (viewModel.attemptedSubmit && viewModel.profilePicture == null && (viewModel.profilePictureUrl == null || viewModel.profilePictureUrl!.isEmpty))
+                  if (viewModel.attemptedSubmitPage2 && viewModel.profilePicture == null && (viewModel.profilePictureUrl == null || viewModel.profilePictureUrl!.isEmpty))
                     const Text(
                       'Profile picture required',
                       style: TextStyle(
@@ -855,7 +855,7 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              if (viewModel.attemptedSubmit && viewModel.taxIdentificationNumberController.text.isEmpty)
+              if (viewModel.attemptedSubmitPage2 && viewModel.taxIdentificationNumberController.text.isEmpty)
                 const Text(
                   'Tax identification number is required',
                   style: TextStyle(
@@ -910,7 +910,7 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              if (viewModel.attemptedSubmit && viewModel.licenseNumberController.text.isEmpty)
+              if (viewModel.attemptedSubmitPage2 && viewModel.licenseNumberController.text.isEmpty)
                 const Text(
                   'License number is required',
                   style: TextStyle(
@@ -1132,8 +1132,8 @@ class _EditLaboratoryProfileView extends StatelessWidget {
     VoidCallback? onChanged,
     LaboratoryProfileViewModel? viewModel,
   }) {
-    // Get validation error from validator
-    final validationError = validator(controller.text);
+    // Only get validation error if user has attempted to submit/next
+    final validationError = (viewModel?.attemptedSubmit == true) ? validator(controller.text) : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

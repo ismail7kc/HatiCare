@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
@@ -7,11 +9,13 @@ import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_history
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_inventory_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_notifications_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_settings_screen.dart';
-import 'package:haticare/features/pharmacy/presentation/screens/prescription_details_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/widgets/shimmer_effect.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../providers/pharmacy_user_provider.dart';
+import 'new_prescription_detail_screen.dart';
 
 class ProfileNotifier {
   static final ValueNotifier<String?> profileImageUrl = ValueNotifier(null);
@@ -63,6 +67,11 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
   @override
   bool get wantKeepAlive => true;
 
+  // socket propetties
+  WebSocketChannel? _channel;
+  bool _isConnecting = false;
+  bool _isDisposed = false;
+
   @override
   void initState() {
     super.initState();
@@ -70,6 +79,74 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PharmacyUserProvider>().fetchPrescriptions();
     });
+
+    // Initialize WebSocket connection
+    webSocketConnectionApi();
+  }
+
+  Future<void> webSocketConnectionApi() async {
+    if (_isConnecting || _isDisposed) return;
+    _isConnecting = true;
+
+    final socketUrl = 'wss://api.haticare.com/ws/pharmacy/queue/';
+    debugPrint("WebSocket URL: $socketUrl");
+
+    try {
+      _channel = WebSocketChannel.connect(Uri.parse(socketUrl));
+
+      _channel!.stream.listen(
+        (message) async {
+          if (_isDisposed) return;
+
+          debugPrint("WS RAW: $message");
+
+          try {
+            final data = jsonDecode(message);
+            final isSuccess = data['results']['success'] == true;
+            if ((isSuccess) && (data['results']['data'] !=null)){
+
+              await context.read<PharmacyUserProvider>().fetchPrescriptions();
+              
+            }
+
+            if (_isDisposed) return;
+          } catch (e) {
+            debugPrint("WS parse error: $e");
+          }
+        },
+        onDone: () {
+          debugPrint("WS Closed");
+          _reconnect();
+        },
+        onError: (error) {
+          debugPrint("WS Error: $error");
+          _reconnect();
+        },
+        cancelOnError: true,
+      );
+    } catch (e) {
+      debugPrint("WS connect error: $e");
+      _reconnect();
+    }
+  }
+
+  void _reconnect() {
+    if (_isDisposed) return;
+
+    _isConnecting = false;
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!_isDisposed) {
+        webSocketConnectionApi();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _channel?.sink.close();
+    super.dispose();
   }
 
   Future<void> _onRefresh() async {
@@ -140,8 +217,9 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9FAFB),
       body: SafeArea(
+        bottom: false,
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
@@ -255,11 +333,9 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
+                    color: Colors.orange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.orange.withValues(alpha: 0.3),
-                    ),
+                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
@@ -349,7 +425,11 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                         height: 80,
                         margin: const EdgeInsets.only(right: 8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF54DCDF),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF54DCDF), Color(0xFF4CA054)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Padding(
@@ -383,7 +463,11 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                         height: 80,
                         margin: const EdgeInsets.only(left: 8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF07498A),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF07498A), Color(0xFF0A2463)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Padding(
@@ -415,12 +499,15 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                   ],
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'New Requests',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
+                Padding(
+                  padding: const EdgeInsets.only(left: 16.0),
+                  child: const Text(
+                    'New Requests',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -429,28 +516,56 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                     onRefresh: _onRefresh,
                     color: AppColors.primary,
                     child: isLoadingPrescriptions && !hasFetchedPrescriptions
-                        ? ListView(
+                        ? ListView.builder(
                             physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.only(bottom: 80, top: 80),
-                            children: const [
-                              Center(child: CircularProgressIndicator()),
-                            ],
-                          )
-                        : newRequestPrescriptions.isEmpty
-                        ? ListView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.only(bottom: 80, top: 40),
-                            children: const [
-                              Center(
-                                child: Text(
-                                  'No new prescription requests yet.',
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 14,
+                            padding: const EdgeInsets.only(bottom: 80),
+                            itemCount: 3,
+                            itemBuilder: (context, index) {
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: index < 2 ? 12 : 0,
+                                ),
+                                child: ShimmerEffect(
+                                  child: Container(
+                                    padding: const EdgeInsets.all(18),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: Colors.grey[200]!,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.05),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              );
+                            },
+                          )
+                        : newRequestPrescriptions.isEmpty
+                        ? LayoutBuilder(
+                            builder: (context, constraints) {
+                              return SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                child: SizedBox(
+                                  height: constraints.maxHeight,
+                                  child: const Center(
+                                    child: Text(
+                                      'No New Request',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           )
                         : ListView.builder(
                             physics: const AlwaysScrollableScrollPhysics(),
@@ -483,7 +598,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PrescriptionDetailsScreen(request: request),
+        builder: (context) => NewPrescriptionDetailScreen(request: request),
       ),
     );
 
@@ -540,8 +655,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
       patientGender: data['patient_gender']?.toString() ?? 'Male',
       patientDob: data['patient_dob']?.toString() ?? '1992-11-15',
       doctorName: data['doctor_name']?.toString() ?? 'Dr. Unknown',
-      doctorSpecialty:
-          data['doctor_specialty']?.toString() ?? 'General Physician',
+      doctorSpecialty: data['doctor_specialty']?.toString() ?? 'General Physician',
       dateIssued: issuedDate,
       status: status,
       medications: medications,
@@ -596,6 +710,14 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey[200]!),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Padding(
           padding: const EdgeInsets.all(18),

@@ -59,6 +59,9 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
   bool _shouldNavigateToHome = false;
   int _currentStep = 1;
   bool _attemptedSubmit = false;
+  bool _hasInitialized = false; // Add this flag
+  bool _isInitializationError = false; // Track initialization errors
+  bool _attemptedSubmitPage2 = false; // Separate flag for page 2
 
   // Change tracking
   late Map<String, String> _initialValues;
@@ -83,6 +86,9 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
   bool get shouldNavigateToHome => _shouldNavigateToHome;
   int get currentStep => _currentStep;
   bool get attemptedSubmit => _attemptedSubmit;
+  bool get hasInitialized => _hasInitialized; // Add getter
+  bool get isInitializationError => _isInitializationError; // Add getter
+  bool get attemptedSubmitPage2 => _attemptedSubmitPage2; // Add getter
   
   String? get taxIdController => taxIdentificationNumberController.text;
   set taxIdController(String? value) {
@@ -103,6 +109,11 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
   }
 
   Future<void> _initialize() async {
+    // Clear any existing error messages at start
+    errorMessage = null;
+    successMessage = null;
+    _validationErrors.clear();
+    
     await _loadCountriesData();
     await _loadCachedData();
     if (openedFromSettings) {
@@ -111,6 +122,7 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+    _hasInitialized = true; // Set flag after initialization
   }
 
   // Cache for all countries data
@@ -238,6 +250,7 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
     try {
       isLoading = true;
       errorMessage = null;
+      _isInitializationError = false; // Reset initialization error flag
       notifyListeners();
 
       final prefs = await SharedPreferences.getInstance();
@@ -245,6 +258,7 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
 
       if (accessToken.isEmpty) {
         errorMessage = 'No authentication token found';
+        _isInitializationError = true; // Mark as initialization error
         isLoading = false;
         notifyListeners();
         return;
@@ -257,6 +271,7 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
 
       if (finalLaboratoryId.isEmpty) {
         errorMessage = 'Laboratory ID not found. Please login again.';
+        _isInitializationError = true; // Mark as initialization error
         isLoading = false;
         notifyListeners();
         return;
@@ -295,16 +310,20 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
       } else {
         final responseBody = response.body;
         errorMessage = 'Failed to load profile: ${response.statusCode}';
+        _isInitializationError = true; // Mark as initialization error
         debugPrint('Error response: $responseBody');
       }
     } on SocketException catch (e) {
       errorMessage = 'Network error. Please check your internet connection.';
+      _isInitializationError = true; // Mark as initialization error
       debugPrint('SocketException: $e');
     } on TimeoutException catch (e) {
       errorMessage = 'Request timed out. Please try again.';
+      _isInitializationError = true; // Mark as initialization error
       debugPrint('TimeoutException: $e');
     } catch (e) {
       errorMessage = 'Error loading profile: ${e.toString()}';
+      _isInitializationError = true; // Mark as initialization error
       debugPrint('Exception: $e');
     } finally {
       isLoading = false;
@@ -562,7 +581,7 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
   }
 
   Future<void> submitProfile() async {
-    _attemptedSubmit = true;
+    _attemptedSubmitPage2 = true; // Use page 2 flag
     errorMessage = null;
     successMessage = null;
     notifyListeners();
@@ -770,10 +789,16 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
 
   void moveToNextPage() {
     if (_currentStep == 1) {
+      // Set attemptedSubmit flag to show validation errors
+      _attemptedSubmit = true;
+      
       // Validate page 1 before moving to page 2
       if (!validatePage1()) {
         return;
       }
+      
+      // Reset attemptedSubmit flag when moving to page 2
+      _attemptedSubmit = false;
     }
     if (_currentStep < 2) {
       _currentStep++;

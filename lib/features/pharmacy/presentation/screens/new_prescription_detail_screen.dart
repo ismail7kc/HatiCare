@@ -1,28 +1,36 @@
-import 'package:haticare/core/theme/app_colors.dart';
-import 'package:haticare/features/pharmacy/models/prescription_request.dart';
-import 'package:intl/intl.dart';
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import 'package:chucker_flutter/chucker_flutter.dart';
-import '../../../../core/config/app_config.dart';
-import 'package:flutter/material.dart';
 
-class PrescriptionDetailsScreen extends StatefulWidget {
+import 'package:chucker_flutter/chucker_flutter.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../../core/config/app_config.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../models/prescription_request.dart';
+import '../providers/pharmacy_user_provider.dart';
+import 'prescription_details_screen.dart';
+
+class NewPrescriptionDetailScreen extends StatefulWidget {
   final PrescriptionRequest request;
 
-  const PrescriptionDetailsScreen({super.key, required this.request});
+  const NewPrescriptionDetailScreen({
+    super.key,
+    required this.request,
+  });
 
   @override
-  State<PrescriptionDetailsScreen> createState() => _PrescriptionDetailsScreenState();
+  State<NewPrescriptionDetailScreen> createState() => _NewPrescriptionDetailScreenState();
 }
 
-class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
-
+class _NewPrescriptionDetailScreenState extends State<NewPrescriptionDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF9FAFB),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -30,7 +38,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Prescription Details'),
+        title: const Text('New Prescription Details'),
         titleTextStyle: const TextStyle(
           color: Colors.black,
           fontSize: 18,
@@ -58,7 +66,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Rx Code',
+                          'RX Code',
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 14,
@@ -71,6 +79,25 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                             color: Colors.black,
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4CA054),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'FULFILLED',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
@@ -138,14 +165,14 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    const Row(
                       children: [
                         Icon(
                           Icons.medication_outlined,
                           color: Colors.black,
                           size: 20,
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         const Text(
                           'Medications',
                           style: TextStyle(
@@ -184,14 +211,14 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      const Row(
                         children: [
                           Icon(
                             Icons.note_outlined,
                             color: Colors.black,
                             size: 20,
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           const Text(
                             'Note',
                             style: TextStyle(
@@ -236,15 +263,15 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Show different buttons based on status
+                    // Show Partially and Fully Available buttons for new prescriptions
                     if (widget.request.status == PrescriptionStatus.issued)
                       Row(
                         children: [
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () => _completePrescription(),
+                              onPressed: () => _updateAvailability('partial'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
+                                backgroundColor: Color(0xFFE2B43F),
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
@@ -253,7 +280,29 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                                 elevation: 0,
                               ),
                               child: const Text(
-                                'Complete',
+                                'Partially Available',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => _updateAvailability('full'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFF4CA054),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: const Text(
+                                'Fully Available',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -393,343 +442,6 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
     );
   }
 
-  void _showPartialAvailabilityBottomSheet(BuildContext context) {
-    // Create a map to track availability for each medication
-    Map<int, Map<String, dynamic>> medicationAvailability = {};
-    for (int i = 0; i < widget.request.medications.length; i++) {
-      final requiredQty = _extractQuantity(widget.request.medications[i].instructions) ?? 1;
-      medicationAvailability[i] = {
-        'isAvailable': true,
-        'requiredQty': requiredQty,
-        'availableQty': requiredQty,
-      };
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.7,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
-              ),
-              child: Column(
-                children: [
-                  // Handle bar
-                  Container(
-                    margin: const EdgeInsets.only(top: 8),
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  // Header
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Medicine Availability',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Select which medicines are available at your pharmacy',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Medications list
-                  Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: widget.request.medications.length,
-                      itemBuilder: (context, index) {
-                        final medication = widget.request.medications[index];
-                        final availability = medicationAvailability[index]!;
-
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[200]!),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Checkbox(
-                                    value: availability['isAvailable'],
-                                    onChanged: (value) {
-                                      setModalState(() {
-                                        availability['isAvailable'] = value ?? false;
-                                        if (value == true) {
-                                          availability['availableQty'] = availability['requiredQty'];
-                                        } else {
-                                          availability['availableQty'] = 0;
-                                        }
-                                      });
-                                    },
-                                  ),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          medication.name,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        Text(
-                                          medication.dosage,
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (availability['isAvailable'])
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 40, top: 8),
-                                  child: Row(
-                                    children: [
-                                      Text(
-                                        'Available Quantity:',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey[700],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          border: Border.all(color: Colors.grey[300]!),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            InkWell(
-                                              onTap: availability['availableQty'] > 1
-                                                  ? () {
-                                                      setModalState(() {
-                                                        availability['availableQty']--;
-                                                      });
-                                                    }
-                                                  : null,
-                                              child: Container(
-                                                padding: const EdgeInsets.all(8),
-                                                child: Icon(
-                                                  Icons.remove,
-                                                  size: 18,
-                                                  color: availability['availableQty'] > 1
-                                                      ? Colors.black
-                                                      : Colors.grey,
-                                                ),
-                                              ),
-                                            ),
-                                            Container(
-                                              width: 50,
-                                              alignment: Alignment.center,
-                                              child: Text(
-                                                '${availability['availableQty']}',
-                                                style: const TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ),
-                                            InkWell(
-                                              onTap: () {
-                                                setModalState(() {
-                                                  availability['availableQty']++;
-                                                });
-                                              },
-                                              child: Container(
-                                                padding: const EdgeInsets.all(8),
-                                                child: const Icon(
-                                                  Icons.add,
-                                                  size: 18,
-                                                  color: Colors.black,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  // Action buttons
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              side: BorderSide(color: Colors.grey[300]!),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: Text(
-                              'Cancel',
-                              style: TextStyle(
-                                color: Colors.grey[700],
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              _updatePartialAvailability(medicationAvailability);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text(
-                              'Apply',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  int? _extractQuantity(String instructions) {
-    // Try to extract quantity from instructions like "15 tablets" or "quantity: 6"
-    final regex = RegExp(r'(\d+)\s*(?:tablet|capsule|pill|ml|mg|g|unit|qty|quantity)?', caseSensitive: false);
-    final match = regex.firstMatch(instructions);
-    return match != null ? int.tryParse(match.group(1)!) : null;
-  }
-
-  Future<void> _submitAvailability({
-    required String availability,
-    required List<Map<String, dynamic>> items,
-    required String comment,
-  }) async {
-    try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-
-      final prefs = await SharedPreferences.getInstance();
-      final accessToken = prefs.getString('access_token') ?? '';
-      final statusId = widget.request.id;
-
-      final body = {
-        'availability': availability,
-        'items': items,
-        'comment': comment,
-      };
-
-      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/status/$statusId/availability/');
-      final client = ChuckerHttpClient(http.Client());
-      final response = await client.patch(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 30));
-
-      Navigator.pop(context);
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final successMessage = availability == 'full'
-            ? 'Prescription marked as fully available'
-            : availability == 'none'
-                ? 'Prescription marked as unavailable'
-                : 'Availability updated successfully';
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(successMessage),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context, true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update availability: ${response.statusCode}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating availability: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   Future<void> _updateAvailability(String availability) async {
     final List<Map<String, dynamic>> items = [];
 
@@ -762,93 +474,72 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
     );
   }
 
-  Future<void> _updatePartialAvailability(
-    Map<int, Map<String, dynamic>> medicationAvailability,
-  ) async {
-    final List<Map<String, dynamic>> items = [];
-    bool anyAvailable = false;
-    bool allFullyAvailable = true;
+  Future<void> _submitAvailability({
+    required String availability,
+    required List<Map<String, dynamic>> items,
+    required String comment,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token') ?? '';
+      final statusId = widget.request.id;
 
-    for (int i = 0; i < widget.request.medications.length; i++) {
-      final medication = widget.request.medications[i];
-      final availability = medicationAvailability[i]!;
+      final body = {
+        'availability': availability,
+        'items': items,
+        'comment': comment,
+      };
 
-      final int requiredQty = (availability['requiredQty'] as int?) ?? 1;
-      final bool isAvailable = availability['isAvailable'] as bool? ?? false;
-      final int availableQty = isAvailable ? (availability['availableQty'] as int? ?? 0) : 0;
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/status/$statusId/availability/');
+      final client = ChuckerHttpClient(http.Client());
+      final response = await client.patch(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(body),
+      ).timeout(const Duration(seconds: 30));
 
-      if (availableQty > 0) {
-        anyAvailable = true;
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final successMessage = availability == 'full'
+            ? 'Prescription marked as fully available'
+            : availability == 'none'
+                ? 'Prescription marked as unavailable'
+                : 'Availability updated successfully';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(successMessage),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update availability: ${response.statusCode}'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-
-      if (availableQty < requiredQty) {
-        allFullyAvailable = false;
-      }
-
-      items.add({
-        'name': medication.name,
-        'strength': medication.dosage,
-        'required_qty': requiredQty,
-        'available_qty': availableQty,
-        'notes': isAvailable
-            ? (availableQty >= requiredQty
-                ? 'In stock'
-                : 'Only $availableQty available')
-            : 'Out of stock',
-      });
-    }
-
-    if (items.isEmpty) {
-      await _submitAvailability(
-        availability: 'none',
-        items: const [],
-        comment: 'None of the requested medicines are available.',
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error updating availability: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
-      return;
     }
-
-    String availabilityStatus;
-    String comment;
-
-    if (!anyAvailable) {
-      availabilityStatus = 'none';
-      comment = 'None of the requested medicines are available.';
-    } else if (allFullyAvailable) {
-      availabilityStatus = 'full';
-      comment = 'All medicines fully available.';
-    } else {
-      availabilityStatus = 'partial';
-      comment = _buildPartialAvailabilityComment(items);
-    }
-
-    final List<Map<String, dynamic>> payloadItems =
-        availabilityStatus == 'none' ? <Map<String, dynamic>>[] : items;
-
-    await _submitAvailability(
-      availability: availabilityStatus,
-      items: payloadItems,
-      comment: comment,
-    );
   }
 
-  String _buildPartialAvailabilityComment(List<Map<String, dynamic>> items) {
-    final List<String> parts = [];
-
-    for (final item in items) {
-      final String name = item['name'] as String? ?? '';
-      final int requiredQty = item['required_qty'] as int? ?? 0;
-      final int availableQty = item['available_qty'] as int? ?? 0;
-
-      if (availableQty == 0) {
-        parts.add('$name out of stock');
-      } else if (availableQty < requiredQty) {
-        parts.add('$name partially available ($availableQty of $requiredQty)');
-      } else {
-        parts.add('$name fully available');
-      }
+  int? _extractQuantity(String instructions) {
+    final regex = RegExp(r'(\d+)\s*(?:tablet|capsule|ml|mg|g|pcs|pc|piece)?');
+    final match = regex.firstMatch(instructions);
+    if (match != null) {
+      return int.tryParse(match.group(1)!);
     }
-
-    return parts.join(', ');
+    return null;
   }
 
   Future<void> _markAsDelivered() async {
@@ -888,7 +579,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Please verify the patient and their RX code before confirming delivery.',
+                      'Please verify patient and their RX code before confirming delivery.',
                       style: TextStyle(fontSize: 12, color: Colors.orange[700]),
                     ),
                   ),
@@ -959,7 +650,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
               duration: Duration(seconds: 2),
             ),
           );
-          // Navigate back to refresh the list
+          // Navigate back to refresh list
           Navigator.pop(context, true);
         }
       } else {
@@ -984,65 +675,6 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
           ),
         );
       }
-    }
-  }
-
-  Future<void> _completePrescription() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final accessToken = prefs.getString('access_token') ?? '';
-
-      if (accessToken.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No authentication token found'),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 3),
-            ),
-          );
-        }
-        return;
-      }
-
-      final body = {
-        'rex_code': widget.request.rxCode,
-      };
-
-      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/complete/');
-      final client = ChuckerHttpClient(http.Client());
-      final response = await client.post(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 30));
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Prescription completed successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context, true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to complete prescription: ${response.statusCode}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error completing prescription: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
 }
