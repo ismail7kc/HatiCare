@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:haticare/features/auth/domain/repositories/auth_repository.dart';
+import 'package:haticare/features/pharmacy/presentation/providers/pharmacy_user_provider.dart';
 
 // import 'features/auth/screens/screens/splash_screen.dart';
 import 'package:flutter_libphonenumber/flutter_libphonenumber.dart';
@@ -41,6 +42,7 @@ class MyApp extends StatelessWidget {
           create: (context) =>
               AuthRepositoryImpl(context.read<RemoteAuthApiService>()),
         ),
+        ChangeNotifierProvider(create: (_) => PharmacyUserProvider()),
       ],
       child: MaterialApp(
         title: 'HatiCare',

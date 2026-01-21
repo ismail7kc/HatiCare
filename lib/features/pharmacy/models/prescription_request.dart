@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 enum PrescriptionStatus {
   issued,
   fullyDispensed,
@@ -36,6 +38,74 @@ class PrescriptionRequest {
     required this.status,
     required this.medications,
   });
+
+  // Factory constructor to create instance from JSON
+  factory PrescriptionRequest.fromJson(Map<String, dynamic> json) {
+    try {
+      // Parse medications
+      List<Medication> medications = [];
+      if (json['medications'] != null) {
+        final medsList = json['medications'] as List<dynamic>;
+        medications = medsList.map((med) => Medication.fromJson(med as Map<String, dynamic>)).toList();
+      }
+
+      // Parse date
+      DateTime dateIssued = DateTime.now();
+      if (json['date_issued'] != null) {
+        dateIssued = DateTime.parse(json['date_issued'].toString());
+      } else if (json['dateIssued'] != null) {
+        dateIssued = DateTime.parse(json['dateIssued'].toString());
+      }
+
+      // Parse status
+      PrescriptionStatus status = PrescriptionStatus.issued;
+      if (json['status'] != null) {
+        final statusStr = json['status'].toString().toLowerCase();
+        switch (statusStr) {
+          case 'issued':
+            status = PrescriptionStatus.issued;
+            break;
+          case 'fully_dispensed':
+          case 'fullydispensed':
+            status = PrescriptionStatus.fullyDispensed;
+            break;
+          case 'partially_dispensed':
+          case 'partiallydispensed':
+            status = PrescriptionStatus.partiallyDispensed;
+            break;
+          case 'delivered':
+            status = PrescriptionStatus.delivered;
+            break;
+        }
+      }
+
+      return PrescriptionRequest(
+        id: json['id']?.toString() ?? '',
+        rxCode: json['rx_code']?.toString() ?? json['rxCode']?.toString() ?? '',
+        patientName: json['patient_name']?.toString() ?? json['patientName']?.toString() ?? '',
+        patientAge: int.tryParse(json['patient_age']?.toString() ?? json['patientAge']?.toString() ?? '0') ?? 0,
+        patientGender: json['patient_gender']?.toString() ?? json['patientGender']?.toString() ?? 'Unknown',
+        patientDob: json['patient_dob']?.toString() ?? json['patientDob']?.toString() ?? '',
+        doctorName: json['doctor_name']?.toString() ?? json['doctorName']?.toString() ?? '',
+        doctorSpecialty: json['doctor_specialty']?.toString() ?? json['doctorSpecialty']?.toString() ?? 'General Physician',
+        dateIssued: dateIssued,
+        status: status,
+        medications: medications,
+      );
+    } catch (e) {
+      // Return a default object if parsing fails
+      return PrescriptionRequest(
+        id: json['id']?.toString() ?? '',
+        rxCode: json['rx_code']?.toString() ?? json['rxCode']?.toString() ?? '',
+        patientName: json['patient_name']?.toString() ?? json['patientName']?.toString() ?? 'Unknown',
+        patientAge: int.tryParse(json['patient_age']?.toString() ?? json['patientAge']?.toString() ?? '0') ?? 0,
+        doctorName: json['doctor_name']?.toString() ?? json['doctorName']?.toString() ?? 'Unknown Doctor',
+        dateIssued: DateTime.now(),
+        status: PrescriptionStatus.issued,
+        medications: [],
+      );
+    }
+  }
 
   String get statusText {
     switch (status) {
@@ -219,4 +289,13 @@ class Medication {
     required this.dosage,
     required this.instructions,
   });
+
+  // Factory constructor to create instance from JSON
+  factory Medication.fromJson(Map<String, dynamic> json) {
+    return Medication(
+      name: json['name']?.toString() ?? '',
+      dosage: json['dosage']?.toString() ?? json['strength']?.toString() ?? '',
+      instructions: json['instructions']?.toString() ?? '',
+    );
+  }
 }

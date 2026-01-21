@@ -213,7 +213,7 @@ class RemoteAuthApiService implements AuthApiService {
 
   @override
   Future<Map<String, dynamic>> forgotPassword({required String email}) async {
-    final uri = Uri.parse('${AppConfig.baseUrl}/users/forgot-password/');
+    final uri = Uri.parse('${AppConfig.baseUrl}users/forgot-password/');
     final response = await _client.post(
       uri,
       headers: {
@@ -275,7 +275,7 @@ class RemoteAuthApiService implements AuthApiService {
     required String newPassword,
     required String confirmPassword,
   }) async {
-    final uri = Uri.parse('${AppConfig.baseUrl}/users/reset-password/');
+    final uri = Uri.parse('${AppConfig.baseUrl}users/reset-password/');
     final response = await _client.post(
       uri,
       headers: {
@@ -310,7 +310,7 @@ class RemoteAuthApiService implements AuthApiService {
     required String deviceId,
     required String refreshToken,
   }) async {
-    final uri = Uri.parse('${AppConfig.baseUrl}/users/logout/');
+    final uri = Uri.parse('${AppConfig.baseUrl}users/logout/');
     final response = await _client.post(
       uri,
       headers: {
