@@ -29,7 +29,6 @@ class DoctorViewModel extends ChangeNotifier {
   final bool _isDisposed = false;
 
   Timer? _queueTimer;
-  static const int _totalSeconds = 30;
 
   init() {
     fetchPatientQueue();
