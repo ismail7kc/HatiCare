@@ -67,11 +67,12 @@ class AppointmentDetailvm extends ChangeNotifier {
     notifyListeners();
 
     try {
+      debugPrint('Selected Lab Tests is $selectedLabTests');
       final response = await respositoryLayer.createPrescription(
         visitId: visitId,
         medications: medications,
         notes: notes,
-        selectedLabTests: selectedLabTests 
+        selectedLabTests: selectedLabTests,
       );
 
       if (response['success'] != true) {

@@ -28,6 +28,9 @@ class DoctorViewModel extends ChangeNotifier {
   bool _isConnecting = false;
   final bool _isDisposed = false;
 
+  Timer? _queueTimer;
+  static const int _totalSeconds = 30;
+
   init() {
     fetchPatientQueue();
     webSocketConnectionApi();
@@ -92,7 +95,7 @@ class DoctorViewModel extends ChangeNotifier {
             if (decoded['success'] != true || decoded['data'] == null) return;
 
             final List<dynamic> patients = decoded['data'];
-            
+
             bool shouldNotify = false;
 
             for (final item in patients) {
@@ -103,6 +106,7 @@ class DoctorViewModel extends ChangeNotifier {
 
               if (status == 'pending') {
                 _appointments.insert(0, AppointmentModel.fromJson(item));
+                _startQueueTimer();
                 shouldNotify = true;
               }
 
@@ -128,6 +132,30 @@ class DoctorViewModel extends ChangeNotifier {
       debugPrint("WS connect error: $e");
       _reconnect();
     }
+  }
+
+  void _startQueueTimer() {
+    _queueTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
+      bool shouldNotify = false;
+
+      for (final appt in _appointments) {
+        if (appt.createdAt == null) continue;
+
+        final elapsed = DateTime.now().difference(appt.createdAt!).inSeconds;
+
+        final remaining = (_totalSeconds - elapsed).clamp(0, _totalSeconds);
+
+        debugPrint('This is Remainig time $remaining');
+
+        if (appt.remainingSeconds != remaining) {
+          appt.remainingSeconds = remaining;
+          appt.progress = remaining / _totalSeconds;
+          shouldNotify = true;
+        }
+      }
+
+      if (shouldNotify) notifyListeners();
+    });
   }
 
   void _reconnect() {
