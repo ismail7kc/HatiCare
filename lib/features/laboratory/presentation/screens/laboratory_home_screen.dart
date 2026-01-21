@@ -423,12 +423,13 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
           ),
       );
+
   }
 
   Widget _buildPrescriptionCard(Map<String, dynamic> prescription) {
