@@ -58,8 +58,8 @@ class _MainScreenState extends State<DoctorHomeScreen> {
         ),
 
         ChangeNotifierProvider(
-        create: (_) => PatientHistoryVm(RepositoryLayer(ApiClient())),
-      ),
+          create: (_) => PatientHistoryVm(RepositoryLayer(ApiClient())),
+        ),
       ],
       child: CustomBottomNav(
         screens: const [
@@ -176,7 +176,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top),
+                    minHeight:
+                        MediaQuery.of(context).size.height -
+                        MediaQuery.of(context).padding.top,
+                  ),
                   child: Column(
                     children: [
                       Padding(
@@ -202,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                           ],
                         ),
                       ),
-                      
+
                       handleAppointment(context, vm.appointments),
                     ],
                   ),
@@ -297,23 +300,23 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               children: [
                 doctorProvider.isLoading
                     ? const CircleAvatar(
-                  radius: 25,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.primary,
-                    ),
-                  ),
-                )
+                        radius: 25,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppColors.primary,
+                          ),
+                        ),
+                      )
                     : profileUrl.isNotEmpty
                     ? CircleAvatar(
-                  radius: 25,
-                  backgroundImage: NetworkImage(profileUrl),
-                )
+                        radius: 25,
+                        backgroundImage: NetworkImage(profileUrl),
+                      )
                     : const CircleAvatar(
-                  radius: 25,
-                  child: Icon(Icons.person, size: 30),
-                ),
+                        radius: 25,
+                        child: Icon(Icons.person, size: 30),
+                      ),
                 const SizedBox(width: 10),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,26 +327,26 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     ),
                     doctorProvider.isLoading
                         ? const SizedBox(
-                      width: 100,
-                      height: 18,
-                      child: LinearProgressIndicator(
-                        backgroundColor: Colors.grey,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.primary,
-                        ),
-                      ),
-                    )
+                            width: 100,
+                            height: 18,
+                            child: LinearProgressIndicator(
+                              backgroundColor: Colors.grey,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.primary,
+                              ),
+                            ),
+                          )
                         : Text(
-                      doctorProvider.doctorName.isNotEmpty
-                          ? (doctorProvider.doctorName.length > 15
-                          ? '${doctorProvider.doctorName.substring(0, 15)}...'
-                          : doctorProvider.doctorName)
-                          : 'Doctor',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
+                            doctorProvider.doctorName.isNotEmpty
+                                ? (doctorProvider.doctorName.length > 15
+                                      ? '${doctorProvider.doctorName.substring(0, 15)}...'
+                                      : doctorProvider.doctorName)
+                                : 'Doctor',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
                   ],
                 ),
               ],
@@ -585,7 +588,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 ),
               ),
 
-              circularProgressBar(0.4, 9),
+              circularProgressBar(appointment.progress, appointment.remainingSeconds),
             ],
           ),
 
@@ -650,7 +653,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             children: [
               Expanded(
                 child: Text(
-                  doctorViewModel.formatAppointmentTime(appointment.createdAt ?? DateTime(1998)),
+                  doctorViewModel.formatAppointmentTime(
+                    appointment.createdAt ?? DateTime(1998),
+                  ),
                   style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
               ),

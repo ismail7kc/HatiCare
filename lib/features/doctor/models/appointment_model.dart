@@ -43,6 +43,9 @@ class AppointmentModel {
   final DateTime? createdAt;
   final String? primarySpecialization;
 
+  int remainingSeconds;
+  double progress;
+
   AppointmentModel({
     this.id,
     this.patient,
@@ -52,12 +55,17 @@ class AppointmentModel {
     this.status,
     this.createdAt,
     this.primarySpecialization,
+
+    this.remainingSeconds = 30,
+    this.progress = 1.0,
   });
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
     return AppointmentModel(
       id: json['id'] ?? 0,
-      patient: json['patient'] != null ? Patient.fromJson(json['patient']) : null,
+      patient: json['patient'] != null
+          ? Patient.fromJson(json['patient'])
+          : null,
       patientName: json['patient_name'] ?? '',
       rawComplaint: json['raw_complaint'] ?? '',
       severity: json['severity'] ?? '',
@@ -65,6 +73,9 @@ class AppointmentModel {
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
       primarySpecialization:
           json['triage_data']?['primary_specialization_name'] ?? '',
+
+      remainingSeconds: 30,
+      progress: 1.0,
     );
   }
 }
