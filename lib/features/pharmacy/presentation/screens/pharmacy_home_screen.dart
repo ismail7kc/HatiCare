@@ -15,7 +15,7 @@ import 'package:provider/provider.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../providers/pharmacy_user_provider.dart';
-import 'new_prescription_detail_screen.dart';
+import 'prescription_details_screen.dart';
 
 class ProfileNotifier {
   static final ValueNotifier<String?> profileImageUrl = ValueNotifier(null);
@@ -236,17 +236,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                     children: [
                       Row(
                         children: [
-                          pharmacyProvider.isLoading
-                              ? const CircleAvatar(
-                                  radius: 25,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      AppColors.primary,
-                                    ),
-                                  ),
-                                )
-                              : profileUrl.isNotEmpty
+                          profileUrl.isNotEmpty
                               ? CircleAvatar(
                                   radius: 25,
                                   backgroundImage: NetworkImage(profileUrl),
@@ -263,19 +253,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                                 "Welcome Back,",
                                 style: TextStyle(color: Colors.grey),
                               ),
-                              pharmacyProvider.isLoading
-                                  ? const SizedBox(
-                                      width: 100,
-                                      height: 18,
-                                      child: LinearProgressIndicator(
-                                        backgroundColor: Colors.grey,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              AppColors.primary,
-                                            ),
-                                      ),
-                                    )
-                                  : Text(
+                              Text(
                                       pharmacyProvider.pharmacyName.isNotEmpty
                                           ? (pharmacyProvider
                                                         .pharmacyName
@@ -515,39 +493,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                   child: RefreshIndicator(
                     onRefresh: _onRefresh,
                     color: AppColors.primary,
-                    child: isLoadingPrescriptions && !hasFetchedPrescriptions
-                        ? ListView.builder(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.only(bottom: 80),
-                            itemCount: 3,
-                            itemBuilder: (context, index) {
-                              return Padding(
-                                padding: EdgeInsets.only(
-                                  bottom: index < 2 ? 12 : 0,
-                                ),
-                                child: ShimmerEffect(
-                                  child: Container(
-                                    padding: const EdgeInsets.all(18),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: Colors.grey[200]!,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.05),
-                                          blurRadius: 10,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          )
-                        : newRequestPrescriptions.isEmpty
+                    child: newRequestPrescriptions.isEmpty
                         ? LayoutBuilder(
                             builder: (context, constraints) {
                               return SingleChildScrollView(
@@ -598,7 +544,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => NewPrescriptionDetailScreen(request: request),
+        builder: (context) => PrescriptionDetailsScreen(request: request),
       ),
     );
 
@@ -646,8 +592,8 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
 
     final request = PrescriptionRequest(
       id:
-          data['prescription_id']?.toString() ??
           data['status_id']?.toString() ??
+          data['prescription_id']?.toString() ??
           'N/A',
       rxCode: _formatRxCode(data),
       patientName: data['patient_name']?.toString() ?? 'Unknown Patient',

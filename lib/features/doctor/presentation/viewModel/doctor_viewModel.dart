@@ -105,6 +105,7 @@ class DoctorViewModel extends ChangeNotifier {
               _appointments.removeWhere((e) => e.id == visitId);
 
               if (status == 'pending') {
+
                 _appointments.insert(0, AppointmentModel.fromJson(item));
                 _startQueueTimer();
                 shouldNotify = true;

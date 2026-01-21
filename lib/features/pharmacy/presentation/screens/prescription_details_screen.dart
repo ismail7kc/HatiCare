@@ -242,9 +242,9 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                         children: [
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () => _completePrescription(),
+                              onPressed: () => _showAvailabilityBottomSheet(),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
+                                backgroundColor: Color(0xFF4CA054),
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
@@ -253,7 +253,29 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                                 elevation: 0,
                               ),
                               child: const Text(
-                                'Complete',
+                                'Fully Available',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => _showAvailabilityBottomSheet(),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFFFF9800),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: const Text(
+                                'Partially Available',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -393,25 +415,36 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
     );
   }
 
-  void _showPartialAvailabilityBottomSheet(BuildContext context) {
+  Future<void> _showAvailabilityBottomSheet() async {
+    debugPrint('Opening availability bottom sheet...');
+    debugPrint('Medications count: ${widget.request.medications.length}');
+    
     // Create a map to track availability for each medication
     Map<int, Map<String, dynamic>> medicationAvailability = {};
     for (int i = 0; i < widget.request.medications.length; i++) {
-      final requiredQty = _extractQuantity(widget.request.medications[i].instructions) ?? 1;
+      final instructions = widget.request.medications[i].instructions;
+      debugPrint('Medication $i instructions: $instructions');
+      final requiredQty = _extractQuantity(instructions) ?? 1;
+      debugPrint('Extracted quantity: $requiredQty');
+      
       medicationAvailability[i] = {
         'isAvailable': true,
         'requiredQty': requiredQty,
-        'availableQty': requiredQty,
+        'availableQty': requiredQty, // Default to full availability
       };
     }
+
+    debugPrint('Medication availability map created: $medicationAvailability');
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
+        debugPrint('Building bottom sheet...');
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
+            debugPrint('StatefulBuilder called');
             return Container(
               height: MediaQuery.of(context).size.height * 0.7,
               decoration: const BoxDecoration(
@@ -449,7 +482,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Select which medicines are available at your pharmacy',
+                          'Set available quantities for each medicine',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[600],
@@ -464,6 +497,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       itemCount: widget.request.medications.length,
                       itemBuilder: (context, index) {
+                        debugPrint('Building medication item $index');
                         final medication = widget.request.medications[index];
                         final availability = medicationAvailability[index]!;
 
@@ -482,6 +516,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                                   Checkbox(
                                     value: availability['isAvailable'],
                                     onChanged: (value) {
+                                      debugPrint('Checkbox changed for item $index: $value');
                                       setModalState(() {
                                         availability['isAvailable'] = value ?? false;
                                         if (value == true) {
@@ -504,7 +539,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                                           ),
                                         ),
                                         Text(
-                                          medication.dosage,
+                                          'Required: ${availability['requiredQty']} ${medication.dosage}',
                                           style: TextStyle(
                                             fontSize: 14,
                                             color: Colors.grey[600],
@@ -538,6 +573,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                                             InkWell(
                                               onTap: availability['availableQty'] > 1
                                                   ? () {
+                                                      debugPrint('Decrease quantity for item $index');
                                                       setModalState(() {
                                                         availability['availableQty']--;
                                                       });
@@ -567,6 +603,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                                             ),
                                             InkWell(
                                               onTap: () {
+                                                debugPrint('Increase quantity for item $index');
                                                 setModalState(() {
                                                   availability['availableQty']++;
                                                 });
@@ -599,7 +636,10 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: () {
+                              debugPrint('Cancel button pressed');
+                              Navigator.pop(context);
+                            },
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               side: BorderSide(color: Colors.grey[300]!),
@@ -621,8 +661,9 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () {
+                              debugPrint('Confirm button pressed');
                               Navigator.pop(context);
-                              _updatePartialAvailability(medicationAvailability);
+                              _submitAvailabilityFromBottomSheet(medicationAvailability);
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
@@ -632,7 +673,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                               ),
                             ),
                             child: const Text(
-                              'Apply',
+                              'Confirm',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,
@@ -653,9 +694,74 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
     );
   }
 
+  Future<void> _submitAvailabilityFromBottomSheet(
+    Map<int, Map<String, dynamic>> medicationAvailability,
+  ) async {
+    final List<Map<String, dynamic>> items = [];
+    bool anyAvailable = false;
+    bool allFullyAvailable = true;
+
+    for (int i = 0; i < widget.request.medications.length; i++) {
+      final medication = widget.request.medications[i];
+      final availability = medicationAvailability[i]!;
+
+      final int requiredQty = (availability['requiredQty'] as int?) ?? 1;
+      final bool isAvailable = availability['isAvailable'] as bool? ?? false;
+      final int availableQty = isAvailable ? (availability['availableQty'] as int? ?? 0) : 0;
+
+      if (availableQty > 0) {
+        anyAvailable = true;
+      }
+
+      if (availableQty < requiredQty) {
+        allFullyAvailable = false;
+      }
+
+      if (isAvailable) {
+        items.add({
+          'name': medication.name,
+          'strength': medication.dosage,
+          'required_qty': requiredQty,
+          'available_qty': availableQty,
+          'notes': availableQty >= requiredQty
+              ? 'In stock'
+              : 'Only $availableQty available',
+        });
+      }
+    }
+
+    if (items.isEmpty) {
+      await _submitAvailability(
+        availability: 'none',
+        items: const [],
+        comment: 'None of the requested medicines are available.',
+      );
+      return;
+    }
+
+    String availabilityStatus;
+    String comment;
+
+    if (!anyAvailable) {
+      availabilityStatus = 'none';
+      comment = 'None of the requested medicines are available.';
+    } else if (allFullyAvailable) {
+      availabilityStatus = 'full';
+      comment = 'All medicines fully available.';
+    } else {
+      availabilityStatus = 'partial';
+      comment = _buildPartialAvailabilityComment(items);
+    }
+
+    await _submitAvailability(
+      availability: availabilityStatus,
+      items: items,
+      comment: comment,
+    );
+  }
+
   int? _extractQuantity(String instructions) {
-    // Try to extract quantity from instructions like "15 tablets" or "quantity: 6"
-    final regex = RegExp(r'(\d+)\s*(?:tablet|capsule|pill|ml|mg|g|unit|qty|quantity)?', caseSensitive: false);
+    final regex = RegExp(r'(\d+)');
     final match = regex.firstMatch(instructions);
     return match != null ? int.tryParse(match.group(1)!) : null;
   }
@@ -665,18 +771,26 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
     required List<Map<String, dynamic>> items,
     required String comment,
   }) async {
-    try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
 
+    try {
       final prefs = await SharedPreferences.getInstance();
       final accessToken = prefs.getString('access_token') ?? '';
-      final statusId = widget.request.id;
+      
+      final statusId = widget.request.id.isNotEmpty 
+          ? widget.request.id 
+          : widget.request.rxCode;
+      
+      debugPrint('Using status ID: $statusId');
+      debugPrint('Prescription ID: ${widget.request.id}');
+      debugPrint('RX Code: ${widget.request.rxCode}');
 
       final body = {
         'availability': availability,
@@ -695,38 +809,47 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
         body: jsonEncode(body),
       ).timeout(const Duration(seconds: 30));
 
-      Navigator.pop(context);
-
+      // Dismiss loading dialog first
+      Navigator.pop(context); // Pop loading dialog
+      
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final successMessage = availability == 'full'
             ? 'Prescription marked as fully available'
             : availability == 'none'
                 ? 'Prescription marked as unavailable'
                 : 'Availability updated successfully';
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(successMessage),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context, true);
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(successMessage),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // Close detail screen and trigger home screen reload
+          Navigator.pop(context, true); // Pop detail screen with result
+        }
       } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update availability: ${response.statusCode}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Dismiss loading dialog
+      if (context.mounted) {
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update availability: ${response.statusCode}'),
+            content: Text('Error updating availability: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
-    } catch (e) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating availability: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
 
