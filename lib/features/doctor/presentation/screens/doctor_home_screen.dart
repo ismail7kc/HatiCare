@@ -666,22 +666,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
           Row(
             children: [
-              // Expanded(
-              //   child: OutlinedButton(
-              //     onPressed: () {},
-              //     style: OutlinedButton.styleFrom(
-              //       backgroundColor: const Color(0xFFE3E8EF),
-              //       side: const BorderSide(color: Color(0xFFE3E8EF)),
-              //       foregroundColor: Colors.redAccent.shade400,
-              //       padding: const EdgeInsets.symmetric(vertical: 12),
-              //       shape: RoundedRectangleBorder(
-              //         borderRadius: BorderRadius.circular(8),
-              //       ),
-              //     ),
-              //     child: const Text("Decline"),
-              //   ),
-              // ),
-              // const SizedBox(width: 10),
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
