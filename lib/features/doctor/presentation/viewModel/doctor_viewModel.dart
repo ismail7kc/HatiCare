@@ -29,7 +29,6 @@ class DoctorViewModel extends ChangeNotifier {
   final bool _isDisposed = false;
 
   Timer? _queueTimer;
-  static const int _totalSeconds = 30;
 
   init() {
     fetchPatientQueue();
@@ -137,6 +136,12 @@ class DoctorViewModel extends ChangeNotifier {
 
   void _startQueueTimer() {
     _queueTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
+      if (_appointments.isEmpty) {
+        _queueTimer?.cancel();
+        _queueTimer = null;
+        return;
+      }
+
       bool shouldNotify = false;
 
       for (final appt in _appointments) {
@@ -144,13 +149,11 @@ class DoctorViewModel extends ChangeNotifier {
 
         final elapsed = DateTime.now().difference(appt.createdAt!).inSeconds;
 
-        final remaining = (_totalSeconds - elapsed).clamp(0, _totalSeconds);
-
-        debugPrint('This is Remainig time $remaining');
+        final remaining = (30 - elapsed).clamp(0, 30);
 
         if (appt.remainingSeconds != remaining) {
           appt.remainingSeconds = remaining;
-          appt.progress = remaining / _totalSeconds;
+          appt.progress = remaining / 30;
           shouldNotify = true;
         }
       }
