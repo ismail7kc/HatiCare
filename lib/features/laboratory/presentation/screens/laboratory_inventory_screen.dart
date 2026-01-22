@@ -38,10 +38,10 @@ class LabTestRequest {
     required this.rxCode,
     required this.patientName,
     required this.patientAge,
-    this.patientGender = 'Male',
-    this.patientDob = '1992-11-15',
+    required this.patientGender,
+    required this.patientDob,
     required this.doctorName,
-    this.doctorSpecialty = 'General Physician',
+    required this.doctorSpecialty,
     required this.dateIssued,
     required this.status,
     required this.labTests,
@@ -71,112 +71,6 @@ class LaboratoryInventoryScreen extends StatefulWidget {
 class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
   late TextEditingController _searchController;
   late TextEditingController _rxCodeController;
-
-  // Dummy test request data for demonstration
-  final List<Map<String, dynamic>> _dummyTestRequests = [
-    {
-      'prescription_id': '1',
-      'rex_code_last4': '1234',
-      'patient_name': 'John Doe',
-      'patient_age': '45',
-      'patient_gender': 'Male',
-      'patient_phone': '+1 234-567-8900',
-      'doctor_name': 'Dr. Sarah Wilson',
-      'doctor_specialty': 'Cardiologist',
-      'availability': 'fully available',
-      'notes': 'Patient has mild allergy to contrast dye',
-      'fulfillment_score': 100.0,
-      'lab_tests': [
-        {
-          'name': 'Complete Blood Count (CBC)',
-          'dose': 'Standard',
-          'frequency': 'Once',
-          'duration': 'Single test',
-          'notes': 'Fasting required'
-        },
-        {
-          'name': 'Lipid Panel',
-          'dose': 'Standard',
-          'frequency': 'Once',
-          'duration': 'Single test',
-          'notes': 'Fasting required'
-        },
-      ],
-    },
-    {
-      'prescription_id': '2',
-      'rex_code_last4': '5678',
-      'patient_name': 'Emily Johnson',
-      'patient_age': '32',
-      'patient_gender': 'Female',
-      'patient_phone': '+1 234-567-8901',
-      'doctor_name': 'Dr. Michael Chen',
-      'doctor_specialty': 'General Physician',
-      'availability': 'partially available',
-      'notes': 'Patient is pregnant',
-      'fulfillment_score': 50.0,
-      'lab_tests': [
-        {
-          'name': 'Pregnancy Test',
-          'dose': 'Standard',
-          'frequency': 'Once',
-          'duration': 'Single test',
-          'notes': 'Urine sample required'
-        },
-      ],
-    },
-    {
-      'prescription_id': '3',
-      'rex_code_last4': '9012',
-      'patient_name': 'Robert Smith',
-      'patient_age': '58',
-      'patient_gender': 'Male',
-      'patient_phone': '+1 234-567-8902',
-      'doctor_name': 'Dr. Sarah Wilson',
-      'doctor_specialty': 'Cardiologist',
-      'availability': 'completed',
-      'notes': 'Patient monitoring required',
-      'fulfillment_score': 100.0,
-      'lab_tests': [
-        {
-          'name': 'Echocardiogram',
-          'dose': 'Standard',
-          'frequency': 'Once',
-          'duration': 'Single test',
-          'notes': 'With contrast'
-        },
-      ],
-    },
-    {
-      'prescription_id': '4',
-      'rex_code_last4': '3456',
-      'patient_name': 'Maria Garcia',
-      'patient_age': '28',
-      'patient_gender': 'Female',
-      'patient_phone': '+1 234-567-8903',
-      'doctor_name': 'Dr. James Lee',
-      'doctor_specialty': 'Dermatologist',
-      'availability': 'fully available',
-      'notes': 'Follow up in 2 weeks',
-      'fulfillment_score': 100.0,
-      'lab_tests': [
-        {
-          'name': 'Allergy Panel',
-          'dose': 'Standard',
-          'frequency': 'Once',
-          'duration': 'Single test',
-          'notes': 'Blood sample required'
-        },
-        {
-          'name': 'Skin Biopsy',
-          'dose': 'Standard',
-          'frequency': 'Once',
-          'duration': 'Single test',
-          'notes': 'Local anesthesia'
-        },
-      ],
-    },
-  ];
 
   @override
   void initState() {
@@ -286,7 +180,7 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Verify Test Request',
+                          'Verify Prescription',
                           style: TextStyle(
                             color: Colors.black,
                             fontSize: 16,
@@ -412,9 +306,22 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 4),
 
                 // Inventory Content
+                const Padding(
+                  padding: EdgeInsets.only(left: 18.0),
+                  child: Text(
+                    'Assigned Prescriptions',
+                    textAlign: TextAlign.start,
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Expanded(
                   child: Builder(
                     builder: (context) {
@@ -422,30 +329,19 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                         return _buildNotApprovedState();
                       }
 
-                      // Use dummy test requests if no real data available
-                      final testRequestsToDisplay =
-                          laboratoryProvider.prescriptions.isEmpty
-                              ? _dummyTestRequests
-                              : laboratoryProvider.prescriptions;
+                      // Show loading state while fetching prescriptions
+                      if (laboratoryProvider.prescriptionsLoading) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        );
+                      }
 
-                      final newRequests = testRequestsToDisplay.where((p) {
-                        final statusStr =
-                            p['availability']?.toString().toLowerCase() ?? '';
-                        return !statusStr.contains('completed') &&
-                            !statusStr.contains('full') &&
-                            !statusStr.contains('partial');
-                      }).toList();
+                      // Use real test requests from provider
+                      final testRequestsToDisplay = laboratoryProvider.prescriptions;
 
-                      final availableRequests =
-                          testRequestsToDisplay.where((p) {
-                        final statusStr =
-                            p['availability']?.toString().toLowerCase() ?? '';
-                        return statusStr.contains('full') ||
-                            statusStr.contains('partial') ||
-                            statusStr.contains('completed');
-                      }).toList();
-
-                      if (newRequests.isEmpty && availableRequests.isEmpty) {
+                      if (testRequestsToDisplay.isEmpty) {
                         return _buildEmptyInventoryState();
                       }
 
@@ -454,19 +350,24 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                         color: AppColors.primary,
                         child: ListView(
                           physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                           children: [
-                            if (newRequests.isNotEmpty) ...[
-                              const Text(
-                                'New Requests',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
+                            if (testRequestsToDisplay.isEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 24,
                                 ),
-                              ),
-                              const SizedBox(height: 12),
-                              ...newRequests.map((testRequestData) {
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  'No new request',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              )
+                            else
+                              ...testRequestsToDisplay.map((testRequestData) {
                                 List<LabTest> labTests = [];
                                 if (testRequestData['lab_tests'] is List) {
                                   labTests = (testRequestData['lab_tests'] as List)
@@ -495,14 +396,14 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                                               '0') ??
                                       0,
                                   patientGender:
-                                      testRequestData['patient_gender'] ?? 'Male',
-                                  patientDob: '1992-11-15',
+                                      testRequestData['patient_gender'] ?? '',
+                                  patientDob: testRequestData['patient_dob'] ?? '',
                                   doctorName:
                                       testRequestData['doctor_name'] ?? 'Dr. Unknown',
                                   doctorSpecialty:
-                                      testRequestData['doctor_specialty'] ??
-                                      'General Physician',
-                                  dateIssued: DateTime.now(),
+                                      testRequestData['doctor_specialty'] ?? '',
+                                  dateIssued: DateTime.tryParse(
+                                      testRequestData['created_at']?.toString() ?? '') ?? DateTime.now(),
                                   status: TestRequestStatus.issued,
                                   labTests: labTests,
                                 );
@@ -520,117 +421,6 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                                       request, testRequestData),
                                 );
                               }),
-                              const SizedBox(height: 24),
-                            ],
-
-                            const Text(
-                              'Available Test Requests',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-
-                            if (availableRequests.isEmpty)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 24,
-                                ),
-                                alignment: Alignment.center,
-                                child: const Text(
-                                  'No available test requests yet.',
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              )
-                            else
-                              ...availableRequests.asMap().entries.map(
-                                (entry) {
-                                  final index = entry.key;
-                                  final testRequestData = entry.value;
-
-                                  List<LabTest> labTests = [];
-                                  if (testRequestData['lab_tests'] is List) {
-                                    labTests =
-                                        (testRequestData['lab_tests'] as List)
-                                            .map(
-                                              (test) => LabTest(
-                                                name: test['name'] ?? 'Unknown',
-                                                dosage: test['dose'] ?? 'N/A',
-                                                instructions:
-                                                    '${test['frequency'] ?? ''} ${test['duration'] ?? ''} ${test['notes'] ?? ''}'.trim(),
-                                              ),
-                                            )
-                                            .toList();
-                                  }
-
-                                  TestRequestStatus status =
-                                      TestRequestStatus.issued;
-                                  final statusStr = testRequestData['availability']
-                                          ?.toString()
-                                          .toLowerCase() ??
-                                      'pending';
-
-                                  if (statusStr.contains('completed')) {
-                                    status = TestRequestStatus.completed;
-                                  } else if (statusStr.contains('fully')) {
-                                    status = TestRequestStatus.completed;
-                                  } else if (statusStr.contains('partial')) {
-                                    status =
-                                        TestRequestStatus.inProgress;
-                                  }
-
-                                  final request = LabTestRequest(
-                                    id: testRequestData['prescription_id']
-                                            ?.toString() ??
-                                        'N/A',
-                                    rxCode:
-                                        'RX...${testRequestData['rex_code_last4'] ?? 'N/A'}',
-                                    patientName:
-                                        testRequestData['patient_name'] ??
-                                        'Unknown Patient',
-                                    patientAge: int.tryParse(
-                                            testRequestData['patient_age']
-                                                ?.toString() ??
-                                                '0') ??
-                                        0,
-                                    patientGender: testRequestData['patient_gender'] ??
-                                        'Male',
-                                    patientDob: '1992-11-15',
-                                    doctorName: testRequestData['doctor_name'] ??
-                                        'Dr. Unknown',
-                                    doctorSpecialty:
-                                        testRequestData['doctor_specialty'] ??
-                                        'General Physician',
-                                    dateIssued: DateTime.now(),
-                                    status: status,
-                                    labTests: labTests,
-                                  );
-
-                                  request.patientPhone =
-                                      testRequestData['patient_phone'] ?? '';
-                                  request.notes =
-                                      testRequestData['notes'] ?? '';
-                                  request.fulfillmentScore =
-                                      testRequestData['fulfillment_score'] ??
-                                          0.0;
-
-                                  return Padding(
-                                    padding: EdgeInsets.only(
-                                      bottom: index ==
-                                              availableRequests.length - 1
-                                          ? 16
-                                          : 16,
-                                    ),
-                                    child: _buildTestRequestCard(
-                                        request, testRequestData),
-                                  );
-                                },
-                              ),
                           ],
                         ),
                       );
@@ -701,15 +491,6 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                 fontWeight: FontWeight.w600,
                 color: Colors.grey[600],
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Verify an RX code to add test requests',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
-              ),
-              textAlign: TextAlign.center,
             ),
           ],
         ),

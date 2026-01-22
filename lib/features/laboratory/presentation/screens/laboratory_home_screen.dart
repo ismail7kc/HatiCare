@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/core/widgets/prescription_list_item.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
 import 'package:haticare/features/common/screens/notifications_screen.dart';
 import 'package:haticare/features/laboratory/presentation/screens/laboratory_history_screen.dart';
@@ -135,18 +136,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                         children: [
                           Row(
                             children: [
-                              laboratoryProvider.isLoading
-                                  ? const CircleAvatar(
-                                radius: 25,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor:
-                                  AlwaysStoppedAnimation<Color>(
-                                    AppColors.primary,
-                                  ),
-                                ),
-                              )
-                                  : profileUrl.isNotEmpty
+                              profileUrl.isNotEmpty
                                   ? CircleAvatar(
                                 radius: 25,
                                 backgroundImage:
@@ -164,20 +154,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                                     "Welcome Back,",
                                     style: TextStyle(color: Colors.grey),
                                   ),
-                                  laboratoryProvider.isLoading
-                                      ? const SizedBox(
-                                    width: 100,
-                                    height: 18,
-                                    child: LinearProgressIndicator(
-                                      backgroundColor: Colors.grey,
-                                      valueColor:
-                                      AlwaysStoppedAnimation<
-                                          Color>(
-                                        AppColors.primary,
-                                      ),
-                                    ),
-                                  )
-                                      : Text(
+                                  Text(
                                     laboratoryProvider
                                         .laboratoryName.isNotEmpty
                                         ? (laboratoryProvider
@@ -269,355 +246,157 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                       ),
                     ),
                     const SizedBox(height: 12),
-                    // Counter Cards
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            height: 80,
-                            margin: const EdgeInsets.only(right: 8),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF54DCDF), Color(0xFF4CA054)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 16.0),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment
-                                    .spaceEvenly,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '$availableCount',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF2443A9),
-                                    ),
-                                  ),
-                                  const Text(
-                                    'Available Lab Tests',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Color(0xFF2443A9),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Container(
-                            height: 80,
-                            margin: const EdgeInsets.only(left: 8),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF07498A), Color(0xFF0A2463)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 16.0),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment
-                                    .spaceEvenly,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '$deliveredCount',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const Text(
-                                    'Completed Lab Tests',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'New Requests',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    // Scrollable List Section with Refresh
-                    Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: _onRefresh,
-                        color: AppColors.primary,
-                        child: laboratoryProvider.prescriptionsLoading
-                            ? Container(
-                          padding: const EdgeInsets.all(40),
+                  ],
+                  
+                  // Counter Cards
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 80,
+                          margin: const EdgeInsets.only(right: 8),
                           decoration: BoxDecoration(
-                            color: Colors.grey[100],
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF54DCDF), Color(0xFF4CA054)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.primary,
-                              ),
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 16.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment
+                                  .spaceEvenly,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '$availableCount',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2443A9),
+                                  ),
+                                ),
+                                const Text(
+                                  'Available Lab Tests',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF2443A9),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        )
-                            : laboratoryProvider.prescriptions.isEmpty
-                            ? LayoutBuilder(
-                          builder: (context, constraints) {
-                            return SingleChildScrollView(
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              child: SizedBox(
-                                height: constraints.maxHeight,
-                                child: const Center(
-                                  child: Text(
-                                    'No New Request',
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 14,
-                                    ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Container(
+                          height: 80,
+                          margin: const EdgeInsets.only(left: 8),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF07498A), Color(0xFF0A2463)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 16.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment
+                                  .spaceEvenly,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '$deliveredCount',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const Text(
+                                  'Completed Lab Tests',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'New Requests',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Scrollable List Section with Refresh
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: _onRefresh,
+                      color: AppColors.primary,
+                      child: laboratoryProvider.prescriptions.isEmpty
+                          ? LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: SizedBox(
+                              height: constraints.maxHeight,
+                              child: const Center(
+                                child: Text(
+                                  'No New Request',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 14,
                                   ),
                                 ),
                               ),
-                            );
-                          },
-                        )
-                            : ListView.builder(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.only(bottom: 80),
-                          itemCount:
-                          laboratoryProvider.prescriptions.length,
-                          itemBuilder: (context, index) {
-                            final prescription =
-                            laboratoryProvider.prescriptions[index];
-                            return Padding(
-                              padding: EdgeInsets.only(
-                                bottom: index <
-                                    laboratoryProvider.prescriptions.length - 1
-                                    ? 12
-                                    : 0,
-                              ),
-                              child: _buildPrescriptionCard(prescription),
-                            );
-                          },
-                        ),
+                            ),
+                          );
+                        },
+                      )
+                          : ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.only(bottom: 80),
+                        itemCount:
+                        laboratoryProvider.prescriptions.length,
+                        itemBuilder: (context, index) {
+                          final prescription =
+                          laboratoryProvider.prescriptions[index];
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: index <
+                                  laboratoryProvider.prescriptions.length - 1
+                                  ? 12
+                                  : 0,
+                            ),
+                            child: PrescriptionListItem(
+                              data: prescription,
+                              itemType: ItemType.labTest,
+                              onTap: () => _openPrescriptionDetails(prescription),
+                            ),
+                          );
+                        },
                       ),
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
           ),
       );
 
-  }
-
-  Widget _buildPrescriptionCard(Map<String, dynamic> prescription) {
-    // Extract data from prescription
-    final patientName =
-        prescription['patient_name']?.toString() ?? 'Unknown Patient';
-    final doctorName =
-        prescription['doctor_name']?.toString() ?? 'Dr. Unknown';
-    final rexCodeLast4 = prescription['rex_code_last4']?.toString() ?? '';
-    final createdAt = prescription['created_at']?.toString() ?? '';
-
-    // Parse date
-    DateTime issuedDate = DateTime.now();
-    if (createdAt.isNotEmpty) {
-      issuedDate = DateTime.tryParse(createdAt) ?? issuedDate;
-    }
-
-    // Format date and time like pharmacy
-    final formattedDate = DateFormat('dd-MM-yyyy').format(issuedDate);
-    final formattedTime = DateFormat('h:mm a').format(issuedDate);
-
-    // Get lab tests instead of medications
-    List<String> labTestNames = [];
-    if (prescription['lab_tests'] is List) {
-      labTestNames = (prescription['lab_tests'] as List)
-          .map((test) =>
-      test is Map<String, dynamic>
-          ? test['name']?.toString() ?? 'Unknown Test'
-          : test.toString())
-          .where((name) => name.isNotEmpty)
-          .toList();
-    }
-
-    final labTestsSummary = labTestNames.join(', ');
-
-    return InkWell(
-      onTap: () => _openPrescriptionDetails(prescription),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey[200]!),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SvgPicture.asset(
-                    'assets/icons/new_prescription_icon.svg',
-                    width: 28,
-                    height: 28,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ShaderMask(
-                      shaderCallback: (bounds) =>
-                          AppColors.primaryGradient.createShader(bounds),
-                      child: const Text(
-                        'Lab Tests',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        formattedDate,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        formattedTime,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                    ],
-                  )
-                ],
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  SvgPicture.asset(
-                    'assets/icons/patient_icon.svg',
-                    width: 22,
-                    height: 22,
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Patient',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      Text(
-                        patientName,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              if (labTestsSummary.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  labTestsSummary,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.primary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  SvgPicture.asset(
-                    'assets/icons/doctor_icon.svg',
-                    width: 22,
-                    height: 22,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Doctor',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                        Text(
-                          doctorName,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SvgPicture.asset(
-                    'assets/icons/arrow_forward_line_icon.svg',
-                    width: 26,
-                    height: 26,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   Future<void> _openPrescriptionDetails(
