@@ -7,12 +7,8 @@ import 'package:haticare/features/common/screens/notifications_screen.dart';
 import 'package:haticare/features/laboratory/presentation/screens/laboratory_history_screen.dart';
 import 'package:haticare/features/laboratory/presentation/screens/laboratory_inventory_screen.dart';
 import 'package:haticare/features/laboratory/presentation/screens/laboratory_settings_screen.dart';
-import 'package:haticare/features/laboratory/presentation/viewmodels/lab_prescriptionVM.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 
-import '../../../common/api_client.dart';
-import '../lab_repository_layer.dart';
 import '../providers/laboratory_user_provider.dart';
 
 class ProfileNotifier {
@@ -42,7 +38,9 @@ class _LaboratoryHomeScreenState extends State<LaboratoryHomeScreen> {
         tabs: const [
           TabItemData(title: "Home", iconPath: 'assets/icons/home.svg'),
           TabItemData(
-              title: "Inventory", iconPath: 'assets/icons/inventory.svg'),
+            title: "Inventory",
+            iconPath: 'assets/icons/inventory.svg',
+          ),
           TabItemData(title: "History", iconPath: 'assets/icons/history.svg'),
           TabItemData(title: "Settings", iconPath: 'assets/icons/setting.svg'),
         ],
@@ -68,9 +66,15 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   void initState() {
     super.initState();
 
-    // Fetch prescriptions on init
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<LaboratoryUserProvider>().fetchPrescriptions();
+    // Fetch profile first to check approval status, then prescriptions if approved
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final provider = context.read<LaboratoryUserProvider>();
+      // Always fetch profile to check approval status
+      await provider.fetchProfile(forceRefresh: true);
+      // Only fetch prescriptions if approved
+      if (provider.isApproved) {
+        await provider.fetchPrescriptions();
+      }
     });
   }
 
@@ -86,8 +90,8 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   int _getAvailableCount(List<dynamic> prescriptions) {
     int available = 0;
     for (final prescription in prescriptions) {
-      final status = prescription['status']?.toString().toLowerCase() ??
-          'pending';
+      final status =
+          prescription['status']?.toString().toLowerCase() ?? 'pending';
       if (status.contains('pending') || status.contains('new')) {
         available++;
       }
@@ -99,8 +103,8 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   int _getDeliveredCount(List<dynamic> prescriptions) {
     int delivered = 0;
     for (final prescription in prescriptions) {
-      final status = prescription['status']?.toString().toLowerCase() ??
-          'pending';
+      final status =
+          prescription['status']?.toString().toLowerCase() ?? 'pending';
       if (status.contains('completed') || status.contains('delivered')) {
         delivered++;
       }
@@ -117,290 +121,336 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     final deliveredCount = _getDeliveredCount(laboratoryProvider.prescriptions);
 
     return Scaffold(
-        backgroundColor: const Color(0xFFF9FAFB),
-        body: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Profile Section
-                  ValueListenableBuilder<String?>(
-                    valueListenable: ProfileNotifier.profileImageUrl,
-                    builder: (context, imageUrl, _) {
-                      final profileUrl =
-                          imageUrl ?? laboratoryProvider.profilePictureUrl;
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              profileUrl.isNotEmpty
-                                  ? CircleAvatar(
-                                radius: 25,
-                                backgroundImage:
-                                NetworkImage(profileUrl),
-                              )
-                                  : const CircleAvatar(
-                                radius: 25,
-                                child: Icon(Icons.person, size: 30),
-                              ),
-                              const SizedBox(width: 10),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    "Welcome Back,",
-                                    style: TextStyle(color: Colors.grey),
-                                  ),
-                                  Text(
-                                    laboratoryProvider
-                                        .laboratoryName.isNotEmpty
-                                        ? (laboratoryProvider
-                                        .laboratoryName
-                                        .length >
-                                        15
-                                        ? '${laboratoryProvider.laboratoryName
-                                        .substring(0, 15)}...'
-                                        : laboratoryProvider
-                                        .laboratoryName)
-                                        : 'Laboratory',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          Stack(
-                            children: [
-                              IconButton(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                      const NotificationsScreen(),
-                                    ),
-                                  );
-                                },
-                                icon: SvgPicture.asset(
-                                  'assets/icons/notification.svg',
-                                  height: 26,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              const Positioned(
-                                right: 8,
-                                top: 8,
-                                child: CircleAvatar(
-                                  radius: 4,
-                                  backgroundColor: Colors.red,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Lab Tests Section
-                  if (!laboratoryProvider.isApproved) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.orange.withOpacity(0.3),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.warning_amber_outlined,
-                            color: Colors.orange[700],
-                            size: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              laboratoryProvider.approvalMessage.isNotEmpty
-                                  ? laboratoryProvider.approvalMessage
-                                  : 'Account is not verified',
-                              style: TextStyle(
-                                color: Colors.orange[700],
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  
-                  // Counter Cards
-                  Row(
+      backgroundColor: const Color(0xFFF9FAFB),
+      body: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Profile Section
+              ValueListenableBuilder<String?>(
+                valueListenable: ProfileNotifier.profileImageUrl,
+                builder: (context, imageUrl, _) {
+                  final profileUrl =
+                      imageUrl ?? laboratoryProvider.profilePictureUrl;
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
-                        child: Container(
-                          height: 80,
-                          margin: const EdgeInsets.only(right: 8),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF54DCDF), Color(0xFF4CA054)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 16.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment
-                                  .spaceEvenly,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '$availableCount',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF2443A9),
-                                  ),
+                      Row(
+                        children: [
+                          profileUrl.isNotEmpty
+                              ? CircleAvatar(
+                                  radius: 25,
+                                  backgroundImage: NetworkImage(profileUrl),
+                                )
+                              : const CircleAvatar(
+                                  radius: 25,
+                                  child: Icon(Icons.person, size: 30),
                                 ),
-                                const Text(
-                                  'Available Lab Tests',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF2443A9),
-                                  ),
+                          const SizedBox(width: 10),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Welcome Back,",
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                              Text(
+                                laboratoryProvider.laboratoryName.isNotEmpty
+                                    ? (laboratoryProvider
+                                                  .laboratoryName
+                                                  .length >
+                                              15
+                                          ? '${laboratoryProvider.laboratoryName.substring(0, 15)}...'
+                                          : laboratoryProvider.laboratoryName)
+                                    : 'Laboratory',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ),
+                        ],
                       ),
-                      Expanded(
-                        child: Container(
-                          height: 80,
-                          margin: const EdgeInsets.only(left: 8),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF07498A), Color(0xFF0A2463)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+                      Stack(
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const NotificationsScreen(),
+                                ),
+                              );
+                            },
+                            icon: SvgPicture.asset(
+                              'assets/icons/notification.svg',
+                              height: 26,
+                              color: Colors.black87,
                             ),
-                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 16.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment
-                                  .spaceEvenly,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '$deliveredCount',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const Text(
-                                  'Completed Lab Tests',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
+                          const Positioned(
+                            right: 8,
+                            top: 8,
+                            child: CircleAvatar(
+                              radius: 4,
+                              backgroundColor: Colors.red,
                             ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+
+              const SizedBox(height: 24),
+
+              // Lab Tests Section
+              if (!laboratoryProvider.isApproved) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_outlined,
+                        color: Colors.orange[700],
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          laboratoryProvider.approvalMessage.isNotEmpty
+                              ? laboratoryProvider.approvalMessage
+                              : 'Account is not verified',
+                          style: TextStyle(
+                            color: Colors.orange[700],
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'New Requests',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Scrollable List Section with Refresh
-                  Expanded(
-                    child: RefreshIndicator(
-                      onRefresh: _onRefresh,
-                      color: AppColors.primary,
-                      child: laboratoryProvider.prescriptions.isEmpty
-                          ? LayoutBuilder(
-                        builder: (context, constraints) {
-                          return SingleChildScrollView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            child: SizedBox(
-                              height: constraints.maxHeight,
-                              child: const Center(
-                                child: Text(
-                                  'No New Request',
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 14,
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Main content with refresh
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: _onRefresh,
+                  color: AppColors.primary,
+                  child: !laboratoryProvider.isApproved
+                      ? SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(32),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.lock_outline,
+                                    size: 48,
+                                    color: Colors.grey[400],
                                   ),
-                                ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Waiting for Approval',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Your laboratory account must be approved to view test requests.\n\nPull down to refresh and check approval status.',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[500],
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
                               ),
                             ),
-                          );
-                        },
-                      )
-                          : ListView.builder(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.only(bottom: 80),
-                        itemCount:
-                        laboratoryProvider.prescriptions.length,
-                        itemBuilder: (context, index) {
-                          final prescription =
-                          laboratoryProvider.prescriptions[index];
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              bottom: index <
-                                  laboratoryProvider.prescriptions.length - 1
-                                  ? 12
-                                  : 0,
-                            ),
-                            child: PrescriptionListItem(
-                              data: prescription,
-                              itemType: ItemType.labTest,
-                              onTap: () => _openPrescriptionDetails(prescription),
-                            ),
-                          );
-                        },
+                        )
+                      : const SizedBox.shrink(), // Will be replaced by actual content when approved
+                ),
+              ),
+
+              // Counter Cards (only when approved)
+              if (laboratoryProvider.isApproved) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 80,
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF54DCDF), Color(0xFF4CA054)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 16.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '$availableCount',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2443A9),
+                                ),
+                              ),
+                              const Text(
+                                'Available Lab Tests',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF2443A9),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
+                    Expanded(
+                      child: Container(
+                        height: 80,
+                        margin: const EdgeInsets.only(left: 8),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF07498A), Color(0xFF0A2463)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 16.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '$deliveredCount',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const Text(
+                                'Completed Lab Tests',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'New Requests',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
                   ),
-                ],
-              ),
-            ),
+                ),
+                const SizedBox(height: 12),
+                // Scrollable List Section with Refresh
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _onRefresh,
+                    color: AppColors.primary,
+                    child: laboratoryProvider.prescriptions.isEmpty
+                        ? LayoutBuilder(
+                            builder: (context, constraints) {
+                              return SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                child: SizedBox(
+                                  height: constraints.maxHeight,
+                                  child: const Center(
+                                    child: Text(
+                                      'No New Request',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        : ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.only(bottom: 80),
+                            itemCount: laboratoryProvider.prescriptions.length,
+                            itemBuilder: (context, index) {
+                              final prescription =
+                                  laboratoryProvider.prescriptions[index];
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom:
+                                      index <
+                                          laboratoryProvider
+                                                  .prescriptions
+                                                  .length -
+                                              1
+                                      ? 12
+                                      : 0,
+                                ),
+                                child: PrescriptionListItem(
+                                  data: prescription,
+                                  itemType: ItemType.labTest,
+                                  onTap: () =>
+                                      _openPrescriptionDetails(prescription),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ),
+              ],
+            ],
           ),
-      );
-
+        ),
+      ),
+    );
   }
 
   Future<void> _openPrescriptionDetails(
-      Map<String, dynamic> prescription) async {
+    Map<String, dynamic> prescription,
+  ) async {
     // Navigate to prescription details screen
     await Navigator.push(
       context,
@@ -413,7 +463,8 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   }
 
   Widget _buildPrescriptionDetailsScreen(Map<String, dynamic> prescription) {
-    final statusId = prescription['status_id']?.toString() ??
+    final statusId =
+        prescription['status_id']?.toString() ??
         prescription['prescription_id']?.toString() ??
         '';
 
@@ -462,8 +513,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '#${prescription['prescription_id']?.toString() ??
-                              'N/A'}',
+                          '#${prescription['prescription_id']?.toString() ?? 'N/A'}',
                           style: const TextStyle(
                             color: Colors.black,
                             fontSize: 20,
@@ -483,8 +533,8 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                       ),
                       child: Text(
                         prescription['availability']
-                            ?.toString()
-                            .toUpperCase() ??
+                                ?.toString()
+                                .toUpperCase() ??
                             'PENDING',
                         style: TextStyle(
                           color: AppColors.primaryDark,
@@ -513,42 +563,29 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                       prescription['patient_name']?.toString() ?? 'Unknown',
                     ),
                     const SizedBox(height: 12),
-                    _buildInfoRow('Issuing Doctor:',
-                        prescription['doctor_name']?.toString() ??
-                            'Dr. Unknown'),
-                    if (prescription['patient_phone']
-                        ?.toString()
-                        .isNotEmpty ==
+                    _buildInfoRow(
+                      'Issuing Doctor:',
+                      prescription['doctor_name']?.toString() ?? 'Dr. Unknown',
+                    ),
+                    if (prescription['patient_phone']?.toString().isNotEmpty ==
                         true) ...[
                       const SizedBox(height: 12),
-                      _buildInfoRow('Patient Phone:',
-                          prescription['patient_phone']?.toString() ?? ''),
+                      _buildInfoRow(
+                        'Patient Phone:',
+                        prescription['patient_phone']?.toString() ?? '',
+                      ),
                     ],
                     const SizedBox(height: 12),
                     _buildInfoRow(
                       'Date Issued:',
-                      prescription['created_at']
-                          ?.toString()
-                          .isNotEmpty == true
+                      prescription['created_at']?.toString().isNotEmpty == true
                           ? DateTime.tryParse(
-                          prescription['created_at']?.toString() ??
-                              '') !=
-                          null
-                          ? '${DateTime
-                          .tryParse(prescription['created_at']?.toString() ??
-                          '')
-                          ?.day
-                          .toString()
-                          .padLeft(2, '0')}/${DateTime
-                          .tryParse(prescription['created_at']?.toString() ??
-                          '')
-                          ?.month
-                          .toString()
-                          .padLeft(2, '0')}/${DateTime
-                          .tryParse(
-                          prescription['created_at']?.toString() ?? '')
-                          ?.year}'
-                          : 'N/A'
+                                      prescription['created_at']?.toString() ??
+                                          '',
+                                    ) !=
+                                    null
+                                ? '${DateTime.tryParse(prescription['created_at']?.toString() ?? '')?.day.toString().padLeft(2, '0')}/${DateTime.tryParse(prescription['created_at']?.toString() ?? '')?.month.toString().padLeft(2, '0')}/${DateTime.tryParse(prescription['created_at']?.toString() ?? '')?.year}'
+                                : 'N/A'
                           : 'N/A',
                     ),
                   ],
@@ -591,24 +628,22 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                           .asMap()
                           .entries
                           .map((entry) {
-                        final index = entry.key;
-                        final labTest = entry.value;
-                        return Column(
-                          children: [
-                            if (index > 0) const SizedBox(height: 12),
-                            _buildLabTestItem(labTest),
-                          ],
-                        );
-                      }),
+                            final index = entry.key;
+                            final labTest = entry.value;
+                            return Column(
+                              children: [
+                                if (index > 0) const SizedBox(height: 12),
+                                _buildLabTestItem(labTest),
+                              ],
+                            );
+                          }),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
 
               // Notes Card (if available)
-              if (prescription['notes']
-                  ?.toString()
-                  .isNotEmpty == true)
+              if (prescription['notes']?.toString().isNotEmpty == true)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
@@ -659,42 +694,39 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
         padding: const EdgeInsets.all(16),
         decoration: const BoxDecoration(
           color: Colors.white,
-          border: Border(
-            top: BorderSide(
-              color: Colors.grey,
-              width: 0.5,
-            ),
-          ),
+          border: Border(top: BorderSide(color: Colors.grey, width: 0.5)),
         ),
         child: Consumer<LaboratoryUserProvider>(
           builder: (context, provider, child) {
             return ElevatedButton(
               onPressed: statusId.isNotEmpty
                   ? () async {
-                await provider.acceptPrescription(statusId);
+                      await provider.acceptPrescription(statusId);
 
-                if (provider.errorMessage == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content:
-                      Text('Prescription accepted successfully!'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  Navigator.pop(context); // Go back to list
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(provider.errorMessage!),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
+                      if (provider.errorMessage == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Prescription accepted successfully!',
+                            ),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                        Navigator.pop(context); // Go back to list
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(provider.errorMessage!),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
                   : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                statusId.isNotEmpty ? AppColors.primary : Colors.grey,
+                backgroundColor: statusId.isNotEmpty
+                    ? AppColors.primary
+                    : Colors.grey,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -704,21 +736,20 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
               ),
               child: provider.isVerifying
                   ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor:
-                  AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
                   : const Text(
-                'Accept Prescription',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+                      'Accept Prescription',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             );
           },
         ),
@@ -755,8 +786,9 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     final name = labTest is Map<String, dynamic>
         ? labTest['name']?.toString() ?? 'Unknown Test'
         : labTest.toString();
-    final id =
-    labTest is Map<String, dynamic> ? labTest['id']?.toString() ?? '' : '';
+    final id = labTest is Map<String, dynamic>
+        ? labTest['id']?.toString() ?? ''
+        : '';
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,

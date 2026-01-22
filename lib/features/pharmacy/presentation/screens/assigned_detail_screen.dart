@@ -249,19 +249,30 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
                             child: ElevatedButton(
                               onPressed: () => _completePrescription(),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
+                                backgroundColor: Colors.transparent,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(25),
                                 ),
                                 elevation: 0,
                               ),
-                              child: const Text(
-                                'Complete',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
+                              child: Ink(
+                                decoration: BoxDecoration(
+                                  gradient: AppColors.primaryGradient,
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  alignment: Alignment.center,
+                                  child: const Text(
+                                    'Complete',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -276,19 +287,30 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
                             child: ElevatedButton(
                               onPressed: () => _markAsDelivered(),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
+                                backgroundColor: Colors.transparent,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(25),
                                 ),
                                 elevation: 0,
                               ),
-                              child: const Text(
-                                'Mark as Delivered',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
+                              child: Ink(
+                                decoration: BoxDecoration(
+                                  gradient: AppColors.primaryGradient,
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  alignment: Alignment.center,
+                                  child: const Text(
+                                    'Mark as Delivered',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -417,7 +439,7 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
       }
 
       final body = {
-        'rex_code': widget.request.rxCode,
+        'rex_code': widget.request.rxCode.replaceFirst('RX...', ''),
       };
 
       final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/complete/');

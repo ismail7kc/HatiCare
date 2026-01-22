@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/pharmacy/models/prescription_request.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/pharmacy_user_provider.dart';
+import '../widgets/pharmacy_inventory_card.dart';
 import 'assigned_detail_screen.dart';
 
 class PharmacyInventoryScreen extends StatefulWidget {
@@ -20,9 +19,7 @@ class PharmacyInventoryScreen extends StatefulWidget {
 class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
   late TextEditingController _searchController;
   late TextEditingController _rxCodeController;
-
-  // Dummy prescription data for demonstration
-
+  Set<String> verifiedRxCodes = <String>{};
 
   @override
   void initState() {
@@ -37,6 +34,20 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
     await provider.fetchPrescriptions();
   }
 
+  void _verifyPrescription(String rxCode) {
+    setState(() {
+      verifiedRxCodes.add(rxCode);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Prescription verified! You can now click on the card.'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
   Future<void> _onRefresh() async {
     await _loadInventory();
   }
@@ -46,50 +57,6 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
     _searchController.dispose();
     _rxCodeController.dispose();
     super.dispose();
-  }
-
-  Future<void> _verifyRxCode(PharmacyUserProvider provider) async {
-    // Check approval status first
-    if (!provider.isApproved) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Your pharmacy account is not approved.'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-      return;
-    }
-
-    await provider.verifyRxCode(_rxCodeController.text);
-
-    // Show dialog based on verification result
-    if (provider.errorMessage != null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(provider.errorMessage!),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-    } else if (provider.verifiedRxCode.isNotEmpty) {
-      // Show success message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('RX Code verified! Go to Inventory to deliver.'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
-          ),
-        );
-        // Clear to input field
-        _rxCodeController.clear();
-      }
-    }
   }
 
   @override
@@ -133,7 +100,7 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Verify Prescription',
+                          'Search Prescription',
                           style: TextStyle(
                             color: Colors.black,
                             fontSize: 16,
@@ -145,7 +112,7 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
                           children: [
                             Expanded(
                               child: TextField(
-                                controller: _rxCodeController,
+                                controller: _searchController,
                                 textCapitalization: TextCapitalization
                                     .characters,
                                 keyboardType: TextInputType.text,
@@ -156,16 +123,17 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
                                 ],
                                 onChanged: (value) {
                                   if (value != value.toUpperCase()) {
-                                    _rxCodeController.text =
+                                    _searchController.text =
                                         value.toUpperCase();
-                                    _rxCodeController.selection =
+                                    _searchController.selection =
                                         TextSelection.fromPosition(
                                           TextPosition(offset: value.length),
                                         );
                                   }
+                                  setState(() {});
                                 },
                                 decoration: InputDecoration(
-                                  hintText: 'Enter Rx Code (e.g., RX12345)',
+                                  hintText: 'Search RX Code (min 3 chars)',
                                   hintStyle: const TextStyle(
                                     color: Color(0xFF858585),
                                     fontSize: 14,
@@ -199,9 +167,9 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
                             ),
                             const SizedBox(width: 4),
                             ElevatedButton(
-                              onPressed: pharmacyProvider.isApproved
+                              onPressed: _searchController.text.length >= 3
                                   ? () {
-                                _verifyRxCode(pharmacyProvider);
+                                setState(() {});
                               }
                                   : null,
                               style: ElevatedButton.styleFrom(
@@ -210,17 +178,17 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 elevation: 0,
-                                backgroundColor: pharmacyProvider.isApproved
+                                backgroundColor: _searchController.text.length >= 3
                                     ? Colors.transparent
                                     : Colors.grey[300],
                                 shadowColor: Colors.transparent,
                               ),
                               child: Ink(
                                 decoration: BoxDecoration(
-                                  gradient: pharmacyProvider.isApproved
+                                  gradient: _searchController.text.length >= 3
                                       ? AppColors.primaryGradient
                                       : null,
-                                  color: pharmacyProvider.isApproved
+                                  color: _searchController.text.length >= 3
                                       ? null
                                       : Colors.grey[300],
                                   borderRadius: BorderRadius.circular(8),
@@ -231,19 +199,8 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
                                     vertical: 8,
                                   ),
                                   alignment: Alignment.center,
-                                  child: pharmacyProvider.isVerifying
-                                      ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
-                                      ),
-                                    ),
-                                  )
-                                      : const Text(
-                                    'Verify',
+                                  child: const Text(
+                                    'Search',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -282,11 +239,25 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
                         return _buildNotApprovedState();
                       }
 
-                      final prescriptionsToDisplay =
-                          pharmacyProvider.prescriptions;
+                      if (pharmacyProvider.prescriptionsLoading && pharmacyProvider.prescriptions.isEmpty) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        );
+                      }
+                      
+                      final query = _searchController.text;
+                      final prescriptionsToDisplay = query.length < 3
+                          ? pharmacyProvider.prescriptions
+                          : pharmacyProvider.prescriptions.where((prescription) {
+                        final rxCode = prescription['rex_code_last4']?.toString().toLowerCase() ?? '';
+                        return rxCode.contains(query.toLowerCase());
+                      }).toList();
+
 
                       if (prescriptionsToDisplay.isEmpty) {
-                        return _buildEmptyInventoryState();
+                        return _buildEmptyInventoryState(searchQuery: _searchController.text);
                       }
 
                       return RefreshIndicator(
@@ -296,104 +267,106 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                           children: [
-                            if (prescriptionsToDisplay.isEmpty)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 24,
-                                ),
-                                alignment: Alignment.center,
-                                child: const Text(
-                                  'No assigned prescriptions yet.',
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 14,
+                            ...prescriptionsToDisplay.asMap().entries.map(
+                                  (entry) {
+                                final index = entry.key;
+                                final prescriptionData = entry.value;
+
+                                List<Medication> medications = [];
+                                if (prescriptionData['medications'] is List) {
+                                  medications =
+                                      (prescriptionData['medications'] as List).map((med) => Medication(
+                                        name: med['name'] ?? 'Unknown',
+                                          dosage: med['dose'] ?? 'N/A',
+                                          instructions:
+                                          '${med['frequency'] ?? ''} ${med['duration'] ?? ''} ${med['notes'] ?? ''}'.trim(),
+                                        ),
+                                  )
+                                          .toList();
+                                } else if (prescriptionData['items'] is List) {
+                                  medications =
+                                      (prescriptionData['items'] as List)
+                                          .map(
+                                            (med) => Medication(
+                                          name: med['name'] ?? 'Unknown',
+                                          dosage: med['dose'] ?? 'N/A',
+                                          instructions:
+                                          '${med['frequency'] ?? ''} ${med['duration'] ?? ''} ${med['notes'] ?? ''}'.trim(),
+                                        ),
+                                  )
+                                          .toList();
+                                }
+
+                                PrescriptionStatus status =
+                                    PrescriptionStatus.issued;
+                                final statusStr = prescriptionData['availability']
+                                    ?.toString()
+                                    .toLowerCase() ??
+                                    'pending';
+
+                                if (statusStr.contains('delivered')) {
+                                  status = PrescriptionStatus.delivered;
+                                } else if (statusStr.contains('fully')) {
+                                  status = PrescriptionStatus.fullyDispensed;
+                                } else if (statusStr.contains('partial')) {
+                                  status =
+                                      PrescriptionStatus.partiallyDispensed;
+                                }
+
+                                final request = PrescriptionRequest(
+                                  id: prescriptionData['prescription_id']
+                                      ?.toString() ??
+                                      'N/A',
+                                  rxCode:
+                                  'RX...${prescriptionData['rex_code_last4'] ?? 'N/A'}',
+                                  patientName:
+                                  prescriptionData['patient_name'] ??
+                                      'Unknown Patient',
+                                  patientAge: int.tryParse(
+                                      prescriptionData['patient_age']
+                                          ?.toString() ??
+                                          '0') ??
+                                      0,
+                                  patientGender: prescriptionData['patient_gender'] ??
+                                      'Male',
+                                  patientDob: '1992-11-15',
+                                  doctorName: prescriptionData['doctor_name'] ??
+                                      'Dr. Unknown',
+                                  doctorSpecialty:
+                                  prescriptionData['doctor_specialty'] ??
+                                      'General Physician',
+                                  dateIssued: DateTime.now(),
+                                  status: status,
+                                  medications: medications,
+                                );
+
+                                request.patientPhone =
+                                    prescriptionData['patient_phone'] ?? '';
+                                request.notes =
+                                    prescriptionData['notes'] ?? '';
+                                request.fulfillmentScore =
+                                    prescriptionData['fulfillment_score'] ??
+                                        0.0;
+
+                                final rxCode = prescriptionData['rex_code_last4']?.toString() ?? 'N/A';
+                                final isVerified = verifiedRxCodes.contains(rxCode);
+
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: index ==
+                                        prescriptionsToDisplay.length - 1
+                                        ? 16
+                                        : 16,
                                   ),
-                                ),
-                              )
-                            else
-                              ...prescriptionsToDisplay.asMap().entries.map(
-                                (entry) {
-                                  final index = entry.key;
-                                  final prescriptionData = entry.value;
-
-                                  List<Medication> medications = [];
-                                  if (prescriptionData['medications'] is List) {
-                                    medications =
-                                        (prescriptionData['medications'] as List)
-                                            .map(
-                                              (med) => Medication(
-                                                name: med['name'] ?? 'Unknown',
-                                                dosage: med['dose'] ?? 'N/A',
-                                                instructions:
-                                                    '${med['frequency'] ?? ''} ${med['duration'] ?? ''} ${med['notes'] ?? ''}'.trim(),
-                                              ),
-                                            )
-                                            .toList();
-                                  }
-
-                                  PrescriptionStatus status =
-                                      PrescriptionStatus.issued;
-                                  final statusStr = prescriptionData['availability']
-                                          ?.toString()
-                                          .toLowerCase() ??
-                                      'pending';
-
-                                  if (statusStr.contains('delivered')) {
-                                    status = PrescriptionStatus.delivered;
-                                  } else if (statusStr.contains('fully')) {
-                                    status = PrescriptionStatus.fullyDispensed;
-                                  } else if (statusStr.contains('partial')) {
-                                    status =
-                                        PrescriptionStatus.partiallyDispensed;
-                                  }
-
-                                  final request = PrescriptionRequest(
-                                    id: prescriptionData['prescription_id']
-                                            ?.toString() ??
-                                        'N/A',
-                                    rxCode:
-                                        'RX...${prescriptionData['rex_code_last4'] ?? 'N/A'}',
-                                    patientName:
-                                        prescriptionData['patient_name'] ??
-                                        'Unknown Patient',
-                                    patientAge: int.tryParse(
-                                            prescriptionData['patient_age']
-                                                ?.toString() ??
-                                                '0') ??
-                                        0,
-                                    patientGender: prescriptionData['patient_gender'] ??
-                                        'Male',
-                                    patientDob: '1992-11-15',
-                                    doctorName: prescriptionData['doctor_name'] ??
-                                        'Dr. Unknown',
-                                    doctorSpecialty:
-                                        prescriptionData['doctor_specialty'] ??
-                                        'General Physician',
-                                    dateIssued: DateTime.now(),
-                                    status: status,
-                                    medications: medications,
-                                  );
-
-                                  request.patientPhone =
-                                      prescriptionData['patient_phone'] ?? '';
-                                  request.notes =
-                                      prescriptionData['notes'] ?? '';
-                                  request.fulfillmentScore =
-                                      prescriptionData['fulfillment_score'] ??
-                                          0.0;
-
-                                  return Padding(
-                                    padding: EdgeInsets.only(
-                                      bottom: index ==
-                                              prescriptionsToDisplay.length - 1
-                                          ? 16
-                                          : 16,
-                                    ),
-                                    child: _buildAssignedPrescriptionCard(
-                                        request, prescriptionData),
-                                  );
-                                },
-                              ),
+                                  child: PharmacyInventoryCard(
+                                    request: request,
+                                    isVerified: isVerified,
+                                    onVerify: isVerified ? null : () => _verifyPrescription(rxCode),
+                                    onTap: isVerified ? () => _handleCardTap(request) : null,
+                                  ),
+                                );
+                              },
+                            ),
                           ],
                         ),
                       );
@@ -407,7 +380,6 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
       ),
     );
   }
-
   Widget _buildNotApprovedState() {
     return Center(
       child: Padding(
@@ -444,7 +416,45 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
     );
   }
 
-  Widget _buildEmptyInventoryState() {
+  Widget _buildEmptyInventoryState({String searchQuery = ''}) {
+    if (searchQuery.isNotEmpty) {
+      // Show no search results
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.search_off_outlined,
+                size: 64,
+                color: Colors.grey[300],
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'No Prescription Found',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'No prescription available for RX code: "$searchQuery"',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    // Show default empty state
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
@@ -458,33 +468,18 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              'No Items in Inventory',
+              'No assigned prescriptions',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: Colors.grey[600],
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Verify an RX code to add prescriptions',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
-              ),
-              textAlign: TextAlign.center,
-            ),
           ],
         ),
       ),
     );
   }
-
-
-
-
-
-
 
   Future<void> _handleCardTap(PrescriptionRequest request) async {
     final result = await Navigator.push(
@@ -498,93 +493,5 @@ class _PharmacyInventoryScreenState extends State<PharmacyInventoryScreen> {
     if (result == true && mounted) {
       await _loadInventory();
     }
-  }
-
-  Widget _buildAssignedPrescriptionCard(PrescriptionRequest request, Map<String, dynamic> prescriptionData) {
-    final formattedDate = DateFormat('dd-MM-yyyy').format(request.dateIssued);
-    final medicationSummary = request.medications
-        .map((med) => med.name)
-        .where((name) => name.isNotEmpty)
-        .join(', ');
-
-    return InkWell(
-      onTap: () => _handleCardTap(request),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[200]!),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with RX Code and Date
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'RX Code : ${request.rxCode}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                  ),
-                ),
-                Text(
-                  formattedDate,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            
-            // Patient Information with Icon
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${request.patientName}, ${request.patientAge}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            
-            // Medications with Arrow
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    medicationSummary,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.primary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                SvgPicture.asset(
-                  'assets/icons/arrow_forward_line_icon.svg',
-                  width: 20,
-                  height: 20,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

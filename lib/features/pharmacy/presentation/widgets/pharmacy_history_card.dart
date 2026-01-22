@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../models/prescription_request.dart';
+import '../../models/pharmacy_history_item.dart';
 
 class PharmacyHistoryCard extends StatelessWidget {
-  final PrescriptionRequest request;
+  final PharmacyHistoryItem item;
   final VoidCallback onTap;
 
   const PharmacyHistoryCard({
     super.key,
-    required this.request,
+    required this.item,
     required this.onTap,
   });
 
@@ -21,12 +21,12 @@ class PharmacyHistoryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
+            color: Colors.grey.withValues(alpha: 0.05),
             blurRadius: 4,
-            offset: const Offset(0, 0), // shadow on all sides
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -35,56 +35,180 @@ class PharmacyHistoryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar with gradient
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(8), // adjust padding if needed
-                  child: SvgPicture.asset(
-                    'assets/icons/person_card_icon.svg',
-                    color: Colors.white, // tint color
-                    width: 28,
-                    height: 28,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${request.patientName}, ${request.patientAge}',
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+              // Header with prescription ID and action
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'RX',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${DateFormat('dd/MM/yyyy').format(request.dateIssued)} • ${request.rxCode}',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Prescription #${item.prescriptionId}',
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          DateFormat('dd MMM yyyy, hh:mm a').format(item.createdAt),
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    _buildStatusBadge(request.status),
+                  ),
+                  _buildActionBadge(item.action),
+                ],
+              ),
+              
+              // Medications summary
+              if (item.medications.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Medications:',
+                        style: TextStyle(
+                          color: Colors.grey[700],
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      ...item.medications.take(2).map((med) => Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: _getAvailabilityColor(med.availabilityStatus),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '${med.name} (${med.strength})',
+                                style: const TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 13,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Text(
+                              '${med.availableQty}/${med.requiredQty}',
+                              style: TextStyle(
+                                color: _getAvailabilityColor(med.availabilityStatus),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
+                      if (item.medications.length > 2)
+                        Text(
+                          '+${item.medications.length - 2} more medications',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 11,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+              
+              // Score and comment
+              if (item.score != null || item.comment != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    if (item.score != null) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Score: ${(item.score! * 100).toStringAsFixed(1)}%',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    if (item.comment != null)
+                      Expanded(
+                        child: Text(
+                          item.comment!,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                   ],
                 ),
-              ),
-              // Arrow icon
-              SvgPicture.asset(
-                'assets/icons/arrow_forward_icon.svg',
-                width: 26,
-                height: 26,
-                color: Colors.black,
+              ],
+              
+              // Arrow indicator
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  SvgPicture.asset(
+                    'assets/icons/arrow_forward_line_icon.svg',
+                    width: 20,
+                    height: 20,
+                    color: Colors.grey[600],
+                  ),
+                ],
               ),
             ],
           ),
@@ -93,28 +217,28 @@ class PharmacyHistoryCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBadge(PrescriptionStatus status) {
+  Widget _buildActionBadge(HistoryAction action) {
     Color backgroundColor;
     Color textColor;
     String text;
 
-    switch (status) {
-      case PrescriptionStatus.delivered:
+    switch (action) {
+      case HistoryAction.selectedFull:
         backgroundColor = const Color(0xFFE3F2FD);
         textColor = const Color(0xFF1976D2);
-        text = 'Delivered';
-      case PrescriptionStatus.fullyDispensed:
+        text = 'Selected';
+      case HistoryAction.respondedFull:
         backgroundColor = const Color(0xFFE8F5E9);
         textColor = const Color(0xFF4CA054);
-        text = 'Fully Dispensed';
-      case PrescriptionStatus.partiallyDispensed:
+        text = 'Fully Available';
+      case HistoryAction.respondedPartial:
         backgroundColor = const Color(0xFFFFF1DA);
         textColor = const Color(0xFFF2B544);
-        text = 'Partially Dispensed';
-      case PrescriptionStatus.issued:
-        backgroundColor = AppColors.primaryLight.withValues(alpha: 0.1);
-        textColor = AppColors.primaryDark;
-        text = 'Issued';
+        text = 'Partially Available';
+      case HistoryAction.selectedPartial:
+        backgroundColor = const Color(0xFFFCE4EC);
+        textColor = const Color(0xFFE91E63);
+        text = 'Partially Selected';
     }
 
     return Container(
@@ -127,10 +251,23 @@ class PharmacyHistoryCard extends StatelessWidget {
         text,
         style: TextStyle(
           color: textColor,
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
       ),
     );
+  }
+
+  Color _getAvailabilityColor(String status) {
+    switch (status) {
+      case 'Available':
+        return const Color(0xFF4CA054);
+      case 'Partially Available':
+        return const Color(0xFFF2B544);
+      case 'Not Available':
+        return const Color(0xFFFF6B6B);
+      default:
+        return Colors.grey;
+    }
   }
 }

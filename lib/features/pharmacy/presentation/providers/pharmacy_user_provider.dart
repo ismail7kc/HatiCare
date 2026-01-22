@@ -160,16 +160,6 @@ class PharmacyUserProvider extends ChangeNotifier {
         return;
       }
 
-      // Check if pharmacy is approved
-      final isApproved = prefs.getBool('pharmacy_is_approved') ?? false;
-      if (!isApproved) {
-        _prescriptions = [];
-        _prescriptionsLoading = false;
-        _approvalMessage = prefs.getString('pharmacy_approval_message') ?? 'Your pharmacy account is not approved';
-        notifyListeners();
-        return;
-      }
-
       final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/list');
       final client = ChuckerHttpClient(http.Client());
       final response = await client.get(
@@ -182,31 +172,93 @@ class PharmacyUserProvider extends ChangeNotifier {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = jsonDecode(response.body);
+        debugPrint('Prescriptions Response: ${response.body}');
+        debugPrint('Response type: ${jsonResponse.runtimeType}');
+        debugPrint('Response keys: ${jsonResponse is Map ? (jsonResponse as Map).keys : 'Not a Map'}');
         
         if (jsonResponse is Map<String, dynamic>) {
+          debugPrint('Checking response structure...');
+          debugPrint('Has results key: ${jsonResponse.containsKey('results')}');
+          debugPrint('Has data key: ${jsonResponse.containsKey('data')}');
+          
+          // Try different possible structures
           if (jsonResponse.containsKey('results') && 
               jsonResponse['results'] is Map<String, dynamic> &&
               jsonResponse['results'].containsKey('data') && 
               jsonResponse['results']['data'] is List) {
-            // Handle the actual API response structure: results.data
+            // Structure: { "results": { "data": [...] } }
             _prescriptions = jsonResponse['results']['data'] as List<dynamic>;
-          } else if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
-            _prescriptions = jsonResponse['data'] as List<dynamic>;
-          } else if (jsonResponse.containsKey('results') && jsonResponse['results'] is List) {
-            _prescriptions = jsonResponse['results'] as List<dynamic>;
-          } else {
+            debugPrint('Using results.data structure, found ${_prescriptions.length} prescriptions');
+          } else if (jsonResponse.containsKey('results') && 
+              jsonResponse['results'] is Map<String, dynamic>) {
+            // Structure: { "results": { ... } } - check what's inside
+            debugPrint('Results is a Map with keys: ${(jsonResponse['results'] as Map).keys.toList()}');
+            debugPrint('Results data type: ${jsonResponse['results']['data'].runtimeType}');
+            debugPrint('Results data value: ${jsonResponse['results']['data']}');
+            
+            // Try to find any list in results
+            final results = jsonResponse['results'] as Map<String, dynamic>;
             _prescriptions = [];
+            results.forEach((key, value) {
+              if (value is List && value.isNotEmpty) {
+                _prescriptions = value;
+                debugPrint('Found list in results.$key with ${value.length} items');
+                return;
+              }
+            });
+            
+            if (_prescriptions.isEmpty) {
+              debugPrint('No list found in results, checking all keys...');
+              debugPrint('All results keys: ${results.keys.toList()}');
+              // If still no list found, try to convert entire results to list
+              _prescriptions = [results];
+              debugPrint('Using entire results as single item');
+            }
+          } else if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
+            // Structure: { "data": [...] }
+            _prescriptions = jsonResponse['data'] as List<dynamic>;
+            debugPrint('Using data structure, found ${_prescriptions.length} prescriptions');
+          } else if (jsonResponse.containsKey('results') && jsonResponse['results'] is List) {
+            // Structure: { "results": [...] }
+            _prescriptions = jsonResponse['results'] as List<dynamic>;
+            debugPrint('Using results structure, found ${_prescriptions.length} prescriptions');
+          } else if (jsonResponse.containsKey('items') && jsonResponse['items'] is List) {
+            // Structure: { "items": [...] }
+            _prescriptions = jsonResponse['items'] as List<dynamic>;
+            debugPrint('Using items structure, found ${_prescriptions.length} prescriptions');
+          } else if (jsonResponse.containsKey('prescriptions') && jsonResponse['prescriptions'] is List) {
+            // Structure: { "prescriptions": [...] }
+            _prescriptions = jsonResponse['prescriptions'] as List<dynamic>;
+            debugPrint('Using prescriptions structure, found ${_prescriptions.length} prescriptions');
+          } else {
+            // Try to find any list in the response
+            _prescriptions = [];
+            jsonResponse.forEach((key, value) {
+              if (value is List && value.isNotEmpty) {
+                _prescriptions = value;
+                debugPrint('Found list in key "$key" with ${value.length} items');
+                return;
+              }
+            });
+            
+            if (_prescriptions.isEmpty) {
+              debugPrint('No matching structure found, prescriptions set to empty');
+              debugPrint('Available keys: ${jsonResponse.keys.toList()}');
+            }
           }
         } else if (jsonResponse is List) {
           _prescriptions = jsonResponse as List<dynamic>;
+          debugPrint('Response is direct list, found ${_prescriptions.length} prescriptions');
         } else {
           _prescriptions = [];
+          debugPrint('Response is neither Map nor List, prescriptions set to empty');
         }
         
         _errorMessage = null;
       } else {
         _prescriptions = [];
         _errorMessage = 'Failed to load prescriptions: ${response.statusCode}';
+        debugPrint('HTTP Error: ${response.statusCode}, Body: ${response.body}');
       }
     } catch (e) {
       _prescriptions = [];

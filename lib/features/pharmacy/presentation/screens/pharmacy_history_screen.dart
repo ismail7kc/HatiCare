@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:haticare/features/pharmacy/models/prescription_request.dart';
+import 'package:haticare/features/pharmacy/models/pharmacy_history_item.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_history_detail_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/widgets/pharmacy_history_card.dart';
 import 'package:http/http.dart' as http;
@@ -16,7 +16,7 @@ class PharmacyHistoryScreen extends StatefulWidget {
 }
 
 class _PharmacyHistoryScreenState extends State<PharmacyHistoryScreen> {
-  List<PrescriptionRequest> historyItems = [];
+  List<PharmacyHistoryItem> historyItems = [];
   bool isLoading = false;
   String? errorMessage;
 
@@ -56,23 +56,23 @@ class _PharmacyHistoryScreenState extends State<PharmacyHistoryScreen> {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = jsonDecode(response.body);
         
-        List<dynamic> prescriptionsList = [];
+        List<dynamic> historyList = [];
         if (jsonResponse is Map<String, dynamic>) {
           if (jsonResponse.containsKey('results') && 
               jsonResponse['results'] is Map<String, dynamic> &&
               jsonResponse['results'].containsKey('data') && 
               jsonResponse['results']['data'] is List) {
-            prescriptionsList = jsonResponse['results']['data'] as List<dynamic>;
+            historyList = jsonResponse['results']['data'] as List<dynamic>;
           } else if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
-            prescriptionsList = jsonResponse['data'] as List<dynamic>;
+            historyList = jsonResponse['data'] as List<dynamic>;
           }
         } else if (jsonResponse is List) {
-          prescriptionsList = jsonResponse as List<dynamic>;
+          historyList = jsonResponse as List<dynamic>;
         }
 
         setState(() {
-          historyItems = prescriptionsList.map((item) {
-            return PrescriptionRequest.fromJson(item as Map<String, dynamic>);
+          historyItems = historyList.map((item) {
+            return PharmacyHistoryItem.fromJson(item as Map<String, dynamic>);
           }).toList();
           isLoading = false;
         });
@@ -206,13 +206,13 @@ class _PharmacyHistoryScreenState extends State<PharmacyHistoryScreen> {
       itemBuilder: (context, index) {
         final item = historyItems[index];
         return PharmacyHistoryCard(
-          request: item,
+          item: item,
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) =>
-                    PharmacyHistoryDetailScreen(request: item),
+                    PharmacyHistoryDetailScreen(item: item),
               ),
             );
           },

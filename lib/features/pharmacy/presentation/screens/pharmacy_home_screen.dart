@@ -74,9 +74,15 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
   @override
   void initState() {
     super.initState();
-    // Fetch prescriptions on init
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PharmacyUserProvider>().fetchPrescriptions();
+    // Fetch profile first to check approval status, then prescriptions if approved
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final provider = context.read<PharmacyUserProvider>();
+      // Always fetch profile to check approval status
+      await provider.fetchProfile(forceRefresh: true);
+      // Only fetch prescriptions if approved
+      if (provider.isApproved) {
+        await provider.fetchPrescriptions();
+      }
     });
 
     // Initialize WebSocket connection
@@ -351,40 +357,47 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
 
               if (!pharmacyProvider.isApproved)
                 Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.lock_outline,
-                          size: 48,
-                          color: Colors.grey[400],
+                  child: RefreshIndicator(
+                    onRefresh: _onRefresh,
+                    color: AppColors.primary,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Waiting for Approval',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[600],
-                          ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.lock_outline,
+                              size: 48,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Waiting for Approval',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Your pharmacy account must be approved to view prescription statistics.\n\nPull down to refresh and check approval status.',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[500],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Your pharmacy account must be approved to view prescription statistics.',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[500],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 )
