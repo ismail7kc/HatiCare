@@ -42,17 +42,17 @@ class DoctorViewModel extends ChangeNotifier {
 
     final response = await repository.updateDoctorInfo(body);
 
-    final int statusCode = response['code'] ?? 0;
-    final bool isActive = response['data']?['is_active'] ?? true;
+    // final int statusCode = response['code'] ?? 0;
+    // final bool isActive = response['data']?['is_active'] ?? true;
 
-    if (statusCode == 401 || !isActive) {
-      debugPrint('Doctor is inactive or unauthorized. Showing global alert...');
-      await ForceLogoutHelper.showInactiveAccountAlert(
-        rootNavigatorKey.currentContext!,
-        message: response['message'],
-      );
-      return;
-    }
+    // if (statusCode == 401 || !isActive) {
+    //   debugPrint('Doctor is inactive or unauthorized. Showing global alert...');
+    //   await ForceLogoutHelper.showInactiveAccountAlert(
+    //     rootNavigatorKey.currentContext!,
+    //     message: response['message'],
+    //   );
+    //   return;
+    // }
 
     if (response['success'] == true && response['data'] != null) {
       debugPrint(
@@ -70,18 +70,18 @@ class DoctorViewModel extends ChangeNotifier {
     try {
       final response = await repository.getPatientQueue();
 
-      final int statusCode = response['code'] ?? 0;
-      final bool isActive = response['data']?['is_active'] ?? true;
+      // final int statusCode = response['code'] ?? 0;
+      // final bool isActive = response['data']?['is_active'] ?? true;
 
-      if (statusCode == 401 || !isActive) {
-        debugPrint('User inactive or unauthorized. Showing alert...');
-        await ForceLogoutHelper.showInactiveAccountAlert(
-          rootNavigatorKey.currentContext!,
-          message: response['message'],
-        );
+      // if (statusCode == 401 || !isActive) {
+      //   debugPrint('User inactive or unauthorized. Showing alert...');
+      //   await ForceLogoutHelper.showInactiveAccountAlert(
+      //     rootNavigatorKey.currentContext!,
+      //     message: response['message'],
+      //   );
 
-        return;
-      }
+      //   return;
+      // }
 
       if (response['success'] == true && response['data'] != null) {
         debugPrint('Fetch Patient Api Triggered');
@@ -120,7 +120,7 @@ class DoctorViewModel extends ChangeNotifier {
             final decoded = jsonDecode(message);
             final List<dynamic> patients = decoded['data'];
             bool shouldNotify = false;
-            
+
             if (decoded['success'] != true || decoded['data'] == null) return;
 
             for (final item in patients) {
