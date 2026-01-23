@@ -70,26 +70,22 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
 
     late final Map<String, dynamic> data;
 
-    if (widget.isFromEditScreen == true) {
-      data = {"id_document": file};
-    } else {
-      switch (widget.documentType) {
-        case DocumentType.passport:
-          data = {"id_type": "passport", "id_document": file};
-          break;
+    switch (widget.documentType) {
+      case DocumentType.passport:
+        data = {"id_type": "passport", "id_document": file};
+        break;
 
-        case DocumentType.idCard:
-          data = {"id_type": "Id_card", "id_document": file};
-          break;
+      case DocumentType.idCard:
+        data = {"id_type": "Id_card", "id_document": file};
+        break;
 
-        case DocumentType.driverLicense:
-          data = {"id_type": "nursing_license", "id_document": file};
-          break;
+      case DocumentType.driverLicense:
+        data = {"id_type": "nursing_license", "id_document": file};
+        break;
 
-        case null:
-          data = {"license_document": file};
-          break;
-      }
+      case null:
+        data = {"license_document": file};
+        break;
     }
 
     try {

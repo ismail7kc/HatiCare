@@ -309,14 +309,15 @@ class ApiClient {
     }
   }
 
-  Map<String, dynamic> _handlePatientVisitHistoryResponse(http.Response response) {
-  try {
-    final decoded = jsonDecode(response.body);
-    return Map<String, dynamic>.from(decoded);
-  } catch (e) {
-    debugPrint("Error decoding PatientVisitHistory response: $e");
-    return {};
+  Map<String, dynamic> _handlePatientVisitHistoryResponse(
+    http.Response response,
+  ) {
+    try {
+      final decoded = jsonDecode(response.body);
+      return Map<String, dynamic>.from(decoded);
+    } catch (e) {
+      debugPrint("Error decoding PatientVisitHistory response: $e");
+      return {};
+    }
   }
-}
-
 }
