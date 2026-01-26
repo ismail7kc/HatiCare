@@ -66,12 +66,9 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   void initState() {
     super.initState();
 
-    // Fetch profile first to check approval status, then prescriptions if approved
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = context.read<LaboratoryUserProvider>();
-      // Always fetch profile to check approval status
       await provider.fetchProfile(forceRefresh: true);
-      // Only fetch prescriptions if approved
       if (provider.isApproved) {
         await provider.fetchPrescriptions();
       }
@@ -82,11 +79,9 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     final provider = context.read<LaboratoryUserProvider>();
     await provider.fetchProfile(forceRefresh: true);
 
-    // Fetch prescriptions from API
     await provider.fetchPrescriptions();
   }
 
-  // Calculate available count for summary card
   int _getAvailableCount(List<dynamic> prescriptions) {
     int available = 0;
     for (final prescription in prescriptions) {
@@ -99,7 +94,6 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     return available;
   }
 
-  // Calculate delivered count
   int _getDeliveredCount(List<dynamic> prescriptions) {
     int delivered = 0;
     for (final prescription in prescriptions) {

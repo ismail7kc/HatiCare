@@ -12,7 +12,6 @@ import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_notific
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_settings_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-
 import '../providers/pharmacy_user_provider.dart';
 import 'prescription_details_screen.dart';
 

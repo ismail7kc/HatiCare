@@ -1,10 +1,10 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:chucker_flutter/chucker_flutter.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../common/shared_prefs_helper.dart';
 
 class PharmacyUserProvider extends ChangeNotifier {
   String _pharmacyName = '';
@@ -15,9 +15,6 @@ class PharmacyUserProvider extends ChangeNotifier {
   String? _errorMessage;
   List<dynamic> _prescriptions = [];
   bool _prescriptionsLoading = false;
-  List<dynamic> _filteredPrescriptions = [];
-  String _verifiedRxCode = '';
-  bool _isVerifying = false;
   bool _isApproved = false;
   String _approvalMessage = '';
 
@@ -27,10 +24,8 @@ class PharmacyUserProvider extends ChangeNotifier {
   String get licenseNumber => _licenseNumber;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  List<dynamic> get prescriptions => _verifiedRxCode.isNotEmpty ? _filteredPrescriptions : _prescriptions;
+  List<dynamic> get prescriptions => _prescriptions;
   bool get prescriptionsLoading => _prescriptionsLoading;
-  String get verifiedRxCode => _verifiedRxCode;
-  bool get isVerifying => _isVerifying;
   bool get isApproved => _isApproved;
   String get approvalMessage => _approvalMessage;
 
@@ -40,13 +35,12 @@ class PharmacyUserProvider extends ChangeNotifier {
 
   Future<void> _loadInitialData() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      _pharmacyName = prefs.getString('user_first_name') ?? '';
-      _profilePictureUrl = prefs.getString('pharmacy_profile_picture_url') ?? '';
+      await SaveLoginResponse.loadLoginModel();
+      _pharmacyName = SaveLoginResponse.loginData?['pharmacy_name'] ?? '';
       notifyListeners();
       fetchProfile();
     } catch (e) {
-      debugPrint('Error loading initial data: $e');
+      // Error loading initial data handled silently
     }
   }
 
@@ -58,34 +52,39 @@ class PharmacyUserProvider extends ChangeNotifier {
       }
 
       final prefs = await SharedPreferences.getInstance();
-      final pharmacyId = prefs.getString('pharmacy_id') ?? '';
+      final pharmacyId = SaveLoginResponse.loginData?['id'] ?? '';
       final accessToken = prefs.getString('access_token') ?? '';
 
-      if (pharmacyId.isEmpty) {
+      if (pharmacyId.toString().isEmpty) {
         _isLoading = false;
         notifyListeners();
         return;
       }
 
       final uri = Uri.parse('${AppConfig.baseUrl}phar/pharmacies/$pharmacyId/');
-      final cacheBuster = forceRefresh ? '?t=${DateTime.now().millisecondsSinceEpoch}' : '';
+      final cacheBuster = forceRefresh
+          ? '?t=${DateTime.now().millisecondsSinceEpoch}'
+          : '';
       final finalUri = Uri.parse('$uri$cacheBuster');
 
       final client = ChuckerHttpClient(http.Client());
-      final response = await client.get(
-        finalUri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-        },
-      ).timeout(const Duration(seconds: 30));
+      final response = await client
+          .get(
+            finalUri,
+            headers: {
+              'Authorization': 'Bearer $accessToken',
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache',
+            },
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = jsonDecode(response.body);
         dynamic data;
-        if (jsonResponse is Map<String, dynamic> && jsonResponse.containsKey('data')) {
+        if (jsonResponse is Map<String, dynamic> &&
+            jsonResponse.containsKey('data')) {
           data = jsonResponse['data'];
         } else {
           data = jsonResponse;
@@ -96,35 +95,34 @@ class PharmacyUserProvider extends ChangeNotifier {
           _profilePictureUrl = data['profile_picture'] ?? '';
           _contactPerson = data['contact_person'] ?? '';
           _licenseNumber = data['license_number'] ?? '';
-          
-          // Save profile picture URL to SharedPreferences
-          if (_profilePictureUrl.isNotEmpty) {
-            await prefs.setString('pharmacy_profile_picture_url', _profilePictureUrl);
-          }
-          
-          // Check approval status - multiple field names for compatibility
-          _isApproved = (data['is_approved'] == true || 
-                        data['approved'] == true || 
-                        data['is_approved_by_admin'] == true ||
-                        data['pharmacy_approved'] == true);
-          
+
+          _isApproved = (data['is_approved'] == true);
+
           // Store approval message if present
           if (data.containsKey('approval_message')) {
             _approvalMessage = data['approval_message'] ?? '';
           } else if (data.containsKey('status_message')) {
             _approvalMessage = data['status_message'] ?? '';
           } else if (!_isApproved) {
-            _approvalMessage = 'Your pharmacy account is not approved';
+            _approvalMessage = "Waiting For Admin's Approval";
           } else {
             _approvalMessage = '';
           }
-          
+
           _errorMessage = null;
-          
+
+          // Update SaveLoginResponse and SharedPreferences
           if (_pharmacyName.isNotEmpty) {
-             await prefs.setString('user_first_name', _pharmacyName);
+            SaveLoginResponse.loginData?['pharmacy_name'] = _pharmacyName;
           }
-          
+
+          if (_profilePictureUrl.isNotEmpty) {
+            SaveLoginResponse.loginData?['profile_picture'] = _profilePictureUrl;
+          }
+
+          SaveLoginResponse.loginData?['is_approved'] = _isApproved;
+
+          // Save approval status to preferences for offline checking
           await prefs.setBool('pharmacy_is_approved', _isApproved);
           await prefs.setString('pharmacy_approval_message', _approvalMessage);
         }
@@ -133,16 +131,10 @@ class PharmacyUserProvider extends ChangeNotifier {
       }
     } catch (e) {
       _errorMessage = 'Error loading profile: $e';
-      debugPrint('Error fetching pharmacy profile: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
-  }
-  
-  void updateProfilePicture(String newUrl) {
-    _profilePictureUrl = newUrl;
-    notifyListeners();
   }
 
   Future<void> fetchPrescriptions() async {
@@ -160,7 +152,7 @@ class PharmacyUserProvider extends ChangeNotifier {
         return;
       }
 
-      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/list');
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/list/');
       final client = ChuckerHttpClient(http.Client());
       final response = await client.get(
         uri,
@@ -172,120 +164,38 @@ class PharmacyUserProvider extends ChangeNotifier {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = jsonDecode(response.body);
-        debugPrint('Prescriptions Response: ${response.body}');
-        debugPrint('Response type: ${jsonResponse.runtimeType}');
-        debugPrint('Response keys: ${jsonResponse is Map ? (jsonResponse as Map).keys : 'Not a Map'}');
         
-        if (jsonResponse is Map<String, dynamic>) {
-          debugPrint('Checking response structure...');
-          debugPrint('Has results key: ${jsonResponse.containsKey('results')}');
-          debugPrint('Has data key: ${jsonResponse.containsKey('data')}');
-          
-          // Try different possible structures
-          if (jsonResponse.containsKey('results') && 
-              jsonResponse['results'] is Map<String, dynamic> &&
-              jsonResponse['results'].containsKey('data') && 
-              jsonResponse['results']['data'] is List) {
-            // Structure: { "results": { "data": [...] } }
-            _prescriptions = jsonResponse['results']['data'] as List<dynamic>;
-            debugPrint('Using results.data structure, found ${_prescriptions.length} prescriptions');
-          } else if (jsonResponse.containsKey('results') && 
-              jsonResponse['results'] is Map<String, dynamic>) {
-            // Structure: { "results": { ... } } - check what's inside
-            debugPrint('Results is a Map with keys: ${(jsonResponse['results'] as Map).keys.toList()}');
-            debugPrint('Results data type: ${jsonResponse['results']['data'].runtimeType}');
-            debugPrint('Results data value: ${jsonResponse['results']['data']}');
-            
-            // Try to find any list in results
-            final results = jsonResponse['results'] as Map<String, dynamic>;
-            _prescriptions = [];
-            results.forEach((key, value) {
-              if (value is List && value.isNotEmpty) {
-                _prescriptions = value;
-                debugPrint('Found list in results.$key with ${value.length} items');
-                return;
-              }
-            });
-            
-            if (_prescriptions.isEmpty) {
-              debugPrint('No list found in results, checking all keys...');
-              debugPrint('All results keys: ${results.keys.toList()}');
-              // If still no list found, try to convert entire results to list
-              _prescriptions = [results];
-              debugPrint('Using entire results as single item');
-            }
-          } else if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
-            // Structure: { "data": [...] }
-            _prescriptions = jsonResponse['data'] as List<dynamic>;
-            debugPrint('Using data structure, found ${_prescriptions.length} prescriptions');
-          } else if (jsonResponse.containsKey('results') && jsonResponse['results'] is List) {
-            // Structure: { "results": [...] }
-            _prescriptions = jsonResponse['results'] as List<dynamic>;
-            debugPrint('Using results structure, found ${_prescriptions.length} prescriptions');
-          } else if (jsonResponse.containsKey('items') && jsonResponse['items'] is List) {
-            // Structure: { "items": [...] }
-            _prescriptions = jsonResponse['items'] as List<dynamic>;
-            debugPrint('Using items structure, found ${_prescriptions.length} prescriptions');
-          } else if (jsonResponse.containsKey('prescriptions') && jsonResponse['prescriptions'] is List) {
-            // Structure: { "prescriptions": [...] }
-            _prescriptions = jsonResponse['prescriptions'] as List<dynamic>;
-            debugPrint('Using prescriptions structure, found ${_prescriptions.length} prescriptions');
-          } else {
-            // Try to find any list in the response
-            _prescriptions = [];
-            jsonResponse.forEach((key, value) {
-              if (value is List && value.isNotEmpty) {
-                _prescriptions = value;
-                debugPrint('Found list in key "$key" with ${value.length} items');
-                return;
-              }
-            });
-            
-            if (_prescriptions.isEmpty) {
-              debugPrint('No matching structure found, prescriptions set to empty');
-              debugPrint('Available keys: ${jsonResponse.keys.toList()}');
-            }
-          }
-        } else if (jsonResponse is List) {
-          _prescriptions = jsonResponse as List<dynamic>;
-          debugPrint('Response is direct list, found ${_prescriptions.length} prescriptions');
+        if (jsonResponse['results'] != null && 
+            jsonResponse['results']['data'] != null) {
+          _prescriptions = jsonResponse['results']['data'] as List<dynamic>;
+        } else if (jsonResponse['data'] != null) {
+          _prescriptions = jsonResponse['data'] as List<dynamic>;
+        } else if (jsonResponse['results'] != null) {
+          _prescriptions = jsonResponse['results'] as List<dynamic>;
+        } else if (jsonResponse['items'] != null) {
+          _prescriptions = jsonResponse['items'] as List<dynamic>;
+        } else if (jsonResponse['prescriptions'] != null) {
+          _prescriptions = jsonResponse['prescriptions'] as List<dynamic>;
         } else {
           _prescriptions = [];
-          debugPrint('Response is neither Map nor List, prescriptions set to empty');
         }
-        
         _errorMessage = null;
       } else {
         _prescriptions = [];
         _errorMessage = 'Failed to load prescriptions: ${response.statusCode}';
-        debugPrint('HTTP Error: ${response.statusCode}, Body: ${response.body}');
       }
     } catch (e) {
       _prescriptions = [];
       _errorMessage = 'Error loading prescriptions: $e';
-      debugPrint('Error fetching prescriptions: $e');
     } finally {
       _prescriptionsLoading = false;
       notifyListeners();
     }
   }
 
-  Future<void> verifyRxCode(String rxCode) async {
+  Future<void> fetchPrescriptionsForInventory() async {
     try {
-      // Validate RX code length before API call
-      if (rxCode.isEmpty) {
-        _errorMessage = 'Please enter an RX code';
-        notifyListeners();
-        return;
-      }
-
-      if (rxCode.length < 6) {
-        _errorMessage = 'RX code must be at least 6 characters';
-        notifyListeners();
-        return;
-      }
-
-      _isVerifying = true;
+      _prescriptionsLoading = true;
       notifyListeners();
 
       final prefs = await SharedPreferences.getInstance();
@@ -293,112 +203,72 @@ class PharmacyUserProvider extends ChangeNotifier {
 
       if (accessToken.isEmpty) {
         _errorMessage = 'No authentication token found';
-        _isVerifying = false;
+        _prescriptionsLoading = false;
         notifyListeners();
         return;
       }
 
-      // Check if pharmacy is approved before verifying
-      final isApproved = prefs.getBool('pharmacy_is_approved') ?? false;
-      if (!isApproved) {
-        _errorMessage = 'Your pharmacy account is not approved';
-        _isVerifying = false;
-        notifyListeners();
-        return;
-      }
-
-      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/verify/');
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/assigned/');
       final client = ChuckerHttpClient(http.Client());
-      final response = await client.post(
+      final response = await client.get(
         uri,
         headers: {
           'Authorization': 'Bearer $accessToken',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'rex_code': rxCode}),
       ).timeout(const Duration(seconds: 30));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = jsonDecode(response.body);
         
-        if (jsonResponse is Map<String, dynamic>) {
-          if (jsonResponse.containsKey('data') && jsonResponse['data'] is Map) {
-            _filteredPrescriptions = [jsonResponse['data']];
-            _verifiedRxCode = rxCode;
-            _errorMessage = null;
-          } else if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
-            final dataList = jsonResponse['data'] as List<dynamic>;
-            if (dataList.isNotEmpty) {
-              _filteredPrescriptions = dataList;
-              _verifiedRxCode = rxCode;
-              _errorMessage = null;
-            } else {
-              // Empty list - show all prescriptions
-              _filteredPrescriptions = [];
-              _verifiedRxCode = '';
-              _errorMessage = 'No prescription found for this RX code';
-            }
-          } else if (jsonResponse.containsKey('detail')) {
-            // API returned error message
-            _filteredPrescriptions = [];
-            _verifiedRxCode = '';
-            final errorMessage = jsonResponse['detail']?.toString() ?? 'RX Code not found';
-            
-            // Check if it's an approval error and update approval status if needed
-            if (errorMessage.toLowerCase().contains('approved') || 
-                errorMessage.toLowerCase().contains('approval') ||
-                errorMessage.toLowerCase().contains('only approved')) {
-              _isApproved = false;
-              _approvalMessage = errorMessage;
-              await prefs.setBool('pharmacy_is_approved', false);
-              await prefs.setString('pharmacy_approval_message', errorMessage);
-            }
-            
-            _errorMessage = errorMessage;
-          } else {
-            _filteredPrescriptions = [jsonResponse];
-            _verifiedRxCode = rxCode;
-            _errorMessage = null;
-          }
-        } else if (jsonResponse is List) {
-          final dataList = jsonResponse as List<dynamic>;
-          if (dataList.isNotEmpty) {
-            _filteredPrescriptions = dataList;
-            _verifiedRxCode = rxCode;
-            _errorMessage = null;
-          } else {
-            _filteredPrescriptions = [];
-            _verifiedRxCode = '';
-            _errorMessage = 'No prescription found for this RX code';
-          }
+        if (jsonResponse['results'] != null && 
+            jsonResponse['results']['data'] != null) {
+          _prescriptions = jsonResponse['results']['data'] as List<dynamic>;
+        } else if (jsonResponse['data'] != null) {
+          _prescriptions = jsonResponse['data'] as List<dynamic>;
+        } else if (jsonResponse['results'] != null) {
+          _prescriptions = jsonResponse['results'] as List<dynamic>;
+        } else if (jsonResponse['items'] != null) {
+          _prescriptions = jsonResponse['items'] as List<dynamic>;
+        } else if (jsonResponse['prescriptions'] != null) {
+          _prescriptions = jsonResponse['prescriptions'] as List<dynamic>;
         } else {
-          _filteredPrescriptions = [];
-          _verifiedRxCode = '';
-          _errorMessage = 'Invalid response format';
+          _prescriptions = [];
         }
+        
+        _errorMessage = null;
       } else {
-        _filteredPrescriptions = [];
-        _verifiedRxCode = '';
-        if (response.statusCode == 404) {
-          _errorMessage = 'RX Code not found';
-        } else {
-          _errorMessage = 'Error: ${response.statusCode}';
-        }
+        _prescriptions = [];
+        _errorMessage = 'Failed to load prescriptions: ${response.statusCode}';
       }
     } catch (e) {
-      _filteredPrescriptions = [];
-      _verifiedRxCode = '';
-      _errorMessage = 'Error verifying RX code: $e';
-      debugPrint('Error verifying RX code: $e');
+      _prescriptions = [];
+      _errorMessage = 'Error loading prescriptions: $e';
     } finally {
-      _isVerifying = false;
+      _prescriptionsLoading = false;
       notifyListeners();
     }
   }
 
+  void updateProfilePicture(String newUrl) {
+    _profilePictureUrl = newUrl;
+    SaveLoginResponse.loginData?['profile_picture'] = newUrl;
+    notifyListeners();
+  }
+
+  void updatePharmacyName(String pharmacyName) {
+    _pharmacyName = pharmacyName;
+    SaveLoginResponse.loginData?['pharmacy_name'] = pharmacyName;
+    notifyListeners();
+  }
+
+  void updateContactPerson(String contactPerson) {
+    _contactPerson = contactPerson;
+    SaveLoginResponse.loginData?['contact_person'] = contactPerson;
+    notifyListeners();
+  }
+
   void clearSearch() {
-    _verifiedRxCode = '';
-    _filteredPrescriptions = [];
     _errorMessage = null;
     fetchPrescriptions();
   }

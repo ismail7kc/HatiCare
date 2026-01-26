@@ -308,7 +308,6 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                 ),
                 const SizedBox(height: 4),
 
-                // Inventory Content
                 const Padding(
                   padding: EdgeInsets.only(left: 18.0),
                   child: Text(
