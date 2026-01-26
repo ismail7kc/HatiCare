@@ -4,6 +4,8 @@ import 'package:haticare/core/services/device_id_provider.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/common/repository_layer.dart';
 import 'package:haticare/features/doctor/models/appointment_model.dart';
+import 'package:haticare/features/doctor/presentation/viewModel/force_logout_helper.dart';
+import 'package:haticare/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:async';
@@ -38,11 +40,24 @@ class DoctorViewModel extends ChangeNotifier {
   Future<void> isDoctorOnline({required bool isOnline}) async {
     final body = {'is_online': isOnline};
 
-    // update PATCH request if doctor have patient or not
     final response = await repository.updateDoctorInfo(body);
 
+    // final int statusCode = response['code'] ?? 0;
+    // final bool isActive = response['data']?['is_active'] ?? true;
+
+    // if (statusCode == 401 || !isActive) {
+    //   debugPrint('Doctor is inactive or unauthorized. Showing global alert...');
+    //   await ForceLogoutHelper.showInactiveAccountAlert(
+    //     rootNavigatorKey.currentContext!,
+    //     message: response['message'],
+    //   );
+    //   return;
+    // }
+
     if (response['success'] == true && response['data'] != null) {
-      debugPrint('Response when docter send online true $response[message]');
+      debugPrint(
+        'Response when doctor sent online true: ${response['message']}',
+      );
       notifyListeners();
     }
   }
@@ -54,6 +69,19 @@ class DoctorViewModel extends ChangeNotifier {
 
     try {
       final response = await repository.getPatientQueue();
+
+      // final int statusCode = response['code'] ?? 0;
+      // final bool isActive = response['data']?['is_active'] ?? true;
+
+      // if (statusCode == 401 || !isActive) {
+      //   debugPrint('User inactive or unauthorized. Showing alert...');
+      //   await ForceLogoutHelper.showInactiveAccountAlert(
+      //     rootNavigatorKey.currentContext!,
+      //     message: response['message'],
+      //   );
+
+      //   return;
+      // }
 
       if (response['success'] == true && response['data'] != null) {
         debugPrint('Fetch Patient Api Triggered');
@@ -90,12 +118,10 @@ class DoctorViewModel extends ChangeNotifier {
 
           try {
             final decoded = jsonDecode(message);
+            final List<dynamic> patients = decoded['data'];
+            bool shouldNotify = false;
 
             if (decoded['success'] != true || decoded['data'] == null) return;
-
-            final List<dynamic> patients = decoded['data'];
-
-            bool shouldNotify = false;
 
             for (final item in patients) {
               final int visitId = item['id'];
@@ -104,7 +130,6 @@ class DoctorViewModel extends ChangeNotifier {
               _appointments.removeWhere((e) => e.id == visitId);
 
               if (status == 'pending') {
-
                 _appointments.insert(0, AppointmentModel.fromJson(item));
                 _startQueueTimer();
                 shouldNotify = true;

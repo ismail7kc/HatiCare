@@ -10,6 +10,7 @@ import 'package:haticare/features/auth/domain/repositories/auth_repository.dart'
 import 'package:haticare/features/pharmacy/presentation/providers/pharmacy_user_provider.dart';
 import 'package:flutter_libphonenumber/flutter_libphonenumber.dart';
 
+final GlobalKey<NavigatorState> rootNavigatorKey  = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,8 +42,10 @@ class MyApp extends StatelessWidget {
               AuthRepositoryImpl(context.read<RemoteAuthApiService>()),
         ),
         ChangeNotifierProvider(create: (_) => PharmacyUserProvider()),
+
       ],
       child: MaterialApp(
+        navigatorKey: rootNavigatorKey,
         title: 'HatiCare',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
