@@ -441,16 +441,11 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
   }
 
   Future<void> _showAvailabilityBottomSheet() async {
-    debugPrint('Opening availability bottom sheet...');
-    debugPrint('Medications count: ${widget.request.medications.length}');
 
-    // Create a map to track availability for each medication
     Map<int, Map<String, dynamic>> medicationAvailability = {};
     for (int i = 0; i < widget.request.medications.length; i++) {
       final instructions = widget.request.medications[i].instructions;
-      debugPrint('Medication $i instructions: $instructions');
       final requiredQty = _extractQuantity(instructions) ?? 1;
-      debugPrint('Extracted quantity: $requiredQty');
 
       medicationAvailability[i] = {
         'isAvailable': true,
@@ -459,17 +454,13 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
       };
     }
 
-    debugPrint('Medication availability map created: $medicationAvailability');
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
-        debugPrint('Building bottom sheet...');
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
-            debugPrint('StatefulBuilder called');
             return Container(
               height: MediaQuery.of(context).size.height * 0.7,
               decoration: const BoxDecoration(
@@ -522,7 +513,6 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       itemCount: widget.request.medications.length,
                       itemBuilder: (context, index) {
-                        debugPrint('Building medication item $index');
                         final medication = widget.request.medications[index];
                         final availability = medicationAvailability[index]!;
 
@@ -541,9 +531,6 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                                   Checkbox(
                                     value: availability['isAvailable'],
                                     onChanged: (value) {
-                                      debugPrint(
-                                        'Checkbox changed for item $index: $value',
-                                      );
                                       setModalState(() {
                                         availability['isAvailable'] =
                                             value ?? false;
@@ -686,7 +673,6 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () {
-                              debugPrint('Cancel button pressed');
                               Navigator.pop(context);
                             },
                             style: OutlinedButton.styleFrom(
@@ -710,7 +696,6 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () {
-                              debugPrint('Confirm button pressed');
                               Navigator.pop(context);
                               _submitAvailabilityFromBottomSheet(medicationAvailability);
                             },

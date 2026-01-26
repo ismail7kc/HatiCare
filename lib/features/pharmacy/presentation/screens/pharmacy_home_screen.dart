@@ -3,17 +3,15 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/core/widgets/prescription_list_item.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
 import 'package:haticare/features/pharmacy/models/prescription_request.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_history_screen.dart';
-import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_inventory_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_assigned_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_notifications_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_settings_screen.dart';
-import 'package:haticare/features/pharmacy/presentation/widgets/shimmer_effect.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-
 import '../providers/pharmacy_user_provider.dart';
 import 'prescription_details_screen.dart';
 
@@ -37,16 +35,13 @@ class _PharmacyHomeScreenState extends State<PharmacyHomeScreen> {
       child: CustomBottomNav(
         screens: const [
           PharmacyHomeTabScreen(),
-          PharmacyInventoryScreen(),
+          PharmacyAssignedScreen(),
           PharmacyHistoryScreen(),
           PharmacySettingsScreen(),
         ],
         tabs: const [
           TabItemData(title: "Home", iconPath: 'assets/icons/home.svg'),
-          TabItemData(
-            title: "Inventory",
-            iconPath: 'assets/icons/inventory.svg',
-          ),
+          TabItemData(title: "Assigned", iconPath: 'assets/icons/inventory.svg',),
           TabItemData(title: "History", iconPath: 'assets/icons/history.svg'),
           TabItemData(title: "Settings", iconPath: 'assets/icons/setting.svg'),
         ],
@@ -75,9 +70,16 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
   @override
   void initState() {
     super.initState();
-    // Fetch prescriptions on init
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PharmacyUserProvider>().fetchPrescriptions();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final provider = context.read<PharmacyUserProvider>();
+      await provider.fetchProfile(forceRefresh: true);
+      if (!mounted) return;
+
+      if (provider.isApproved) {
+        await provider.fetchPrescriptions();
+      } else {
+        await provider.fetchPrescriptions();
+      }
     });
 
     // Initialize WebSocket connection
@@ -103,10 +105,8 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
           try {
             final data = jsonDecode(message);
             final isSuccess = data['results']['success'] == true;
-            if ((isSuccess) && (data['results']['data'] !=null)){
-
+            if ((isSuccess) && (data['results']['data'] != null)) {
               await context.read<PharmacyUserProvider>().fetchPrescriptions();
-              
             }
 
             if (_isDisposed) return;
@@ -153,10 +153,9 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     final provider = context.read<PharmacyUserProvider>();
     // Fetch profile to check approval status
     await provider.fetchProfile(forceRefresh: true);
-    // Fetch prescriptions if approved
-    if (provider.isApproved) {
-      await provider.fetchPrescriptions();
-    }
+    if (!mounted) return;
+
+    await provider.fetchPrescriptions();
   }
 
   // Calculate available count for summary card
@@ -254,19 +253,16 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                                 style: TextStyle(color: Colors.grey),
                               ),
                               Text(
-                                      pharmacyProvider.pharmacyName.isNotEmpty
-                                          ? (pharmacyProvider
-                                                        .pharmacyName
-                                                        .length >
-                                                    15
-                                                ? '${pharmacyProvider.pharmacyName.substring(0, 15)}...'
-                                                : pharmacyProvider.pharmacyName)
-                                          : 'Pharmacy',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                      ),
-                                    ),
+                                pharmacyProvider.pharmacyName.isNotEmpty
+                                    ? (pharmacyProvider.pharmacyName.length > 15
+                                          ? '${pharmacyProvider.pharmacyName.substring(0, 15)}...'
+                                          : pharmacyProvider.pharmacyName)
+                                    : 'Pharmacy',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -357,40 +353,47 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
 
               if (!pharmacyProvider.isApproved)
                 Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.lock_outline,
-                          size: 48,
-                          color: Colors.grey[400],
+                  child: RefreshIndicator(
+                    onRefresh: _onRefresh,
+                    color: AppColors.primary,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Waiting for Approval',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[600],
-                          ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.lock_outline,
+                              size: 48,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Waiting for Approval',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Your pharmacy account must be approved to view prescription statistics.\n\nPull down to refresh and check approval status.',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[500],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Your pharmacy account must be approved to view prescription statistics.',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[500],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 )
@@ -526,7 +529,27 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                                       ? 12
                                       : 0,
                                 ),
-                                child: _buildRequestCard(request),
+                                child: PrescriptionListItem(
+                                  data: {
+                                    'patient_name': request.patientName,
+                                    'patient_age': request.patientAge
+                                        .toString(),
+                                    'doctor_name': request.doctorName,
+                                    'created_at': request.dateIssued
+                                        .toIso8601String(),
+                                    'medications': request.medications
+                                        .map(
+                                          (med) => {
+                                            'name': med.name,
+                                            'dose': med.dosage,
+                                            'frequency': med.instructions,
+                                          },
+                                        )
+                                        .toList(),
+                                  },
+                                  itemType: ItemType.prescription,
+                                  onTap: () => _openPrescriptionDetails(request),
+                                ),
                               );
                             },
                           ),
@@ -601,7 +624,8 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
       patientGender: data['patient_gender']?.toString() ?? 'Male',
       patientDob: data['patient_dob']?.toString() ?? '1992-11-15',
       doctorName: data['doctor_name']?.toString() ?? 'Dr. Unknown',
-      doctorSpecialty: data['doctor_specialty']?.toString() ?? 'General Physician',
+      doctorSpecialty:
+          data['doctor_specialty']?.toString() ?? 'General Physician',
       dateIssued: issuedDate,
       status: status,
       medications: medications,
@@ -639,168 +663,5 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     }
 
     return 'N/A';
-  }
-
-  Widget _buildRequestCard(PrescriptionRequest request) {
-    final formattedDate = DateFormat('dd-MM-yyyy').format(request.dateIssued);
-    final formattedTime = DateFormat('h:mm a').format(request.dateIssued);
-    final medicationSummary = request.medications
-        .map((med) => med.name)
-        .where((name) => name.isNotEmpty)
-        .join(', ');
-
-    return InkWell(
-      onTap: () => _openPrescriptionDetails(request),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey[200]!),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SvgPicture.asset(
-                    'assets/icons/new_prescription_icon.svg',
-                    width: 28,
-                    height: 28,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ShaderMask(
-                      shaderCallback: (bounds) =>
-                          AppColors.primaryGradient.createShader(bounds),
-                      child: const Text(
-                        'New Prescription',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        formattedDate,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        formattedTime,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  SvgPicture.asset(
-                    'assets/icons/patient_icon.svg',
-                    width: 22,
-                    height: 22,
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Patient',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      Text(
-                        '${request.patientName}, ${request.patientAge}',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              if (medicationSummary.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  medicationSummary,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.primary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  SvgPicture.asset(
-                    'assets/icons/doctor_icon.svg',
-                    width: 22,
-                    height: 22,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Doctor',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                        Text(
-                          request.doctorName,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SvgPicture.asset(
-                    'assets/icons/arrow_forward_line_icon.svg',
-                    width: 26,
-                    height: 26,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
