@@ -13,9 +13,18 @@ class LaboratoryUserProvider extends ChangeNotifier {
   String _licenseNumber = '';
   bool _isLoading = true;
   String? _errorMessage;
-  List<dynamic> _testRequests = [];
-  List<dynamic> _completedTestRequests = []; // Backward compatibility
+  
+  // Separate lists for different screens
+  List<dynamic> _newRequests = []; // For Laboratory Home Screen (list endpoint)
+  List<dynamic> _assignedRequests = []; // For Laboratory Inventory Screen (assigned endpoint)
+  List<dynamic> _testRequests = []; // Backward compatibility
+  List<dynamic> _completedTestRequests = []; // For History Screen
+  
+  // Separate loading states
+  bool _newRequestsLoading = false;
+  bool _assignedRequestsLoading = false;
   bool _testRequestsLoading = false;
+  
   bool _isVerifying = false; // Backward compatibility
   String _verifiedRxCode = ''; // Backward compatibility
   bool _isApproved = false;
@@ -27,13 +36,21 @@ class LaboratoryUserProvider extends ChangeNotifier {
   String get licenseNumber => _licenseNumber;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  
+  // New getters for separate lists
+  List<dynamic> get newRequests => _newRequests;
+  List<dynamic> get assignedRequests => _assignedRequests;
+  bool get newRequestsLoading => _newRequestsLoading;
+  bool get assignedRequestsLoading => _assignedRequestsLoading;
+  
+  // Backward compatibility getters
   List<dynamic> get testRequests => _testRequests;
-  List<dynamic> get prescriptions => _testRequests; // Backward compatibility
-  List<dynamic> get completedTestRequests => _completedTestRequests; // Backward compatibility
+  List<dynamic> get prescriptions => _newRequests; // Point to new requests for home screen
+  List<dynamic> get completedTestRequests => _completedTestRequests;
   bool get testRequestsLoading => _testRequestsLoading;
-  bool get prescriptionsLoading => _testRequestsLoading; // Backward compatibility
-  bool get isVerifying => _isVerifying; // Backward compatibility
-  String get verifiedRxCode => _verifiedRxCode; // Backward compatibility
+  bool get prescriptionsLoading => _newRequestsLoading; // Point to new requests loading
+  bool get isVerifying => _isVerifying;
+  String get verifiedRxCode => _verifiedRxCode;
   bool get isApproved => _isApproved;
   String get approvalMessage => _approvalMessage;
 
@@ -145,9 +162,9 @@ class LaboratoryUserProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> fetchTestRequests() async {
+  Future<void> fetchNewRequests() async {
     try {
-      _testRequestsLoading = true;
+      _newRequestsLoading = true;
       notifyListeners();
 
       final prefs = await SharedPreferences.getInstance();
@@ -155,7 +172,7 @@ class LaboratoryUserProvider extends ChangeNotifier {
 
       if (accessToken.isEmpty) {
         _errorMessage = 'No authentication token found';
-        _testRequestsLoading = false;
+        _newRequestsLoading = false;
         notifyListeners();
         return;
       }
@@ -175,40 +192,157 @@ class LaboratoryUserProvider extends ChangeNotifier {
         
         if (jsonResponse['results'] != null && 
             jsonResponse['results']['data'] != null) {
-          _testRequests = jsonResponse['results']['data'] as List<dynamic>;
+          _newRequests = jsonResponse['results']['data'] as List<dynamic>;
         } else if (jsonResponse['data'] != null) {
-          _testRequests = jsonResponse['data'] as List<dynamic>;
+          _newRequests = jsonResponse['data'] as List<dynamic>;
         } else if (jsonResponse['results'] != null) {
-          _testRequests = jsonResponse['results'] as List<dynamic>;
+          _newRequests = jsonResponse['results'] as List<dynamic>;
         } else if (jsonResponse['items'] != null) {
-          _testRequests = jsonResponse['items'] as List<dynamic>;
+          _newRequests = jsonResponse['items'] as List<dynamic>;
         } else if (jsonResponse['test_requests'] != null) {
-          _testRequests = jsonResponse['test_requests'] as List<dynamic>;
+          _newRequests = jsonResponse['test_requests'] as List<dynamic>;
         } else {
-          _testRequests = [];
+          _newRequests = [];
         }
         
         _errorMessage = null;
       } else {
-        _testRequests = [];
-        _errorMessage = 'Failed to load test requests: ${response.statusCode}';
+        _newRequests = [];
+        _errorMessage = 'Failed to load new requests: ${response.statusCode}';
       }
     } catch (e) {
-      _testRequests = [];
-      _errorMessage = 'Error loading test requests: $e';
+      _newRequests = [];
+      _errorMessage = 'Error loading new requests: $e';
     } finally {
-      _testRequestsLoading = false;
+      _newRequestsLoading = false;
       notifyListeners();
     }
   }
 
+  Future<void> fetchTestRequests() async {
+    // Backward compatibility - calls fetchNewRequests
+    await fetchNewRequests();
+  }
+
   Future<void> fetchPrescriptions() async {
-    // Backward compatibility - just call fetchTestRequests
-    await fetchTestRequests();
+    // Backward compatibility - calls fetchNewRequests
+    await fetchNewRequests();
   }
 
   Future<void> fetchAssignedPrescriptions() async {
-    await fetchTestRequests();
+    try {
+      _assignedRequestsLoading = true;
+      notifyListeners();
+
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token') ?? '';
+
+      if (accessToken.isEmpty) {
+        _errorMessage = 'No authentication token found';
+        _assignedRequestsLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/assigned/');
+      final client = ChuckerHttpClient(http.Client());
+      final response = await client.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = jsonDecode(response.body);
+        
+        if (jsonResponse['results'] != null && 
+            jsonResponse['results']['data'] != null) {
+          _assignedRequests = jsonResponse['results']['data'] as List<dynamic>;
+        } else if (jsonResponse['data'] != null) {
+          _assignedRequests = jsonResponse['data'] as List<dynamic>;
+        } else if (jsonResponse['results'] != null) {
+          _assignedRequests = jsonResponse['results'] as List<dynamic>;
+        } else if (jsonResponse['items'] != null) {
+          _assignedRequests = jsonResponse['items'] as List<dynamic>;
+        } else if (jsonResponse['test_requests'] != null) {
+          _assignedRequests = jsonResponse['test_requests'] as List<dynamic>;
+        } else {
+          _assignedRequests = [];
+        }
+        
+        _errorMessage = null;
+      } else {
+        _assignedRequests = [];
+        _errorMessage = 'Failed to load assigned prescriptions: ${response.statusCode}';
+      }
+    } catch (e) {
+      _assignedRequests = [];
+      _errorMessage = 'Error loading assigned prescriptions: $e';
+    } finally {
+      _assignedRequestsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchHistory() async {
+    try {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token') ?? '';
+
+      if (accessToken.isEmpty) {
+        _errorMessage = 'No authentication token found';
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/history/');
+      final client = ChuckerHttpClient(http.Client());
+      final response = await client.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = jsonDecode(response.body);
+        
+        // Parse the response and extract the history data
+        if (jsonResponse['results'] != null && 
+            jsonResponse['results']['data'] != null) {
+          _completedTestRequests = jsonResponse['results']['data'] as List<dynamic>;
+        } else if (jsonResponse['data'] != null) {
+          _completedTestRequests = jsonResponse['data'] as List<dynamic>;
+        } else if (jsonResponse['results'] != null) {
+          _completedTestRequests = jsonResponse['results'] as List<dynamic>;
+        } else if (jsonResponse['items'] != null) {
+          _completedTestRequests = jsonResponse['items'] as List<dynamic>;
+        } else if (jsonResponse['history'] != null) {
+          _completedTestRequests = jsonResponse['history'] as List<dynamic>;
+        } else {
+          _completedTestRequests = [];
+        }
+        
+        _errorMessage = null;
+      } else {
+        _completedTestRequests = [];
+        _errorMessage = 'Failed to load history: ${response.statusCode}';
+      }
+    } catch (e) {
+      _completedTestRequests = [];
+      _errorMessage = 'Error loading history: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   void updateProfilePicture(String newUrl) {
@@ -236,9 +370,49 @@ class LaboratoryUserProvider extends ChangeNotifier {
 
   // Backward compatibility methods
   Future<void> acceptPrescription(String statusId) async {
-    // Empty implementation for backward compatibility
-    _errorMessage = null;
-    notifyListeners();
+    try {
+      _errorMessage = null;
+      notifyListeners();
+
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token') ?? '';
+
+      if (accessToken.isEmpty) {
+        _errorMessage = 'No authentication token found';
+        notifyListeners();
+        return;
+      }
+
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/$statusId/accept/');
+      final client = ChuckerHttpClient(http.Client());
+      
+      final response = await client.patch(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'accept': true,
+        }),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        _errorMessage = null;
+        // Refresh both lists after accepting
+        await Future.wait([
+          fetchNewRequests(), // Refresh home screen list
+          fetchAssignedPrescriptions(), // Refresh inventory screen list
+        ]);
+      } else {
+        final jsonResponse = jsonDecode(response.body);
+        _errorMessage = jsonResponse['message'] ?? 'Failed to accept prescription: ${response.statusCode}';
+        notifyListeners();
+      }
+    } catch (e) {
+      _errorMessage = 'Error accepting prescription: $e';
+      notifyListeners();
+    }
   }
 
   Future<void> updateTestAvailability(String prescriptionId, bool isAvailable) async {

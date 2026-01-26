@@ -66,7 +66,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = context.read<LaboratoryUserProvider>();
       await provider.fetchProfile(forceRefresh: true);
-      await provider.fetchAssignedPrescriptions();
+      await provider.fetchPrescriptions();
     });
   }
 
@@ -74,7 +74,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     final provider = context.read<LaboratoryUserProvider>();
     await provider.fetchProfile(forceRefresh: true);
 
-    await provider.fetchAssignedPrescriptions();
+    await provider.fetchPrescriptions();
   }
 
   int _getAvailableCount(List<dynamic> prescriptions) {
@@ -363,23 +363,10 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     const Text(
                       'No new request',
                       style: TextStyle(fontSize: 16, color: Colors.black54),
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _onRefresh,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                      ),
-                      child: const Text('Refresh'),
                     ),
                   ],
                 ),
@@ -670,73 +657,94 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                   ),
                 ),
 
-              const SizedBox(height: 100), // Space for button
-            ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.grey, width: 0.5)),
-        ),
-        child: Consumer<LaboratoryUserProvider>(
-          builder: (context, provider, child) {
-            return ElevatedButton(
-              onPressed: statusId.isNotEmpty
-                  ? () async {
-                      await provider.acceptPrescription(statusId);
+                // Accept Prescription Button
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Consumer<LaboratoryUserProvider>(
+                    builder: (context, provider, child) {
+                      final isEnabled = statusId.isNotEmpty;
+                      
+                      return SizedBox(
+                        width: double.infinity,
+                        height: 54,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: isEnabled 
+                                ? AppColors.primaryGradient 
+                                : null,
+                            color: isEnabled ? null : Colors.grey,
+                            borderRadius: BorderRadius.circular(25),
+                            boxShadow: isEnabled
+                                ? [
+                                    BoxShadow(
+                                      color: AppColors.primaryDark.withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: isEnabled
+                                  ? () async {
+                                      await provider.acceptPrescription(statusId);
 
-                      if (provider.errorMessage == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Prescription accepted successfully!',
+                                      if (provider.errorMessage == null) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Prescription accepted successfully!',
+                                            ),
+                                            backgroundColor: Colors.green,
+                                          ),
+                                        );
+                                        Navigator.pop(context); // Go back to list
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(provider.errorMessage!),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  : null,
+                              borderRadius: BorderRadius.circular(25),
+                              child: Container(
+                                alignment: Alignment.center,
+                                child: provider.isVerifying
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Accept Prescription',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                              ),
                             ),
-                            backgroundColor: Colors.green,
                           ),
-                        );
-                        Navigator.pop(context); // Go back to list
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(provider.errorMessage!),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    }
-                  : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: statusId.isNotEmpty
-                    ? AppColors.primary
-                    : Colors.grey,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-                elevation: 2,
-              ),
-              child: provider.isVerifying
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : const Text(
-                      'Accept Prescription',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-            );
-          },
+
+                const SizedBox(height: 24), // Bottom spacing
+              ],
+            ),
+          ),
         ),
       ),
     );
