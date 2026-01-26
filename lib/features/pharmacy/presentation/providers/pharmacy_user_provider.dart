@@ -34,15 +34,69 @@ class PharmacyUserProvider extends ChangeNotifier {
   }
 
   Future<void> _loadInitialData() async {
-    try {
       await SaveLoginResponse.loadLoginModel();
       _pharmacyName = SaveLoginResponse.loginData?['pharmacy_name'] ?? '';
       notifyListeners();
       fetchProfile();
+  }
+
+
+  Future<void> fetchPrescriptions() async {
+    try {
+      _prescriptionsLoading = true;
+      notifyListeners();
+
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token') ?? '';
+
+      if (accessToken.isEmpty) {
+        _errorMessage = 'No authentication token found';
+        _prescriptionsLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/list/');
+      final client = ChuckerHttpClient(http.Client());
+      final response = await client.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = jsonDecode(response.body);
+        
+        if (jsonResponse['results'] != null && 
+            jsonResponse['results']['data'] != null) {
+          _prescriptions = jsonResponse['results']['data'] as List<dynamic>;
+        } else if (jsonResponse['data'] != null) {
+          _prescriptions = jsonResponse['data'] as List<dynamic>;
+        } else if (jsonResponse['results'] != null) {
+          _prescriptions = jsonResponse['results'] as List<dynamic>;
+        } else if (jsonResponse['items'] != null) {
+          _prescriptions = jsonResponse['items'] as List<dynamic>;
+        } else if (jsonResponse['prescriptions'] != null) {
+          _prescriptions = jsonResponse['prescriptions'] as List<dynamic>;
+        } else {
+          _prescriptions = [];
+        }
+        _errorMessage = null;
+      } else {
+        _prescriptions = [];
+        _errorMessage = 'Failed to load prescriptions: ${response.statusCode}';
+      }
     } catch (e) {
-      // Error loading initial data handled silently
+      _prescriptions = [];
+      _errorMessage = 'Error loading prescriptions: $e';
+    } finally {
+      _prescriptionsLoading = false;
+      notifyListeners();
     }
   }
+
 
   Future<void> fetchProfile({bool forceRefresh = false}) async {
     try {
@@ -70,14 +124,14 @@ class PharmacyUserProvider extends ChangeNotifier {
       final client = ChuckerHttpClient(http.Client());
       final response = await client
           .get(
-            finalUri,
-            headers: {
-              'Authorization': 'Bearer $accessToken',
-              'Content-Type': 'application/json',
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache',
-            },
-          )
+        finalUri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+      )
           .timeout(const Duration(seconds: 30));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -137,118 +191,6 @@ class PharmacyUserProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> fetchPrescriptions() async {
-    try {
-      _prescriptionsLoading = true;
-      notifyListeners();
-
-      final prefs = await SharedPreferences.getInstance();
-      final accessToken = prefs.getString('access_token') ?? '';
-
-      if (accessToken.isEmpty) {
-        _errorMessage = 'No authentication token found';
-        _prescriptionsLoading = false;
-        notifyListeners();
-        return;
-      }
-
-      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/list/');
-      final client = ChuckerHttpClient(http.Client());
-      final response = await client.get(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 30));
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = jsonDecode(response.body);
-        
-        if (jsonResponse['results'] != null && 
-            jsonResponse['results']['data'] != null) {
-          _prescriptions = jsonResponse['results']['data'] as List<dynamic>;
-        } else if (jsonResponse['data'] != null) {
-          _prescriptions = jsonResponse['data'] as List<dynamic>;
-        } else if (jsonResponse['results'] != null) {
-          _prescriptions = jsonResponse['results'] as List<dynamic>;
-        } else if (jsonResponse['items'] != null) {
-          _prescriptions = jsonResponse['items'] as List<dynamic>;
-        } else if (jsonResponse['prescriptions'] != null) {
-          _prescriptions = jsonResponse['prescriptions'] as List<dynamic>;
-        } else {
-          _prescriptions = [];
-        }
-        _errorMessage = null;
-      } else {
-        _prescriptions = [];
-        _errorMessage = 'Failed to load prescriptions: ${response.statusCode}';
-      }
-    } catch (e) {
-      _prescriptions = [];
-      _errorMessage = 'Error loading prescriptions: $e';
-    } finally {
-      _prescriptionsLoading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> fetchPrescriptionsForInventory() async {
-    try {
-      _prescriptionsLoading = true;
-      notifyListeners();
-
-      final prefs = await SharedPreferences.getInstance();
-      final accessToken = prefs.getString('access_token') ?? '';
-
-      if (accessToken.isEmpty) {
-        _errorMessage = 'No authentication token found';
-        _prescriptionsLoading = false;
-        notifyListeners();
-        return;
-      }
-
-      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/assigned/');
-      final client = ChuckerHttpClient(http.Client());
-      final response = await client.get(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 30));
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = jsonDecode(response.body);
-        
-        if (jsonResponse['results'] != null && 
-            jsonResponse['results']['data'] != null) {
-          _prescriptions = jsonResponse['results']['data'] as List<dynamic>;
-        } else if (jsonResponse['data'] != null) {
-          _prescriptions = jsonResponse['data'] as List<dynamic>;
-        } else if (jsonResponse['results'] != null) {
-          _prescriptions = jsonResponse['results'] as List<dynamic>;
-        } else if (jsonResponse['items'] != null) {
-          _prescriptions = jsonResponse['items'] as List<dynamic>;
-        } else if (jsonResponse['prescriptions'] != null) {
-          _prescriptions = jsonResponse['prescriptions'] as List<dynamic>;
-        } else {
-          _prescriptions = [];
-        }
-        
-        _errorMessage = null;
-      } else {
-        _prescriptions = [];
-        _errorMessage = 'Failed to load prescriptions: ${response.statusCode}';
-      }
-    } catch (e) {
-      _prescriptions = [];
-      _errorMessage = 'Error loading prescriptions: $e';
-    } finally {
-      _prescriptionsLoading = false;
-      notifyListeners();
-    }
-  }
 
   void updateProfilePicture(String newUrl) {
     _profilePictureUrl = newUrl;

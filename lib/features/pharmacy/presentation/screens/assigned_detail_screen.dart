@@ -1,15 +1,12 @@
 import 'dart:convert';
 import 'package:chucker_flutter/chucker_flutter.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../models/prescription_request.dart';
-import '../providers/pharmacy_user_provider.dart';
 
 class AssignedDetailScreen extends StatefulWidget {
   final PrescriptionRequest request;

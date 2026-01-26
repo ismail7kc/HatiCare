@@ -15,7 +15,7 @@ class PharmacyInventoryCard extends StatelessWidget {
     required this.request,
     required this.onTap,
     this.isVerified = false,
-    this.onVerify,
+    this.onVerify, required PharmacyInventoryCard item,
   });
 
   @override

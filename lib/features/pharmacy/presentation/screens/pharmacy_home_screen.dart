@@ -7,7 +7,7 @@ import 'package:haticare/core/widgets/prescription_list_item.dart';
 import 'package:haticare/features/common/customNav_Bottom.dart';
 import 'package:haticare/features/pharmacy/models/prescription_request.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_history_screen.dart';
-import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_inventory_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_assigned_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_notifications_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_settings_screen.dart';
 import 'package:provider/provider.dart';
@@ -35,16 +35,13 @@ class _PharmacyHomeScreenState extends State<PharmacyHomeScreen> {
       child: CustomBottomNav(
         screens: const [
           PharmacyHomeTabScreen(),
-          PharmacyInventoryScreen(),
+          PharmacyAssignedScreen(),
           PharmacyHistoryScreen(),
           PharmacySettingsScreen(),
         ],
         tabs: const [
           TabItemData(title: "Home", iconPath: 'assets/icons/home.svg'),
-          TabItemData(
-            title: "Inventory",
-            iconPath: 'assets/icons/inventory.svg',
-          ),
+          TabItemData(title: "Assigned", iconPath: 'assets/icons/inventory.svg',),
           TabItemData(title: "History", iconPath: 'assets/icons/history.svg'),
           TabItemData(title: "Settings", iconPath: 'assets/icons/setting.svg'),
         ],
@@ -73,13 +70,14 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
   @override
   void initState() {
     super.initState();
-    // Fetch profile first to check approval status, then prescriptions if approved
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = context.read<PharmacyUserProvider>();
-      // Always fetch profile to check approval status
       await provider.fetchProfile(forceRefresh: true);
-      // Only fetch prescriptions if approved
+      if (!mounted) return;
+
       if (provider.isApproved) {
+        await provider.fetchPrescriptions();
+      } else {
         await provider.fetchPrescriptions();
       }
     });
@@ -155,10 +153,9 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     final provider = context.read<PharmacyUserProvider>();
     // Fetch profile to check approval status
     await provider.fetchProfile(forceRefresh: true);
-    // Fetch prescriptions if approved
-    if (provider.isApproved) {
-      await provider.fetchPrescriptions();
-    }
+    if (!mounted) return;
+
+    await provider.fetchPrescriptions();
   }
 
   // Calculate available count for summary card
