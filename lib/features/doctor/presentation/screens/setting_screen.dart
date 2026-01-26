@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
@@ -9,10 +8,6 @@ import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen
 import 'package:haticare/features/doctor/presentation/screens/edit_profile_screen.dart';
 import 'package:haticare/features/doctor/presentation/providers/doctor_user_provider.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/doctor_viewModel.dart';
-import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_contact_support_screen.dart';
-import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_help_center_screen.dart';
-import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_notifications_screen.dart';
-import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_privacy_policy_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
 import 'package:image_picker/image_picker.dart';
@@ -21,6 +16,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:chucker_flutter/chucker_flutter.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../common/screens/contact_support_screen.dart';
+import '../../../common/screens/help_center_screen.dart';
+import '../../../common/screens/notifications_screen.dart';
+import '../../../common/screens/privacy_policy_screen.dart';
 
 class SettingsContent extends StatefulWidget {
   const SettingsContent({super.key});
@@ -489,7 +488,7 @@ class SettingsContentState extends State<SettingsContent> {
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
-                                const PharmacyNotificationsScreen(),
+                                const NotificationsScreen(),
                           ),
                         );
                       },
@@ -504,7 +503,7 @@ class SettingsContentState extends State<SettingsContent> {
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
-                                const PharmacyPrivacyPolicyScreen(),
+                                const PrivacyPolicyScreen(),
                           ),
                         );
                       },
@@ -537,7 +536,7 @@ class SettingsContentState extends State<SettingsContent> {
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
-                                const PharmacyHelpCenterScreen(),
+                                const HelpCenterScreen(),
                           ),
                         );
                       },
@@ -552,7 +551,7 @@ class SettingsContentState extends State<SettingsContent> {
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
-                                const PharmacyContactSupportScreen(),
+                                const ContactSupportScreen(),
                           ),
                         );
                       },

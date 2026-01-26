@@ -116,7 +116,8 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
     
     await _loadCountriesData();
     await _loadCachedData();
-    if (openedFromSettings) {
+    // Always fetch profile from API if laboratoryId exists to get latest data
+    if (laboratoryId.isNotEmpty || openedFromSettings) {
       await fetchLaboratoryProfile();
     } else {
       isLoading = false;
@@ -836,20 +837,26 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
     cities = [];
 
     if (country != null && country.isNotEmpty) {
+      // Load states synchronously
       _loadStatesForCountry(country);
 
-      // If no states available, auto-populate state with country name
-      if (states.isEmpty) {
-        selectedState = country;
-        stateController.text = country;
-        cityController.text = country;
-        // Clear validation errors since we auto-filled them
-        clearValidationError('state');
-        clearValidationError('city');
-      } else {
-        stateController.text = '';
-        cityController.text = '';
-      }
+      // Check after a brief delay to allow states to load
+      Future.delayed(const Duration(milliseconds: 50), () {
+        // If no states available, auto-populate state with country name
+        if (states.isEmpty) {
+          selectedState = country;
+          stateController.text = country;
+          selectedCity = country;
+          cityController.text = country;
+          // Clear validation errors since we auto-filled them
+          clearValidationError('state');
+          clearValidationError('city');
+          notifyListeners();
+        } else {
+          stateController.text = '';
+          cityController.text = '';
+        }
+      });
     } else {
       stateController.text = '';
       cityController.text = '';
@@ -866,17 +873,22 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
     cities = [];
 
     if (state != null && state.isNotEmpty && selectedCountry != null) {
+      // Load cities synchronously
       _loadCitiesForState(selectedCountry!, state);
 
-      // If no cities available, auto-populate city with state name
-      if (cities.isEmpty) {
-        selectedCity = state;
-        cityController.text = state;
-        // Clear city validation error since we auto-filled it
-        clearValidationError('city');
-      } else {
-        cityController.text = '';
-      }
+      // Check after a brief delay to allow cities to load
+      Future.delayed(const Duration(milliseconds: 50), () {
+        // If no cities available, auto-populate city with state name
+        if (cities.isEmpty) {
+          selectedCity = state;
+          cityController.text = state;
+          // Clear city validation error since we auto-filled it
+          clearValidationError('city');
+          notifyListeners();
+        } else {
+          cityController.text = '';
+        }
+      });
     } else {
       cityController.text = '';
     }

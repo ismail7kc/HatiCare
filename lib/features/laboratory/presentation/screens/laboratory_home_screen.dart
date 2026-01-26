@@ -37,10 +37,7 @@ class _LaboratoryHomeScreenState extends State<LaboratoryHomeScreen> {
         ],
         tabs: const [
           TabItemData(title: "Home", iconPath: 'assets/icons/home.svg'),
-          TabItemData(
-            title: "Inventory",
-            iconPath: 'assets/icons/inventory.svg',
-          ),
+          TabItemData(title: "Assigned", iconPath: 'assets/icons/inventory.svg',),
           TabItemData(title: "History", iconPath: 'assets/icons/history.svg'),
           TabItemData(title: "Settings", iconPath: 'assets/icons/setting.svg'),
         ],
@@ -69,9 +66,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = context.read<LaboratoryUserProvider>();
       await provider.fetchProfile(forceRefresh: true);
-      if (provider.isApproved) {
-        await provider.fetchPrescriptions();
-      }
+      await provider.fetchAssignedPrescriptions();
     });
   }
 
@@ -79,7 +74,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     final provider = context.read<LaboratoryUserProvider>();
     await provider.fetchProfile(forceRefresh: true);
 
-    await provider.fetchPrescriptions();
+    await provider.fetchAssignedPrescriptions();
   }
 
   int _getAvailableCount(List<dynamic> prescriptions) {
@@ -113,6 +108,9 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     final laboratoryProvider = context.watch<LaboratoryUserProvider>();
     final availableCount = _getAvailableCount(laboratoryProvider.prescriptions);
     final deliveredCount = _getDeliveredCount(laboratoryProvider.prescriptions);
+    final prescriptions = laboratoryProvider.prescriptions;
+    final isLoading = laboratoryProvider.prescriptionsLoading;
+    final errorMessage = laboratoryProvider.errorMessage;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -201,95 +199,9 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                 },
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // Lab Tests Section
-              if (!laboratoryProvider.isApproved) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.warning_amber_outlined,
-                        color: Colors.orange[700],
-                        size: 24,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          laboratoryProvider.approvalMessage.isNotEmpty
-                              ? laboratoryProvider.approvalMessage
-                              : 'Account is not verified',
-                          style: TextStyle(
-                            color: Colors.orange[700],
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-
-              // Main content with refresh
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: _onRefresh,
-                  color: AppColors.primary,
-                  child: !laboratoryProvider.isApproved
-                      ? SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(32),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[100],
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.lock_outline,
-                                    size: 48,
-                                    color: Colors.grey[400],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'Waiting for Approval',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Your laboratory account must be approved to view test requests.\n\nPull down to refresh and check approval status.',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey[500],
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            ),
-                        )
-                      : const SizedBox.shrink(), // Will be replaced by actual content when approved
-                ),
-              ),
-
-              // Counter Cards (only when approved)
-              if (laboratoryProvider.isApproved) ...[
+              // Counter Cards
                 Row(
                   children: [
                     Expanded(
@@ -380,67 +292,146 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                   ),
                 ),
                 const SizedBox(height: 12),
-                // Scrollable List Section with Refresh
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: _onRefresh,
                     color: AppColors.primary,
-                    child: laboratoryProvider.prescriptions.isEmpty
-                        ? LayoutBuilder(
-                            builder: (context, constraints) {
-                              return SingleChildScrollView(
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                child: SizedBox(
-                                  height: constraints.maxHeight,
-                                  child: const Center(
-                                    child: Text(
-                                      'No New Request',
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          )
-                        : ListView.builder(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.only(bottom: 80),
-                            itemCount: laboratoryProvider.prescriptions.length,
-                            itemBuilder: (context, index) {
-                              final prescription =
-                                  laboratoryProvider.prescriptions[index];
-                              return Padding(
-                                padding: EdgeInsets.only(
-                                  bottom:
-                                      index <
-                                          laboratoryProvider
-                                                  .prescriptions
-                                                  .length -
-                                              1
-                                      ? 12
-                                      : 0,
-                                ),
-                                child: PrescriptionListItem(
-                                  data: prescription,
-                                  itemType: ItemType.labTest,
-                                  onTap: () =>
-                                      _openPrescriptionDetails(prescription),
-                                ),
-                              );
-                            },
-                          ),
+                    child: _buildAssignedBody(
+                      isLoading: isLoading,
+                      prescriptions: prescriptions,
+                      errorMessage: errorMessage,
+                    ),
                   ),
                 ),
-              ],
             ],
           ),
         ),
       ),
     );
   }
+
+  Widget _buildAssignedBody({
+    required bool isLoading,
+    required List<dynamic> prescriptions,
+    required String? errorMessage,
+  }) {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (errorMessage != null) {
+      return SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 56, color: Colors.red[300]),
+              const SizedBox(height: 16),
+              Text(
+                errorMessage,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 15, color: Colors.black87),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => _onRefresh(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (prescriptions.isEmpty) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: SizedBox(
+              height: constraints.maxHeight,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'No new request',
+                      style: TextStyle(fontSize: 16, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: _onRefresh,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: const Text('Refresh'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 80),
+      itemCount: prescriptions.length,
+      itemBuilder: (context, index) {
+        final raw = prescriptions[index];
+        final mapped = _mapAssignedToListItem(raw);
+        return Padding(
+          padding: EdgeInsets.only(bottom: index < prescriptions.length - 1 ? 12 : 0),
+          child: PrescriptionListItem(
+            data: mapped,
+            itemType: ItemType.labTest,
+            onTap: () => _openPrescriptionDetails(mapped),
+          ),
+        );
+      },
+    );
+  }
+
+  Map<String, dynamic> _mapAssignedToListItem(dynamic raw) {
+    if (raw is Map<String, dynamic>) {
+      return {
+        'prescription_id': raw['prescription_id'] ?? raw['id'],
+        'patient_name': raw['patient_name'] ?? 'Unknown Patient',
+        'patient_phone': raw['patient_phone'],
+        'doctor_name': raw['doctor_name'] ?? 'Doctor',
+        'created_at': raw['verified_at'] ?? raw['created_at'],
+        'availability': raw['availability'],
+        'status': raw['pharmacy_status'] ?? raw['status'],
+        'lab_tests': raw['lab_tests'] ?? raw['tests'] ?? [],
+        'notes': raw['notes'],
+      };
+    }
+
+    return {
+      'prescription_id': raw?.toString() ?? '',
+      'patient_name': 'Unknown Patient',
+      'doctor_name': 'Doctor',
+      'lab_tests': const [],
+    };
+  }
+
 
   Future<void> _openPrescriptionDetails(
     Map<String, dynamic> prescription,

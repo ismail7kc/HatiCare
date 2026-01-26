@@ -160,7 +160,7 @@ class LaboratoryUserProvider extends ChangeNotifier {
         return;
       }
 
-      final uri = Uri.parse('${AppConfig.baseUrl}lab/tests/assigned/');
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/list/');
       final client = ChuckerHttpClient(http.Client());
       final response = await client.get(
         uri,
@@ -208,7 +208,6 @@ class LaboratoryUserProvider extends ChangeNotifier {
   }
 
   Future<void> fetchAssignedPrescriptions() async {
-    // Backward compatibility - just call fetchTestRequests
     await fetchTestRequests();
   }
 

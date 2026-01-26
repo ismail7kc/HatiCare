@@ -8,10 +8,10 @@ import 'package:haticare/features/common/customNav_Bottom.dart';
 import 'package:haticare/features/pharmacy/models/prescription_request.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_history_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_assigned_screen.dart';
-import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_notifications_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_settings_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import '../../../common/screens/notifications_screen.dart';
 import '../providers/pharmacy_user_provider.dart';
 import 'prescription_details_screen.dart';
 
@@ -275,7 +275,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
-                                      const PharmacyNotificationsScreen(),
+                                      const NotificationsScreen(),
                                 ),
                               );
                             },
