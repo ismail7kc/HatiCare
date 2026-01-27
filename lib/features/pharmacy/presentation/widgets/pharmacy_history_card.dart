@@ -2,20 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../models/pharmacy_history_item.dart';
 
 class PharmacyHistoryCard extends StatelessWidget {
-  final PharmacyHistoryItem item;
+  final Map<String, dynamic> prescription;
   final VoidCallback onTap;
 
   const PharmacyHistoryCard({
     super.key,
-    required this.item,
+    required this.prescription,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final prescriptionId = prescription['prescription_id']?.toString() ?? '';
+    final patientName = prescription['patient_name']?.toString() ?? 'Unknown Patient';
+    final patientPhone = prescription['patient_phone']?.toString() ?? '';
+    final medications = prescription['medications'] as List<dynamic>? ?? [];
+    final pharmacyStatus = prescription['pharmacy_status']?.toString() ?? '';
+    final createdAt = prescription['created_at']?.toString() ?? '';
+    final doctor = prescription['doctor']?.toString() ?? '';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -38,7 +45,7 @@ class PharmacyHistoryCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header with prescription ID and action
+              // Header with prescription ID and status
               Row(
                 children: [
                   Container(
@@ -48,14 +55,11 @@ class PharmacyHistoryCard extends StatelessWidget {
                       gradient: AppColors.primaryGradient,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Center(
-                      child: Text(
-                        'RX',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.local_pharmacy_outlined,
+                        color: Colors.white,
+                        size: 24,
                       ),
                     ),
                   ),
@@ -65,7 +69,7 @@ class PharmacyHistoryCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Prescription #${item.prescriptionId}',
+                          'Prescription #$prescriptionId',
                           style: const TextStyle(
                             color: Colors.black,
                             fontSize: 16,
@@ -74,7 +78,7 @@ class PharmacyHistoryCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          DateFormat('dd MMM yyyy, hh:mm a').format(item.createdAt),
+                          patientName,
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 13,
@@ -83,12 +87,12 @@ class PharmacyHistoryCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  _buildActionBadge(item.action),
+                  _buildStatusBadge(pharmacyStatus),
                 ],
               ),
-              
+
               // Medications summary
-              if (item.medications.isNotEmpty) ...[
+              if (medications.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Container(
                   width: double.infinity,
@@ -109,44 +113,39 @@ class PharmacyHistoryCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      ...item.medications.take(2).map((med) => Padding(
-                        padding: const EdgeInsets.only(bottom: 2),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: _getAvailabilityColor(med.availabilityStatus),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '${med.name} (${med.strength})',
-                                style: const TextStyle(
-                                  color: Colors.black87,
-                                  fontSize: 13,
+                      ...medications.take(2).map((med) {
+                        final medName = med['name']?.toString() ?? 'Unknown';
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            Text(
-                              '${med.availableQty}/${med.requiredQty}',
-                              style: TextStyle(
-                                color: _getAvailabilityColor(med.availabilityStatus),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  medName,
+                                  style: const TextStyle(
+                                    color: Colors.black87,
+                                    fontSize: 13,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      )),
-                      if (item.medications.length > 2)
+                            ],
+                          ),
+                        );
+                      }),
+                      if (medications.length > 2)
                         Text(
-                          '+${item.medications.length - 2} more medications',
+                          '+${medications.length - 2} more medications',
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 11,
@@ -156,47 +155,29 @@ class PharmacyHistoryCard extends StatelessWidget {
                   ),
                 ),
               ],
-              
-              // Score and comment
-              if (item.score != null || item.comment != null) ...[
+
+              // Doctor name
+              if (doctor.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    if (item.score != null) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          'Score: ${(item.score! * 100).toStringAsFixed(1)}%',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                    Icon(
+                      Icons.person_outline,
+                      size: 14,
+                      color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Dr. $doctor',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
                       ),
-                      const SizedBox(width: 8),
-                    ],
-                    if (item.comment != null)
-                      Expanded(
-                        child: Text(
-                          item.comment!,
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                            fontStyle: FontStyle.italic,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
+                    ),
                   ],
                 ),
               ],
-              
+
               // Arrow indicator
               const SizedBox(height: 8),
               Row(
@@ -206,7 +187,10 @@ class PharmacyHistoryCard extends StatelessWidget {
                     'assets/icons/arrow_forward_line_icon.svg',
                     width: 20,
                     height: 20,
-                    color: Colors.grey[600],
+                    colorFilter: ColorFilter.mode(
+                      Colors.grey[600]!,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ],
               ),
@@ -217,28 +201,28 @@ class PharmacyHistoryCard extends StatelessWidget {
     );
   }
 
-  Widget _buildActionBadge(HistoryAction action) {
+  Widget _buildStatusBadge(String status) {
     Color backgroundColor;
     Color textColor;
     String text;
 
-    switch (action) {
-      case HistoryAction.selectedFull:
-        backgroundColor = const Color(0xFFE3F2FD);
-        textColor = const Color(0xFF1976D2);
-        text = 'Selected';
-      case HistoryAction.respondedFull:
+    switch (status.toLowerCase()) {
+      case 'completed':
         backgroundColor = const Color(0xFFE8F5E9);
         textColor = const Color(0xFF4CA054);
-        text = 'Fully Available';
-      case HistoryAction.respondedPartial:
+        text = 'Completed';
+      case 'assigned':
+        backgroundColor = const Color(0xFFE3F2FD);
+        textColor = const Color(0xFF1976D2);
+        text = 'Assigned';
+      case 'open':
         backgroundColor = const Color(0xFFFFF1DA);
         textColor = const Color(0xFFF2B544);
-        text = 'Partially Available';
-      case HistoryAction.selectedPartial:
-        backgroundColor = const Color(0xFFFCE4EC);
-        textColor = const Color(0xFFE91E63);
-        text = 'Partially Selected';
+        text = 'Open';
+      default:
+        backgroundColor = Colors.grey[200]!;
+        textColor = Colors.grey[700]!;
+        text = status;
     }
 
     return Container(
@@ -256,18 +240,5 @@ class PharmacyHistoryCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Color _getAvailabilityColor(String status) {
-    switch (status) {
-      case 'Available':
-        return const Color(0xFF4CA054);
-      case 'Partially Available':
-        return const Color(0xFFF2B544);
-      case 'Not Available':
-        return const Color(0xFFFF6B6B);
-      default:
-        return Colors.grey;
-    }
   }
 }

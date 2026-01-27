@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:haticare/features/pharmacy/models/pharmacy_history_item.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_history_detail_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/widgets/pharmacy_history_card.dart';
 import 'package:http/http.dart' as http;
@@ -16,7 +15,7 @@ class PharmacyHistoryScreen extends StatefulWidget {
 }
 
 class _PharmacyHistoryScreenState extends State<PharmacyHistoryScreen> {
-  List<PharmacyHistoryItem> historyItems = [];
+  List<Map<String, dynamic>> historyItems = [];
   bool isLoading = false;
   String? errorMessage;
 
@@ -71,9 +70,7 @@ class _PharmacyHistoryScreenState extends State<PharmacyHistoryScreen> {
         }
 
         setState(() {
-          historyItems = historyList.map((item) {
-            return PharmacyHistoryItem.fromJson(item as Map<String, dynamic>);
-          }).toList();
+          historyItems = historyList.map((item) => item as Map<String, dynamic>).toList();
           isLoading = false;
         });
       } else {
@@ -181,17 +178,25 @@ class _PharmacyHistoryScreenState extends State<PharmacyHistoryScreen> {
             children: [
               Icon(
                 Icons.history_outlined,
-                size: 48,
-                color: Colors.grey[400],
+                size: 64,
+                color: Colors.grey[300],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Text(
-                'No history found',
+                'No History Found',
                 style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[400],
                 ),
-                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Pull down to refresh',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey[500],
+                ),
               ),
             ],
           ),
@@ -206,13 +211,13 @@ class _PharmacyHistoryScreenState extends State<PharmacyHistoryScreen> {
       itemBuilder: (context, index) {
         final item = historyItems[index];
         return PharmacyHistoryCard(
-          item: item,
+          prescription: item,
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) =>
-                    PharmacyHistoryDetailScreen(item: item),
+                    PharmacyHistoryDetailScreen(prescription: item),
               ),
             );
           },

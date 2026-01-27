@@ -117,9 +117,16 @@ class _PharmacyAssignedScreenState extends State<PharmacyAssignedScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Assigned'),
         backgroundColor: Colors.white,
         elevation: 0,
+        title: const Text(
+          'Assigned',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
         centerTitle: true,
       ),
       body: isLoading
@@ -164,14 +171,25 @@ class _PharmacyAssignedScreenState extends State<PharmacyAssignedScreen> {
                   children: [
                     Icon(
                       Icons.inventory_2_outlined,
-                      size: 48,
-                      color: Colors.grey[400],
+                      size: 64,
+                      color: Colors.grey[300],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Text(
-                      'No assigned prescriptions yet',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                      'No Assigned Items',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Pull down to refresh',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[500],
+                      ),
                     ),
                   ],
                 ),
@@ -324,10 +342,10 @@ class AssignedPrescriptionCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                if (isVerified) ...[
+            const SizedBox(height: 12),
+            if (isVerified)
+              Row(
+                children: [
                   Icon(Icons.verified, color: Colors.green[600], size: 20),
                   const SizedBox(width: 8),
                   Text(
@@ -339,31 +357,36 @@ class AssignedPrescriptionCard extends StatelessWidget {
                     ),
                   ),
                 ],
-                const Spacer(),
-                if (!isVerified)
-                  ElevatedButton(
+              ),
+            if (!isVerified)
+              SizedBox(
+                width: double.infinity,
+                height: 40,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: ElevatedButton(
                     onPressed: () => onVerify(item.rxCode),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
+                      elevation: 0,
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.zero,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(25),
                       ),
-                    ),
-                    child: const Text(
-                      'Verify',
-                      style: TextStyle(
-                        fontSize: 13,
+                      textStyle: const TextStyle(
+                        fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
                       ),
                     ),
+                    child: const Text('Verify'),
                   ),
-              ],
-            ),
+                ),
+              ),
           ],
         ),
       ),

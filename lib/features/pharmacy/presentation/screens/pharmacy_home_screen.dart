@@ -503,13 +503,34 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                                 physics: const AlwaysScrollableScrollPhysics(),
                                 child: SizedBox(
                                   height: constraints.maxHeight,
-                                  child: const Center(
-                                    child: Text(
-                                      'No New Request',
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 14,
-                                      ),
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.local_pharmacy_outlined,
+                                          size: 64,
+                                          color: Colors.grey[300],
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          'No New Request',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.grey[400],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Pull down to refresh',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.grey[500],
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),

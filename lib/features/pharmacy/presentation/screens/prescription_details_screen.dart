@@ -255,7 +255,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                         children: [
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () => _showAvailabilityBottomSheet(),
+                              onPressed: () => _showAvailabilityBottomSheet(isFullyAvailable: true),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Color(0xFF4CA054),
                                 foregroundColor: Colors.white,
@@ -279,7 +279,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () => _showAvailabilityBottomSheet(),
+                              onPressed: () => _showAvailabilityBottomSheet(isFullyAvailable: false),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Color(0xFFFF9800),
                                 foregroundColor: Colors.white,
@@ -440,7 +440,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
     );
   }
 
-  Future<void> _showAvailabilityBottomSheet() async {
+  Future<void> _showAvailabilityBottomSheet({required bool isFullyAvailable}) async {
 
     Map<int, Map<String, dynamic>> medicationAvailability = {};
     for (int i = 0; i < widget.request.medications.length; i++) {
@@ -488,9 +488,9 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Medicine Availability',
-                          style: TextStyle(
+                        Text(
+                          isFullyAvailable ? 'Fully Available Medicines' : 'Partially Available Medicines',
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
@@ -498,7 +498,9 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Set available quantities for each medicine',
+                          isFullyAvailable 
+                              ? 'Select which medicines are fully available'
+                              : 'Set available quantities for each medicine',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[600],
@@ -567,7 +569,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                                   ),
                                 ],
                               ),
-                              if (availability['isAvailable'])
+                              if (availability['isAvailable'] && !isFullyAvailable)
                                 Padding(
                                   padding: const EdgeInsets.only(
                                     left: 40,
@@ -634,22 +636,26 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                                               ),
                                             ),
                                             InkWell(
-                                              onTap: () {
-                                                debugPrint(
-                                                  'Increase quantity for item $index',
-                                                );
-                                                setModalState(() {
-                                                  availability['availableQty']++;
-                                                });
-                                              },
+                                              onTap: availability['availableQty'] < availability['requiredQty']
+                                                  ? () {
+                                                      debugPrint(
+                                                        'Increase quantity for item $index',
+                                                      );
+                                                      setModalState(() {
+                                                        availability['availableQty']++;
+                                                      });
+                                                    }
+                                                  : null,
                                               child: Container(
                                                 padding: const EdgeInsets.all(
                                                   8,
                                                 ),
-                                                child: const Icon(
+                                                child: Icon(
                                                   Icons.add,
                                                   size: 18,
-                                                  color: Colors.black,
+                                                  color: availability['availableQty'] < availability['requiredQty']
+                                                      ? Colors.black
+                                                      : Colors.grey,
                                                 ),
                                               ),
                                             ),
@@ -757,8 +763,8 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
         items.add({
           'name': medication.name,
           'strength': medication.dosage,
-          'required_qty': requiredQty,
-          'available_qty': availableQty,
+          'required_qty': requiredQty.toString(),
+          'available_qty': availableQty.toString(),
           'notes': availableQty >= requiredQty
               ? 'In stock'
               : 'Only $availableQty available',
