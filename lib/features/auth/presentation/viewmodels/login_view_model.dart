@@ -395,7 +395,7 @@ class LoginViewModel extends ChangeNotifier {
       errorMessage = null;
       _shouldNavigate = false;
       lastResponse = null;
-    } catch (e, stackTrace) {
+    } catch (e) {
       dialogMessage = 'Login failed. Please try again.';
       _shouldNavigate = false;
       lastResponse = null;

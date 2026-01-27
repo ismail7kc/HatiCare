@@ -471,7 +471,7 @@ class _PhoneFieldWrapperState extends State<_PhoneFieldWrapper> {
 }
 
 class _DoctorSection extends StatelessWidget {
-  const _DoctorSection({super.key});
+  const _DoctorSection();
 
   @override
   Widget build(BuildContext context) {
@@ -670,7 +670,7 @@ class _DoctorSection extends StatelessWidget {
 }
 
 class _PharmacySection extends StatelessWidget {
-  const _PharmacySection({super.key});
+  const _PharmacySection();
 
   @override
   Widget build(BuildContext context) {
@@ -797,7 +797,7 @@ class _PharmacySection extends StatelessWidget {
 }
 
 class _LaboratorySection extends StatelessWidget {
-  const _LaboratorySection({super.key});
+  const _LaboratorySection();
 
   @override
   Widget build(BuildContext context) {
@@ -1009,89 +1009,89 @@ class _DocumentPickerTile extends StatelessWidget {
   }
 }
 
-class _DatePickerField extends StatelessWidget {
-  const _DatePickerField({required this.controller, this.validator});
+// class _DatePickerField extends StatelessWidget {
+//   const _DatePickerField({required this.controller});
 
-  final TextEditingController controller;
-  final String? Function(String?)? validator;
+//   final TextEditingController controller;
+//   final String? Function(String?)? validator;
 
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime(2000),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              onSurface: AppColors.textPrimary,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
+//   Future<void> _selectDate(BuildContext context) async {
+//     final DateTime? picked = await showDatePicker(
+//       context: context,
+//       initialDate: DateTime(2000),
+//       firstDate: DateTime(1900),
+//       lastDate: DateTime.now(),
+//       builder: (context, child) {
+//         return Theme(
+//           data: Theme.of(context).copyWith(
+//             colorScheme: const ColorScheme.light(
+//               primary: AppColors.primary,
+//               onPrimary: Colors.white,
+//               onSurface: AppColors.textPrimary,
+//             ),
+//           ),
+//           child: child!,
+//         );
+//       },
+//     );
 
-    if (picked != null) {
-      // Format date as YYYY-MM-DD
-      final formattedDate =
-          '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
-      controller.text = formattedDate;
-    }
-  }
+//     if (picked != null) {
+//       // Format date as YYYY-MM-DD
+//       final formattedDate =
+//           '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+//       controller.text = formattedDate;
+//     }
+//   }
 
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      readOnly: true,
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: AppColors.surface,
-        hintText: 'YYYY-MM-DD',
-        hintStyle: Theme.of(
-          context,
-        ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
-        prefixIcon: const Icon(
-          Icons.calendar_month_outlined,
-          color: AppColors.primary,
-        ),
-        suffixIcon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.error,
-            width: 1.4,
-          ),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
-        ),
-        errorStyle: const TextStyle(height: 0),
-      ),
-      style: Theme.of(context).textTheme.bodyMedium,
-      validator: validator,
-      onTap: () => _selectDate(context),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return TextFormField(
+//       controller: controller,
+//       readOnly: true,
+//       decoration: InputDecoration(
+//         filled: true,
+//         fillColor: AppColors.surface,
+//         hintText: 'YYYY-MM-DD',
+//         hintStyle: Theme.of(
+//           context,
+//         ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+//         prefixIcon: const Icon(
+//           Icons.calendar_month_outlined,
+//           color: AppColors.primary,
+//         ),
+//         suffixIcon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
+//         border: OutlineInputBorder(
+//           borderRadius: BorderRadius.circular(14),
+//           borderSide: BorderSide(color: Colors.grey.shade300),
+//         ),
+//         enabledBorder: OutlineInputBorder(
+//           borderRadius: BorderRadius.circular(14),
+//           borderSide: BorderSide(color: Colors.grey.shade300),
+//         ),
+//         focusedBorder: OutlineInputBorder(
+//           borderRadius: BorderRadius.circular(14),
+//           borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
+//         ),
+//         errorBorder: OutlineInputBorder(
+//           borderRadius: BorderRadius.circular(14),
+//           borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
+//         ),
+//         focusedErrorBorder: OutlineInputBorder(
+//           borderRadius: BorderRadius.circular(14),
+//           borderSide: BorderSide(
+//             color: Theme.of(context).colorScheme.error,
+//             width: 1.4,
+//           ),
+//         ),
+//         contentPadding: const EdgeInsets.symmetric(
+//           horizontal: 16,
+//           vertical: 16,
+//         ),
+//         errorStyle: const TextStyle(height: 0),
+//       ),
+//       style: Theme.of(context).textTheme.bodyMedium,
+//       validator: validator,
+//       onTap: () => _selectDate(context),
+//     );
+//   }
+// }

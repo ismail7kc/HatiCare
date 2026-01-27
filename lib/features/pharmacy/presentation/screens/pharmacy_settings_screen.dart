@@ -35,11 +35,6 @@ class _PharmacySettingsScreenState extends State<PharmacySettingsScreen>
   @override
   bool get wantKeepAlive => true;
 
-  @override
-  void initState() {
-    super.initState();
-    // Provider already fetches on initialization
-  }
 
   Future<File?> _cropImage(File imageFile) async {
     try {

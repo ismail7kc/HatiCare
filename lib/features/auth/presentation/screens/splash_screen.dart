@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
-import 'package:haticare/features/auth/presentation/viewmodels/login_view_model.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_verfications/doctor_verification.dart';

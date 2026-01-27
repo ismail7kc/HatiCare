@@ -7,7 +7,6 @@ import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:path/path.dart' as path;
 import 'package:haticare/core/theme/app_colors.dart';
-import 'package:haticare/core/widgets/app_dropdown_field.dart';
 import 'package:haticare/core/widgets/app_primary_button.dart';
 import 'package:haticare/core/widgets/custom_dropdown_dialog.dart';
 import 'package:haticare/features/laboratory/presentation/viewmodels/laboratory_profile_view_model.dart';

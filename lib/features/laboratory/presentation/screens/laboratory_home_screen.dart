@@ -746,7 +746,6 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
             ),
           ),
         ),
-      ),
     );
   }
 

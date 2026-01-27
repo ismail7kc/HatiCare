@@ -36,7 +36,6 @@ class _ShimmerLoading extends StatefulWidget {
   final Color highlightColor;
 
   const _ShimmerLoading({
-    super.key,
     required this.width,
     required this.height,
     required this.baseColor,

@@ -67,7 +67,7 @@ class _PharmacyHistoryScreenState extends State<PharmacyHistoryScreen> {
             historyList = jsonResponse['data'] as List<dynamic>;
           }
         } else if (jsonResponse is List) {
-          historyList = jsonResponse as List<dynamic>;
+          historyList = jsonResponse;
         }
 
         setState(() {

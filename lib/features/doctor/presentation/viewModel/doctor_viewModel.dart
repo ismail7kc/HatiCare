@@ -4,8 +4,6 @@ import 'package:haticare/core/services/device_id_provider.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/common/repository_layer.dart';
 import 'package:haticare/features/doctor/models/appointment_model.dart';
-import 'package:haticare/features/doctor/presentation/viewModel/force_logout_helper.dart';
-import 'package:haticare/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:async';
