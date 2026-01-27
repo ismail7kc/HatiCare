@@ -19,6 +19,7 @@ class PatientHistoryVm extends ChangeNotifier {
     final patientResponse = await repositoryLayer.fetchPatientVisitHistory();
     history = patientResponse.results.data;
 
+
     debugPrint("Fetched ${history.length} patient visits");
   } catch (e, st) {
     debugPrint("Patient history error: $e");

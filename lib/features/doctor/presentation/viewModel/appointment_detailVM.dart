@@ -28,11 +28,15 @@ class AppointmentDetailvm extends ChangeNotifier {
       if (response['success'] == true && response['data'] != null) {
         visitId = response['data']['id'];
         debugPrint('visit Id is $visitId');
-        debugPrint('Accept Patient Reponse Got Correctly');
+      } else {
+        _errorMessage = response['message'] ?? 'Failed to accept patient';
       }
     } catch (error) {
-      debugPrint('Accept Patient $error');
-      _errorMessage = error.toString();
+      debugPrint('Accept Patient error: $error');
+      _errorMessage = 'Something went wrong. Please try again.';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
