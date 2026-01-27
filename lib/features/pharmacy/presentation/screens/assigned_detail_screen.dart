@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:chucker_flutter/chucker_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:haticare/features/pharmacy/models/assign_prescription.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -148,7 +149,7 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
                           size: 20,
                         ),
                         SizedBox(width: 8),
-                        const Text(
+                        Text(
                           'Medications',
                           style: TextStyle(
                             color: Colors.black,
@@ -194,7 +195,7 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
                             size: 20,
                           ),
                           SizedBox(width: 8),
-                          const Text(
+                          Text(
                             'Note',
                             style: TextStyle(
                               color: Colors.black,

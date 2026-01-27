@@ -66,7 +66,7 @@ class AppTextField extends StatefulWidget {
 class _AppTextFieldState extends State<AppTextField> {
   late bool _obscure;
   final GlobalKey<FormFieldState<String>> _fieldKey = GlobalKey<FormFieldState<String>>();
-  bool _suppressValidation = false;
+  final bool _suppressValidation = false;
 
   @override
   void initState() {
@@ -112,7 +112,7 @@ class _AppTextFieldState extends State<AppTextField> {
     );
 
     // Combine validators: trim validator + custom validator
-    String? _combinedValidator(String? value) {
+    String? combinedValidator(String? value) {
       if (_suppressValidation) {
         return null;
       }
@@ -146,7 +146,7 @@ class _AppTextFieldState extends State<AppTextField> {
       focusNode: widget.focusNode,
       keyboardType: widget.keyboardType,
       textCapitalization: widget.textCapitalization,
-      validator: _combinedValidator,
+      validator: combinedValidator,
       autovalidateMode: AutovalidateMode.onUnfocus,
       onChanged: (value) {
         widget.onChanged?.call(value);

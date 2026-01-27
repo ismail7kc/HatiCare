@@ -18,16 +18,16 @@ class LaboratoryUserProvider extends ChangeNotifier {
   // Separate lists for different screens
   List<dynamic> _newRequests = []; // For Laboratory Home Screen (list endpoint)
   List<dynamic> _assignedRequests = []; // For Laboratory Inventory Screen (assigned endpoint)
-  List<dynamic> _testRequests = []; // Backward compatibility
+  final List<dynamic> _testRequests = []; // Backward compatibility
   List<dynamic> _completedTestRequests = []; // For History Screen
   
   // Separate loading states
   bool _newRequestsLoading = false;
   bool _assignedRequestsLoading = false;
-  bool _testRequestsLoading = false;
+  final bool _testRequestsLoading = false;
   
   bool _isVerifying = false; // Backward compatibility
-  String _verifiedRxCode = ''; // Backward compatibility
+  final String _verifiedRxCode = ''; // Backward compatibility
   bool _isApproved = false;
   String _approvalMessage = '';
 

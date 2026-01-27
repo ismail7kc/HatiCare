@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/pharmacy/models/assign_prescription.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/assigned_detail_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/config/app_config.dart';
@@ -68,16 +69,44 @@ class _PharmacyAssignedScreenState extends State<PharmacyAssignedScreen> {
       final prefs = await SharedPreferences.getInstance();
       final accessToken = prefs.getString('access_token') ?? '';
 
-      await http.post(
-        Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/verify/'),
+      if (accessToken.isEmpty) return;
+
+      final url = Uri.parse(
+        '${AppConfig.baseUrl}prescriptions/pharmacy/verify/',
+      );
+      final body = jsonEncode({'rex_code': rxCode.trim()});
+
+      debugPrint('Verify API URL: $url');
+      debugPrint(
+        'Headers: ${{'Authorization': 'Bearer $accessToken', 'Content-Type': 'application/json', 'Accept': 'application/json'}}',
+      );
+      debugPrint('Body: $body');
+
+      final response = await http.post(
+        url,
         headers: {
           'Authorization': 'Bearer $accessToken',
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
-        body: jsonEncode({'rx_code': rxCode}),
+        body: body,
       );
 
-      _fetchAssigned();
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final decoded = jsonDecode(response.body);
+
+        if (decoded['success'] == true) {
+          debugPrint('Prescription verified successfully!');
+          await _fetchAssigned();
+        } else {
+          debugPrint('Verify failed: ${decoded['message']}');
+        }
+      } else {
+        debugPrint('Verify failed: ${response.body}');
+      }
     } catch (e) {
       debugPrint('Error verifying prescription: $e');
     }
@@ -188,9 +217,17 @@ class AssignedPrescriptionCard extends StatelessWidget {
     final isVerified = item.isVerified;
 
     return InkWell(
-      onTap: isVerified
-          ? () => debugPrint('Verified card tapped: ${item.rxCode}')
-          : null,
+      onTap: () {
+        if (isVerified) {
+          // Navigator.push(
+            // context,
+            // MaterialPageRoute(
+              // builder: (context) => AssignedDetailScreen(request: item),
+            // ),
+          // );
+        }
+      },
+
       borderRadius: BorderRadius.circular(12),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),

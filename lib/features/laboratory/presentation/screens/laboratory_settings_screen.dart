@@ -39,11 +39,6 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
   @override
   bool get wantKeepAlive => true;
 
-  @override
-  void initState() {
-    super.initState();
-    // Provider already fetches on initialization
-  }
 
   Future<File?> _cropImage(File imageFile) async {
     try {

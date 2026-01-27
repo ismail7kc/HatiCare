@@ -316,8 +316,9 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
                     NoZeroInputFormatter(),
                   ],
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty)
+                    if (v == null || v.trim().isEmpty) {
                       return 'Years of experience is required';
+                    }
                     final value = int.tryParse(v.trim());
                     if (value == null || value <= 0 || value > 99) {
                       return 'Enter a value between 1 and 99';
