@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/laboratory_user_provider.dart';
-import 'test_request_detail_screen.dart';
+import 'prescription_detail_screen.dart';
 
 enum TestRequestStatus {
   issued,
@@ -27,7 +27,7 @@ class LabTestRequest {
   final DateTime dateIssued;
   final TestRequestStatus status;
   final List<LabTest> labTests;
-  
+
   // Additional fields for API data
   late String patientPhone;
   late String notes;
@@ -71,6 +71,7 @@ class LaboratoryInventoryScreen extends StatefulWidget {
 class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
   late TextEditingController _searchController;
   late TextEditingController _rxCodeController;
+  List<dynamic> _filteredPrescriptions = [];
 
   @override
   void initState() {
@@ -83,10 +84,33 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
   Future<void> _loadInventory() async {
     final provider = context.read<LaboratoryUserProvider>();
     await provider.fetchAssignedPrescriptions();
+    // Initialize filtered list with all prescriptions
+    setState(() {
+      _filteredPrescriptions = provider.assignedRequests;
+    });
   }
 
   Future<void> _onRefresh() async {
     await _loadInventory();
+    // Reset search when refreshing
+    _rxCodeController.clear();
+  }
+
+  void _filterPrescriptions(String query, List<dynamic> allPrescriptions) {
+    if (query.isEmpty) {
+      setState(() {
+        _filteredPrescriptions = allPrescriptions;
+      });
+      return;
+    }
+
+    final queryUpper = query.toUpperCase();
+    setState(() {
+      _filteredPrescriptions = allPrescriptions.where((prescription) {
+        final rxCode = prescription['rex_code']?.toString().toUpperCase() ?? '';
+        return rxCode.contains(queryUpper);
+      }).toList();
+    });
   }
 
   @override
@@ -157,280 +181,333 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
         ),
         centerTitle: true,
       ),
-      body: SafeArea(
-        child: Consumer<LaboratoryUserProvider>(
-          builder: (context, laboratoryProvider, child) {
-            return Column(
-              children: [
-                // Verify Prescription Section
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[200]!),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SafeArea(
+          child: Consumer<LaboratoryUserProvider>(
+            builder: (context, laboratoryProvider, child) {
+              return Column(
+                children: [
+                  // Verify Prescription Section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Search Prescription',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _rxCodeController,
-                                textCapitalization: TextCapitalization
-                                    .characters,
-                                keyboardType: TextInputType.text,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(
-                                    RegExp(r'[A-Z0-9]'),
-                                  ),
-                                ],
-                                onChanged: (value) {
-                                  if (value != value.toUpperCase()) {
-                                    _rxCodeController.text =
-                                        value.toUpperCase();
-                                    _rxCodeController.selection =
-                                        TextSelection.fromPosition(
-                                          TextPosition(offset: value.length),
-                                        );
-                                  }
-                                },
-                                decoration: InputDecoration(
-                                  hintText: 'Enter Rx Code (e.g., RX12345)',
-                                  hintStyle: const TextStyle(
-                                    color: Color(0xFF858585),
-                                    fontSize: 14,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                      color: AppColors.primaryDark,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                ),
-                              ),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Search Prescription',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
-                            const SizedBox(width: 4),
-                            ElevatedButton(
-                              onPressed: laboratoryProvider.isApproved
-                                  ? () {
-                                _verifyRxCode(laboratoryProvider);
-                              }
-                                  : null,
-                              style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                elevation: 0,
-                                backgroundColor: laboratoryProvider.isApproved
-                                    ? Colors.transparent
-                                    : Colors.grey[300],
-                                shadowColor: Colors.transparent,
-                              ),
-                              child: Ink(
-                                decoration: BoxDecoration(
-                                  gradient: laboratoryProvider.isApproved
-                                      ? AppColors.primaryGradient
-                                      : null,
-                                  color: laboratoryProvider.isApproved
-                                      ? null
-                                      : Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 8,
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: laboratoryProvider.isVerifying
-                                      ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _rxCodeController,
+                                  textCapitalization: TextCapitalization
+                                      .characters,
+                                  keyboardType: TextInputType.text,
+                                  inputFormatters: [
+                                    LengthLimitingTextInputFormatter(8),
+                                    FilteringTextInputFormatter.allow(
+                                      RegExp(r'[A-Z0-9]'),
+                                    ),
+                                  ],
+                                  onChanged: (value) {
+                                    // Convert to uppercase
+                                    if (value != value.toUpperCase()) {
+                                      _rxCodeController.text =
+                                          value.toUpperCase();
+                                      _rxCodeController.selection =
+                                          TextSelection.fromPosition(
+                                            TextPosition(offset: value.length),
+                                          );
+                                    }
+                                    // Trigger filtering
+                                    _filterPrescriptions(
+                                      _rxCodeController.text,
+                                      laboratoryProvider.assignedRequests,
+                                    );
+                                  },
+                                  decoration: InputDecoration(
+                                    hintText: 'Enter Rx Code (8 chars, e.g., 599147EF)',
+                                    hintStyle: const TextStyle(
+                                      color: Color(0xFF858585),
+                                      fontSize: 14,
+                                    ),
+                                    suffixIcon: _rxCodeController.text
+                                        .isNotEmpty
+                                        ? IconButton(
+                                      icon: const Icon(Icons.clear, size: 20),
+                                      onPressed: () {
+                                        _rxCodeController.clear();
+                                        _filterPrescriptions(
+                                          '',
+                                          laboratoryProvider.assignedRequests,
+                                        );
+                                      },
+                                    )
+                                        : null,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
                                       ),
                                     ),
-                                  )
-                                      : const Text(
-                                    'Search',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                        color: AppColors.primaryDark,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-
-                Padding(
-                  padding: const EdgeInsets.only(left: 16.0),
-                  child: const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Assigned Prescriptions',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                              const SizedBox(width: 4),
+                              ElevatedButton(
+                                onPressed: laboratoryProvider.isApproved
+                                    ? () {
+                                  _verifyRxCode(laboratoryProvider);
+                                }
+                                    : null,
+                                style: ElevatedButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  elevation: 0,
+                                  backgroundColor: laboratoryProvider.isApproved
+                                      ? Colors.transparent
+                                      : Colors.grey[300],
+                                  shadowColor: Colors.transparent,
+                                ),
+                                child: Ink(
+                                  decoration: BoxDecoration(
+                                    gradient: laboratoryProvider.isApproved
+                                        ? AppColors.primaryGradient
+                                        : null,
+                                    color: laboratoryProvider.isApproved
+                                        ? null
+                                        : Colors.grey[300],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 8,
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: laboratoryProvider.isVerifying
+                                        ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<
+                                            Color>(
+                                          Colors.white,
+                                        ),
+                                      ),
+                                    )
+                                        : const Text(
+                                      'Search',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: Builder(
-                    builder: (context) {
-                      if (!laboratoryProvider.isApproved) {
-                        return _buildNotApprovedState();
-                      }
+                  const SizedBox(height: 4),
 
-                      // Show loading state while fetching assigned prescriptions
-                      if (laboratoryProvider.assignedRequestsLoading) {
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.primary,
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16.0, right: 16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Assigned Prescriptions',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (_rxCodeController.text.isNotEmpty)
+                          Text(
+                            'Showing ${_filteredPrescriptions
+                                .length} of ${laboratoryProvider
+                                .assignedRequests.length}',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: Builder(
+                      builder: (context) {
+                        if (!laboratoryProvider.isApproved) {
+                          return _buildNotApprovedState();
+                        }
+
+                        // Show loading state while fetching assigned prescriptions
+                        if (laboratoryProvider.assignedRequestsLoading) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.primary,
+                            ),
+                          );
+                        }
+
+                        // Use filtered prescriptions for display
+                        final testRequestsToDisplay = _filteredPrescriptions;
+
+                        if (testRequestsToDisplay.isEmpty) {
+                          // Check if it's empty due to filtering or no data
+                          if (_rxCodeController.text.isNotEmpty &&
+                              laboratoryProvider.assignedRequests.isNotEmpty) {
+                            return _buildNoMatchingPrescriptions();
+                          }
+                          return _buildEmptyInventoryState();
+                        }
+
+                        return RefreshIndicator(
+                          onRefresh: _onRefresh,
+                          color: AppColors.primary,
+                          child: ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                            children: [
+                              if (testRequestsToDisplay.isEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 24,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Text(
+                                    'No New Request',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                )
+                              else
+                                ...testRequestsToDisplay.map((testRequestData) {
+                                  List<LabTest> labTests = [];
+                                  if (testRequestData['lab_tests'] is List) {
+                                    labTests =
+                                        (testRequestData['lab_tests'] as List)
+                                            .map(
+                                              (test) =>
+                                              LabTest(
+                                                name: test['name'] ?? 'Unknown',
+                                                dosage: test['dose'] ?? 'N/A',
+                                                instructions:
+                                                '${test['frequency'] ??
+                                                    ''} ${test['duration'] ??
+                                                    ''} ${test['notes'] ?? ''}'
+                                                    .trim(),
+                                              ),
+                                        )
+                                            .toList();
+                                  }
+
+                                  final request = LabTestRequest(
+                                    id: testRequestData['prescription_id']
+                                        ?.toString() ??
+                                        'N/A',
+                                    rxCode:
+                                    'RX...${testRequestData['rex_code_last4'] ??
+                                        'N/A'}',
+                                    patientName: testRequestData['patient_name'] ??
+                                        'Unknown Patient',
+                                    patientAge: int.tryParse(
+                                        testRequestData['patient_age']
+                                            ?.toString() ??
+                                            '0') ??
+                                        0,
+                                    patientGender:
+                                    testRequestData['patient_gender'] ?? '',
+                                    patientDob: testRequestData['patient_dob'] ??
+                                        '',
+                                    doctorName:
+                                    testRequestData['doctor_name'] ??
+                                        'Dr. Unknown',
+                                    doctorSpecialty:
+                                    testRequestData['doctor_specialty'] ?? '',
+                                    dateIssued: DateTime.tryParse(
+                                        testRequestData['created_at']
+                                            ?.toString() ?? '') ??
+                                        DateTime.now(),
+                                    status: TestRequestStatus.issued,
+                                    labTests: labTests,
+                                  );
+
+                                  request.patientPhone =
+                                      testRequestData['patient_phone'] ?? '';
+                                  request.notes =
+                                      testRequestData['notes'] ?? '';
+                                  request.fulfillmentScore =
+                                      testRequestData['fulfillment_score'] ??
+                                          0.0;
+
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 2),
+                                    child: _buildTestRequestCard(
+                                        request, testRequestData),
+                                  );
+                                }),
+                            ],
                           ),
                         );
-                      }
-
-                      // Use assigned requests from provider
-                      final testRequestsToDisplay = laboratoryProvider.assignedRequests;
-
-                      if (testRequestsToDisplay.isEmpty) {
-                        return _buildEmptyInventoryState();
-                      }
-
-                      return RefreshIndicator(
-                        onRefresh: _onRefresh,
-                        color: AppColors.primary,
-                        child: ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                          children: [
-                            if (testRequestsToDisplay.isEmpty)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 24,
-                                ),
-                                alignment: Alignment.center,
-                                child: const Text(
-                                  'No New Request',
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              )
-                            else
-                              ...testRequestsToDisplay.map((testRequestData) {
-                                List<LabTest> labTests = [];
-                                if (testRequestData['lab_tests'] is List) {
-                                  labTests = (testRequestData['lab_tests'] as List)
-                                      .map(
-                                        (test) => LabTest(
-                                          name: test['name'] ?? 'Unknown',
-                                          dosage: test['dose'] ?? 'N/A',
-                                          instructions:
-                                              '${test['frequency'] ?? ''} ${test['duration'] ?? ''} ${test['notes'] ?? ''}'.trim(),
-                                        ),
-                                      )
-                                      .toList();
-                                }
-
-                                final request = LabTestRequest(
-                                  id: testRequestData['prescription_id']
-                                          ?.toString() ??
-                                      'N/A',
-                                  rxCode:
-                                      'RX...${testRequestData['rex_code_last4'] ?? 'N/A'}',
-                                  patientName: testRequestData['patient_name'] ??
-                                      'Unknown Patient',
-                                  patientAge: int.tryParse(
-                                          testRequestData['patient_age']
-                                              ?.toString() ??
-                                              '0') ??
-                                      0,
-                                  patientGender:
-                                      testRequestData['patient_gender'] ?? '',
-                                  patientDob: testRequestData['patient_dob'] ?? '',
-                                  doctorName:
-                                      testRequestData['doctor_name'] ?? 'Dr. Unknown',
-                                  doctorSpecialty:
-                                      testRequestData['doctor_specialty'] ?? '',
-                                  dateIssued: DateTime.tryParse(
-                                      testRequestData['created_at']?.toString() ?? '') ?? DateTime.now(),
-                                  status: TestRequestStatus.issued,
-                                  labTests: labTests,
-                                );
-
-                                request.patientPhone =
-                                    testRequestData['patient_phone'] ?? '';
-                                request.notes =
-                                    testRequestData['notes'] ?? '';
-                                request.fulfillmentScore =
-                                    testRequestData['fulfillment_score'] ?? 0.0;
-
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 16),
-                                  child: _buildNewRequestCard(
-                                      request, testRequestData),
-                                );
-                              }),
-                          ],
-                        ),
-                      );
-                    },
+                      },
+                    ),
                   ),
-                ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -519,18 +596,30 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
     );
   }
 
-  Widget _buildNewRequestCard(LabTestRequest request,
-      Map<String, dynamic> testRequestData,) {
-    final labTestsList = testRequestData['lab_tests'] as List? ?? [];
-    final labTestsText = labTestsList
-        .map((test) => test['name'] ?? '')
-        .join(' • ');
+  Widget _buildTestRequestCard(LabTestRequest request,
+      Map<String, dynamic> testRequestData) {
+    // Determine status badge
+    final isCompleted = request.status == TestRequestStatus.completed;
+    String statusText;
+    Color statusBgColor;
+    Color statusTextColor;
+
+    if (isCompleted) {
+      statusText = 'COMPLETED';
+      statusBgColor = const Color(0xFF4CA054).withValues(alpha: 0.1);
+      statusTextColor = const Color(0xFF4CA054);
+    } else {
+      statusText = 'ASSIGNED';
+      statusBgColor = const Color(0xFF4CA054).withValues(alpha: 0.1);
+      statusTextColor = const Color(0xFF4CA054);
+    }
 
     return InkWell(
-      onTap: () => _handleCardTap(request),
+      onTap: () => _handleCardTap(testRequestData),
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
+        margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -543,372 +632,138 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
             ),
           ],
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  request.patientName.isNotEmpty ? request.patientName[0]
-                      .toUpperCase() : 'P',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        request.patientName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFF6B6B).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          'NEW',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFFF6B6B),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${request.rxCode} • ${request.patientAge} years',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    labTestsText,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.primary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ],
+        child: Column(
+            children: [
+            // Row 1: Prescription ID (Title) and Status Badge
+            Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+        Text(
+        request.id.toString(),
+        // e.g. A6CC6D56
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+        ),
+
+      ),
+      Container(
+        padding: const EdgeInsets.symmetric(
+            horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: statusBgColor,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          statusText,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: statusTextColor,
+            letterSpacing: 0.5,
+          ),
         ),
       ),
+      ],
+    ),
+    const SizedBox(height: 12),
+
+    // Row 2: Person Icon + Patient Name
+    Row(
+    children: [
+    Icon(
+    Icons.person_outline,
+    size: 20,
+    color: Colors.grey[600],
+    ),
+    const SizedBox(width: 12),
+    Text(
+    request.patientName,
+    style: const TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    color: Colors.black87,
+    ),
+    ),
+    ],
+    ),
+
+    // Row 3: Phone Number (Indented)
+    if (request.patientPhone.isNotEmpty)
+    Padding(
+    padding: const EdgeInsets.only(left: 32, top: 4),
+    child: Row(
+    children: [
+    Text(
+    request.patientPhone,
+    style: TextStyle(
+    fontSize: 14,
+    color: Colors.grey[500],
+    fontWeight: FontWeight.w500,
+    ),
+    ),
+    ],
+    ),
+    ),
+
+    const SizedBox(height: 12),
+
+    // Row 4: Availability/Tests Content
+    Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+    Icon(
+    Icons.inventory_2_outlined, // Box icon
+    size: 20,
+    color: Colors.grey[600],
+    ),
+    const SizedBox(width: 12),
+    Expanded(
+    child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+    RichText(
+    text: const TextSpan(
+    children: [
+    TextSpan(
+    text: 'Availability: ',
+    style: TextStyle(
+    fontSize: 14,
+    color: Colors.black87,
+    ),
+    ),
+    TextSpan(
+    text: 'FULL',
+    style: TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    color: Colors.black87,
+    ),
+    ),
+    ],
+    ),
+    ),
+    ],
+    ),
+    ),
+    ],
+    ),
+    ],
+    ),
+    )
+    ,
     );
   }
 
-  Widget _buildTestRequestCard(LabTestRequest request,
-      Map<String, dynamic> testRequestData,) {
-    final isFullyAvailable = request.status ==
-        TestRequestStatus.completed;
-    final isPartiallyAvailable = request.status ==
-        TestRequestStatus.inProgress;
-    final isCompleted = request.status == TestRequestStatus.completed;
-
-    // Use same green color for all statuses (available, completed, partial)
-    const cardBorderColor = Color(0xFF4CA054);
-    const statusBadgeColor = Color(0xFF4CA054);
-    String statusText;
-
-    if (isCompleted) {
-      statusText = 'Completed';
-    } else if (isFullyAvailable) {
-      statusText = 'Fully Available';
-    } else if (isPartiallyAvailable) {
-      statusText = 'In Progress';
-    } else {
-      statusText = 'Issued';
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.15),
-            spreadRadius: 1,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-        border: Border.all(
-          color: cardBorderColor,
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header with status badge
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9).withValues(alpha: 0.5),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: SvgPicture.asset(
-                      'assets/icons/person_card_icon.svg',
-                      colorFilter: const ColorFilter.mode(
-                        Colors.white,
-                        BlendMode.srcIn,
-                      ),
-                      width: 28,
-                      height: 28,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${request.patientName}, ${request.patientAge}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${request.rxCode} • ${DateFormat('dd/MM/yyyy').format(
-                            request.dateIssued)}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                _buildStatusBadge(statusBadgeColor, statusText),
-              ],
-            ),
-          ),
-
-          // Doctor Info
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.local_hospital_outlined,
-                  size: 16,
-                  color: Colors.grey[600],
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  request.doctorName,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[700],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Lab Tests List
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Lab Tests',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ...request.labTests
-                    .asMap()
-                    .entries
-                    .map((entry) {
-                  final index = entry.key;
-                  final labTest = entry.value;
-                  return Padding(
-                    padding: EdgeInsets.only(
-                        bottom: index < request.labTests.length - 1
-                            ? 12
-                            : 0),
-                    child: _buildLabTestItem(labTest, Colors.green),
-                  );
-                }),
-              ],
-            ),
-          ),
-
-          // Action Button
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => _handleCardTap(request),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isCompleted ? Colors.grey[300] : AppColors
-                      .primary,
-                  foregroundColor: isCompleted ? Colors.grey[600] : Colors
-                      .white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
-                ),
-                child: isCompleted
-                    ? const Text(
-                  'Already Completed',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                )
-                    : const Text(
-                  'View Details & Process',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge(Color color, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLabTestItem(LabTest labTest, Color dotColor) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[200]!),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: dotColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Icon(
-              Icons.science_outlined,
-              size: 18,
-              color: dotColor,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${labTest.name} ${labTest.dosage}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  labTest.instructions,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _handleCardTap(LabTestRequest request) async {
+  Future<void> _handleCardTap(Map<String, dynamic> testRequestData) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => TestRequestDetailScreen(
-          testRequest: TestRequest(
-            requestId: request.id,
-            patientName: '${request.patientName}, ${request.patientAge}',
-            doctorName: request.doctorName,
-            dateIssued: DateFormat('dd/MM/yyyy').format(request.dateIssued),
-            tests: request.labTests.map((test) => test.name).toList(),
-            status: _getStatusText(request.status),
-          ),
-        ),
+        builder: (context) =>
+            PrescriptionDetailScreen(
+              prescription: testRequestData,
+            ),
       ),
     );
 
@@ -916,6 +771,63 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
     if (result == true && mounted) {
       await _loadInventory();
     }
+  }
+
+  Widget _buildNoMatchingPrescriptions() {
+    return RefreshIndicator(
+      onRefresh: _onRefresh,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Container(
+          height: MediaQuery
+              .of(context)
+              .size
+              .height * 0.5,
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.search_off,
+                size: 80,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No Matching Prescriptions',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'No prescriptions found for "${_rxCodeController.text}"',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              TextButton.icon(
+                onPressed: () {
+                  _rxCodeController.clear();
+                  final provider = context.read<LaboratoryUserProvider>();
+                  _filterPrescriptions('', provider.assignedRequests);
+                },
+                icon: const Icon(Icons.clear),
+                label: const Text('Clear Search'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   String _getStatusText(TestRequestStatus status) {

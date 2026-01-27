@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:haticare/core/theme/app_colors.dart';
-import 'package:haticare/features/laboratory/models/test_request_card.dart';
-import 'package:haticare/features/laboratory/presentation/screens/test_request_detail_screen.dart';
+import 'package:haticare/features/laboratory/presentation/widgets/laboratory_history_card.dart';
+import 'package:haticare/features/laboratory/presentation/screens/laboratory_history_detail_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/laboratory_user_provider.dart';
 
@@ -121,17 +121,18 @@ class _LaboratoryHistoryScreenState extends State<LaboratoryHistoryScreen>
                             )
                           : ListView.builder(
                               physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.only(bottom: 16),
                               itemCount: laboratoryProvider.completedTestRequests.length,
                               itemBuilder: (context, index) {
-                                final testRequest = laboratoryProvider.completedTestRequests[index];
-                                return TestRequestCard(
-                                  testRequest: testRequest,
+                                final prescription = laboratoryProvider.completedTestRequests[index];
+                                return LaboratoryHistoryCard(
+                                  prescription: prescription,
                                   onTap: () {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) => TestRequestDetailScreen(
-                                          testRequest: testRequest,
+                                        builder: (context) => LaboratoryHistoryDetailScreen(
+                                          prescription: prescription,
                                         ),
                                       ),
                                     );

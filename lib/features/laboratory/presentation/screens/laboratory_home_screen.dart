@@ -399,6 +399,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   Map<String, dynamic> _mapAssignedToListItem(dynamic raw) {
     if (raw is Map<String, dynamic>) {
       return {
+        'status_id': raw['status_id'],
         'prescription_id': raw['prescription_id'] ?? raw['id'],
         'patient_name': raw['patient_name'] ?? 'Unknown Patient',
         'patient_phone': raw['patient_phone'],
@@ -435,10 +436,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   }
 
   Widget _buildPrescriptionDetailsScreen(Map<String, dynamic> prescription) {
-    final statusId =
-        prescription['status_id']?.toString() ??
-        prescription['prescription_id']?.toString() ??
-        '';
+    final statusId = prescription['status_id']?.toString() ?? '';
 
     return Scaffold(
       backgroundColor: Color(0xFFF9FAFB),
@@ -746,7 +744,6 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
             ),
           ),
         ),
-      ),
     );
   }
 
