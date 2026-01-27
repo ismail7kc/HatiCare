@@ -133,6 +133,9 @@ class DoctorViewModel extends ChangeNotifier {
                 _appointments.insert(0, AppointmentModel.fromJson(item));
                 _startQueueTimer();
                 shouldNotify = true;
+              } else if (decoded['type'] == 'patient_expiry') {
+                _handleExpiredPatient(decoded['patient']);
+                shouldNotify = true;
               }
 
               if (status == 'assigned') {
@@ -157,6 +160,16 @@ class DoctorViewModel extends ChangeNotifier {
       debugPrint("WS connect error: $e");
       _reconnect();
     }
+  }
+
+  void _handleExpiredPatient(Map<String, dynamic> patientJson) {
+    final expiredPatient = AppointmentModel.fromJson(patientJson);
+    _appointments.removeWhere((e) => e.id == expiredPatient.id);
+
+    Future.delayed(const Duration(seconds: 5), () {
+      _appointments.add(expiredPatient);
+      notifyListeners();
+    });
   }
 
   void _startQueueTimer() {
