@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:chucker_flutter/chucker_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -10,18 +9,17 @@ import 'package:haticare/features/auth/domain/repositories/auth_repository.dart'
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/edit_pharmacy_profile_screen.dart';
-import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_contact_support_screen.dart';
-import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_help_center_screen.dart';
-import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_notifications_screen.dart';
-import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_privacy_policy_screen.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../../../core/config/app_config.dart';
+import '../../../common/screens/contact_support_screen.dart';
+import '../../../common/screens/help_center_screen.dart';
+import '../../../common/screens/notifications_screen.dart';
+import '../../../common/screens/privacy_policy_screen.dart';
 import '../providers/pharmacy_user_provider.dart';
 
 class PharmacySettingsScreen extends StatefulWidget {
@@ -337,7 +335,7 @@ class _PharmacySettingsScreenState extends State<PharmacySettingsScreen>
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              const PharmacyNotificationsScreen(),
+                              const NotificationsScreen(),
                         ),
                       );
                     },
@@ -352,7 +350,7 @@ class _PharmacySettingsScreenState extends State<PharmacySettingsScreen>
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              const PharmacyPrivacyPolicyScreen(),
+                              const PrivacyPolicyScreen(),
                         ),
                       );
                     },
@@ -386,7 +384,7 @@ class _PharmacySettingsScreenState extends State<PharmacySettingsScreen>
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              const PharmacyHelpCenterScreen(),
+                              const HelpCenterScreen(),
                         ),
                       );
                     },
@@ -401,7 +399,7 @@ class _PharmacySettingsScreenState extends State<PharmacySettingsScreen>
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              const PharmacyContactSupportScreen(),
+                              const ContactSupportScreen(),
                         ),
                       );
                     },

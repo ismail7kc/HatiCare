@@ -148,7 +148,7 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         title: const Text(
-          'Inventory',
+          'Assigned',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
@@ -180,7 +180,7 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Verify Prescription',
+                          'Search Prescription',
                           style: TextStyle(
                             color: Colors.black,
                             fontSize: 16,
@@ -290,7 +290,7 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                                     ),
                                   )
                                       : const Text(
-                                    'Verify',
+                                    'Search',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -308,15 +308,17 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                 ),
                 const SizedBox(height: 4),
 
-                const Padding(
-                  padding: EdgeInsets.only(left: 18.0),
-                  child: Text(
-                    'Assigned Prescriptions',
-                    textAlign: TextAlign.start,
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                Padding(
+                  padding: const EdgeInsets.only(left: 16.0),
+                  child: const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Assigned Prescriptions',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -328,8 +330,8 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                         return _buildNotApprovedState();
                       }
 
-                      // Show loading state while fetching prescriptions
-                      if (laboratoryProvider.prescriptionsLoading) {
+                      // Show loading state while fetching assigned prescriptions
+                      if (laboratoryProvider.assignedRequestsLoading) {
                         return const Center(
                           child: CircularProgressIndicator(
                             color: AppColors.primary,
@@ -337,8 +339,8 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                         );
                       }
 
-                      // Use real test requests from provider
-                      final testRequestsToDisplay = laboratoryProvider.prescriptions;
+                      // Use assigned requests from provider
+                      final testRequestsToDisplay = laboratoryProvider.assignedRequests;
 
                       if (testRequestsToDisplay.isEmpty) {
                         return _buildEmptyInventoryState();
@@ -358,7 +360,7 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                                 ),
                                 alignment: Alignment.center,
                                 child: const Text(
-                                  'No new request',
+                                  'No New Request',
                                   style: TextStyle(
                                     color: Colors.grey,
                                     fontSize: 14,
@@ -457,7 +459,7 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Your laboratory account must be approved to view inventory.',
+              'Your laboratory account must be approved to view Assigned Prescriptions.',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[500],
@@ -471,28 +473,48 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
   }
 
   Widget _buildEmptyInventoryState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.science_outlined,
-              size: 64,
-              color: Colors.grey[300],
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'No Items in Inventory',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[600],
+    return RefreshIndicator(
+      onRefresh: _onRefresh,
+      color: AppColors.primary,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: SizedBox(
+              height: constraints.maxHeight,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.science_outlined,
+                      size: 64,
+                      color: Colors.grey[300],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No Assigned Items',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Pull down to refresh',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

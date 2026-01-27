@@ -116,7 +116,8 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
     
     await _loadCountriesData();
     await _loadCachedData();
-    if (openedFromSettings) {
+    // Always fetch profile from API if laboratoryId exists to get latest data
+    if (laboratoryId.isNotEmpty || openedFromSettings) {
       await fetchLaboratoryProfile();
     } else {
       isLoading = false;
@@ -331,6 +332,7 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
     }
   }
 
+
   void _populateFormFields(dynamic data) {
     try {
       if (data is Map<String, dynamic>) {
@@ -345,41 +347,46 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
         debugPrint('address_line1: $addressLine1');
 
         final country = data['country'] ?? '';
+        final state = data['state'] ?? '';
+        final city = data['city'] ?? '';
+        
         if (country.isNotEmpty) {
           // Check if country exists in the list
           final countryExists = countries.any((c) => c == country);
           if (countryExists) {
             selectCountry(country);
             debugPrint('Country selected: $country');
+            
+            // Wait for states to load, then set state and city
+            if (state.isNotEmpty || city.isNotEmpty) {
+              Future.delayed(const Duration(milliseconds: 100), () {
+                if (state.isNotEmpty) {
+                  selectState(state);
+                  debugPrint('State selected after delay: $state');
+                  
+                  // Wait for cities to load, then set city
+                  if (city.isNotEmpty) {
+                    Future.delayed(const Duration(milliseconds: 100), () {
+                      selectCity(city);
+                      debugPrint('City selected after delay: $city');
+                    });
+                  }
+                }
+              });
+            }
           } else {
             // If country doesn't exist in list, just set the text
             countryController.text = country;
             selectedCountry = country;
+            stateController.text = state;
+            selectedState = state;
+            cityController.text = city;
+            selectedCity = city;
             debugPrint('Country not found in list, set as text: $country');
           }
         }
         debugPrint('country: $country');
-
-        final state = data['state'] ?? '';
-        if (state.isNotEmpty) {
-          // First ensure country is selected
-          if (selectedCountry != null && selectedCountry!.isNotEmpty) {
-            selectState(state);
-            debugPrint('State selected: $state');
-          } else {
-            // If country not selected, just set the text
-            stateController.text = state;
-            selectedState = state;
-            debugPrint('State not selected due to missing country, set as text: $state');
-          }
-        }
         debugPrint('state: $state');
-
-        final city = data['city'] ?? '';
-        if (city.isNotEmpty) {
-          selectCity(city);
-          debugPrint('City selected: $city');
-        }
         debugPrint('city: $city');
 
         final zipCode = data['zip_code'] ?? '';
@@ -836,20 +843,26 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
     cities = [];
 
     if (country != null && country.isNotEmpty) {
+      // Load states synchronously
       _loadStatesForCountry(country);
 
-      // If no states available, auto-populate state with country name
-      if (states.isEmpty) {
-        selectedState = country;
-        stateController.text = country;
-        cityController.text = country;
-        // Clear validation errors since we auto-filled them
-        clearValidationError('state');
-        clearValidationError('city');
-      } else {
-        stateController.text = '';
-        cityController.text = '';
-      }
+      // Check after a brief delay to allow states to load
+      Future.delayed(const Duration(milliseconds: 50), () {
+        // If no states available, auto-populate state with country name
+        if (states.isEmpty) {
+          selectedState = country;
+          stateController.text = country;
+          selectedCity = country;
+          cityController.text = country;
+          // Clear validation errors since we auto-filled them
+          clearValidationError('state');
+          clearValidationError('city');
+          notifyListeners();
+        } else {
+          stateController.text = '';
+          cityController.text = '';
+        }
+      });
     } else {
       stateController.text = '';
       cityController.text = '';
@@ -866,17 +879,22 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
     cities = [];
 
     if (state != null && state.isNotEmpty && selectedCountry != null) {
+      // Load cities synchronously
       _loadCitiesForState(selectedCountry!, state);
 
-      // If no cities available, auto-populate city with state name
-      if (cities.isEmpty) {
-        selectedCity = state;
-        cityController.text = state;
-        // Clear city validation error since we auto-filled it
-        clearValidationError('city');
-      } else {
-        cityController.text = '';
-      }
+      // Check after a brief delay to allow cities to load
+      Future.delayed(const Duration(milliseconds: 50), () {
+        // If no cities available, auto-populate city with state name
+        if (cities.isEmpty) {
+          selectedCity = state;
+          cityController.text = state;
+          // Clear city validation error since we auto-filled it
+          clearValidationError('city');
+          notifyListeners();
+        } else {
+          cityController.text = '';
+        }
+      });
     } else {
       cityController.text = '';
     }

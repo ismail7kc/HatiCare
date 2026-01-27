@@ -3,7 +3,6 @@ import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/laboratory/models/test_request_card.dart';
 import 'package:haticare/features/laboratory/presentation/screens/test_request_detail_screen.dart';
 import 'package:provider/provider.dart';
-
 import '../providers/laboratory_user_provider.dart';
 
 class LaboratoryHistoryScreen extends StatefulWidget {
@@ -18,10 +17,20 @@ class _LaboratoryHistoryScreenState extends State<LaboratoryHistoryScreen>
   @override
   bool get wantKeepAlive => true;
 
+  @override
+  void initState() {
+    super.initState();
+    // Fetch history when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<LaboratoryUserProvider>();
+      provider.fetchHistory();
+    });
+  }
+
   Future<void> _onRefresh() async {
     final provider = context.read<LaboratoryUserProvider>();
-    // Fetch profile to refresh approval status and data
-    await provider.fetchProfile(forceRefresh: true);
+    // Fetch history to refresh data
+    await provider.fetchHistory();
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -48,10 +57,10 @@ class _LaboratoryHistoryScreenState extends State<LaboratoryHistoryScreen>
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                'Test Request History',
+                'History',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
@@ -78,13 +87,34 @@ class _LaboratoryHistoryScreenState extends State<LaboratoryHistoryScreen>
                           ? ListView(
                               physics: const AlwaysScrollableScrollPhysics(),
                               children: [
-                                SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                                SizedBox(height: MediaQuery.of(context).size.height * 0.25),
                                 Center(
-                                  child: Text(
-                                    'No history available',
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                          color: AppColors.textSecondary,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.history,
+                                        size: 64,
+                                        color: Colors.grey[300],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'No history available',
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                              color: AppColors.textSecondary,
+                                              fontSize: 16,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Pull down to refresh',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey[500],
                                         ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
