@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 
 class PrivacyPolicyScreen extends StatelessWidget {
@@ -12,7 +13,11 @@ class PrivacyPolicyScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: SvgPicture.asset(
+            'assets/icons/arrow_back_icon.svg',
+            width: 24,
+            height: 24,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -23,6 +28,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

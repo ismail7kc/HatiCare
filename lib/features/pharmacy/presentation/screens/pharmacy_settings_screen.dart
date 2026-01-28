@@ -9,7 +9,7 @@ import 'package:haticare/features/auth/domain/repositories/auth_repository.dart'
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/pharmacy/presentation/screens/edit_pharmacy_profile_screen.dart';
-import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
+import 'package:haticare/features/pharmacy/presentation/utils/profile_notifier.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';

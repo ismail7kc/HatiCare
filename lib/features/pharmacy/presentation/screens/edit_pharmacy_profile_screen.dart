@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
@@ -134,7 +135,11 @@ class _EditPharmacyProfileView extends StatelessWidget {
           automaticallyImplyLeading: false,
           leading: (openedFromSettings || viewModel.currentStep == 2)
               ? IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: SvgPicture.asset(
+              'assets/icons/arrow_back_icon.svg',
+              width: 24,
+              height: 24,
+            ),
             onPressed: () async {
               if (viewModel.currentStep == 2) {
                 viewModel.moveBackToPreviousPage();

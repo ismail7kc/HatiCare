@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:intl/intl.dart';
 
@@ -63,7 +64,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: SvgPicture.asset(
+            'assets/icons/arrow_back_icon.svg',
+            width: 24,
+            height: 24,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -74,6 +79,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
+        centerTitle: true,
         actions: [
           if (unreadCount > 0)
             TextButton(

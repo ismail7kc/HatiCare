@@ -45,7 +45,7 @@ class PrescriptionDetailScreen extends StatelessWidget {
             color: AppColors.textPrimary,
           ),
         ),
-        centerTitle: false,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

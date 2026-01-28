@@ -50,7 +50,7 @@ class _LaboratoryReportUploadScreenState extends State<LaboratoryReportUploadScr
             color: Colors.black,
           ),
         ),
-        centerTitle: false,
+        centerTitle: true,
       ),
       body: Column(
         children: [

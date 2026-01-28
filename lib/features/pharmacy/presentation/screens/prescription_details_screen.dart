@@ -1,3 +1,4 @@
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/pharmacy/models/prescription_request.dart';
 import 'package:intl/intl.dart';
@@ -20,11 +21,7 @@ class PrescriptionDetailsScreen extends StatefulWidget {
 
 class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
 
-  void _closeLoader(BuildContext dialogContext) {
-    if (Navigator.canPop(dialogContext)) {
-      Navigator.pop(dialogContext);
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -34,10 +31,15 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: SvgPicture.asset(
+            'assets/icons/arrow_back_icon.svg',
+            width: 24,
+            height: 24,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text('Prescription Details'),
+        centerTitle: true,
         titleTextStyle: const TextStyle(
           color: Colors.black,
           fontSize: 18,
@@ -813,20 +815,22 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
     required List<Map<String, dynamic>> items,
     required String comment,
   }) async {
-    BuildContext? dialogContext;
-
+    // Show loading indicator
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
-        dialogContext = ctx;
         return const Center(child: CircularProgressIndicator());
       },
     );
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      if (!mounted) return;
+      if (!mounted) {
+        // If unmounted, we can't pop the dialog via context easily if we lost it,
+        // but checking mounted before operations is good practice.
+        return; 
+      }
 
       final accessToken = prefs.getString('access_token') ?? '';
 
@@ -855,7 +859,9 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
       );
 
       if (!mounted) return;
-      _closeLoader(dialogContext!);
+      
+      // Pop the loading dialog
+      Navigator.of(context).pop();
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -871,7 +877,8 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
           ),
         );
 
-        Navigator.pop(context, true); // ✅ safe pop
+        // Pop the screen and return true to indicate refresh needed
+        Navigator.pop(context, true); 
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -884,7 +891,9 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      _closeLoader(dialogContext!);
+      
+      // Pop the loading dialog on error
+      Navigator.of(context).pop();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

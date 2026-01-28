@@ -14,7 +14,11 @@ class PharmacyUserProvider extends ChangeNotifier {
   bool _isLoading = true;
   String? _errorMessage;
   List<dynamic> _prescriptions = [];
+  List<dynamic> _assignedRequests = [];
+  List<dynamic> _historyRequests = [];
   bool _prescriptionsLoading = false;
+  bool _assignedLoading = false;
+  bool _historyLoading = false;
   bool _isApproved = false;
   String _approvalMessage = '';
 
@@ -25,7 +29,11 @@ class PharmacyUserProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<dynamic> get prescriptions => _prescriptions;
+  List<dynamic> get assignedRequests => _assignedRequests;
+  List<dynamic> get historyRequests => _historyRequests;
   bool get prescriptionsLoading => _prescriptionsLoading;
+  bool get assignedLoading => _assignedLoading;
+  bool get historyLoading => _historyLoading;
   bool get isApproved => _isApproved;
   String get approvalMessage => _approvalMessage;
 
@@ -93,6 +101,98 @@ class PharmacyUserProvider extends ChangeNotifier {
       _errorMessage = 'Error loading prescriptions: $e';
     } finally {
       _prescriptionsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchAssignedPrescriptions() async {
+    try {
+      _assignedLoading = true;
+      notifyListeners();
+
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token') ?? '';
+
+      if (accessToken.isEmpty) {
+        _assignedLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/assigned/?status=assigned');
+      final client = ChuckerHttpClient(http.Client());
+      final response = await client.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = jsonDecode(response.body);
+        
+        if (jsonResponse['results'] != null && 
+            jsonResponse['results']['data'] != null) {
+          _assignedRequests = jsonResponse['results']['data'] as List<dynamic>;
+        } else if (jsonResponse['data'] != null) {
+          _assignedRequests = jsonResponse['data'] as List<dynamic>;
+        } else {
+          _assignedRequests = [];
+        }
+      } else {
+        _assignedRequests = [];
+      }
+    } catch (e) {
+      _assignedRequests = [];
+    } finally {
+      _assignedLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchHistory() async {
+    try {
+      _historyLoading = true;
+      notifyListeners();
+
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token') ?? '';
+
+      if (accessToken.isEmpty) {
+        _historyLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/history/?state=completed');
+      final client = ChuckerHttpClient(http.Client());
+      final response = await client.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = jsonDecode(response.body);
+        
+        if (jsonResponse['results'] != null && 
+            jsonResponse['results']['data'] != null) {
+          _historyRequests = jsonResponse['results']['data'] as List<dynamic>;
+        } else if (jsonResponse['data'] != null) {
+          _historyRequests = jsonResponse['data'] as List<dynamic>;
+        } else {
+          _historyRequests = [];
+        }
+      } else {
+        _historyRequests = [];
+      }
+    } catch (e) {
+      _historyRequests = [];
+    } finally {
+      _historyLoading = false;
       notifyListeners();
     }
   }

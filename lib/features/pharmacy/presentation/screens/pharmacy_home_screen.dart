@@ -13,12 +13,10 @@ import 'package:provider/provider.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../../../common/screens/notifications_screen.dart';
 import '../providers/pharmacy_user_provider.dart';
+import '../../presentation/utils/profile_notifier.dart';
 import 'prescription_details_screen.dart';
 
-class ProfileNotifier {
-  static final ValueNotifier<String?> profileImageUrl = ValueNotifier(null);
-  static final ValueNotifier<String?> doctorName = ValueNotifier(null);
-}
+
 
 class PharmacyHomeScreen extends StatefulWidget {
   const PharmacyHomeScreen({super.key});
@@ -76,9 +74,11 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
       if (!mounted) return;
 
       if (provider.isApproved) {
-        await provider.fetchPrescriptions();
+        provider.fetchPrescriptions();
+        provider.fetchAssignedPrescriptions();
+        provider.fetchHistory();
       } else {
-        await provider.fetchPrescriptions();
+        provider.fetchPrescriptions();
       }
     });
 
@@ -155,7 +155,11 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     await provider.fetchProfile(forceRefresh: true);
     if (!mounted) return;
 
-    await provider.fetchPrescriptions();
+    await Future.wait([
+      provider.fetchPrescriptions(),
+      provider.fetchAssignedPrescriptions(),
+      provider.fetchHistory(),
+    ]);
   }
 
   // Calculate available count for summary card
@@ -192,8 +196,8 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     super.build(context); // Required for AutomaticKeepAliveClientMixin
 
     final pharmacyProvider = context.watch<PharmacyUserProvider>();
-    final availableCount = _getAvailableCount(pharmacyProvider.prescriptions);
-    final deliveredCount = _getDeliveredCount(pharmacyProvider.prescriptions);
+    final availableCount = pharmacyProvider.assignedRequests.length;
+    final deliveredCount = pharmacyProvider.historyRequests.length;
     final prescriptionsRaw = pharmacyProvider.prescriptions;
     final isLoadingPrescriptions = pharmacyProvider.prescriptionsLoading;
     final hasFetchedPrescriptions = prescriptionsRaw.isNotEmpty;
@@ -427,8 +431,8 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                                   color: Color(0xFF2443A9),
                                 ),
                               ),
-                              const Text(
-                                'Available Prescriptions',
+                                const Text(
+                                'Assigned Prescriptions',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: Color(0xFF2443A9),
@@ -466,7 +470,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                                 ),
                               ),
                               const Text(
-                                'Delivered Prescriptions',
+                                'Completed Prescriptions',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: Colors.white,
@@ -480,15 +484,12 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                   ],
                 ),
                 const SizedBox(height: 24),
-                Padding(
-                  padding: const EdgeInsets.only(left: 16.0),
-                  child: const Text(
-                    'New Requests',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
+                const Text(
+                  'New Requests',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 12),
