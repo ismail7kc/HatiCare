@@ -317,13 +317,13 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                                 setState(() => _accepting = false);
 
                                 if (!mounted) return;
-
+                                
                                 if (visitId == 0) {
                                   showDialog(
                                     context: context,
-                                    builder: (_) => const AlertDialog(
+                                    builder: (_) => AlertDialog(
                                       title: Text('Error'),
-                                      content: Text('Failed to accept patient'),
+                                      content: Text(appointmentDetailvm.errorMessage),
                                     ),
                                   );
                                   return;

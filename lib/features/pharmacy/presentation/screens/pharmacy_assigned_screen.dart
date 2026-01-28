@@ -47,11 +47,16 @@ class _PharmacyAssignedScreenState extends State<PharmacyAssignedScreen> {
         },
       );
 
-      final jsonResponse = jsonDecode(response.body);
-      final List list = (jsonResponse['results']?['data']) ?? [];
+      if (response.statusCode != 200) {
+        throw Exception('Failed to fetch assigned prescriptions');
+      }
+
+      final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+
+      final List<dynamic> dataList = jsonResponse['results']?['data'] ?? [];
 
       setState(() {
-        assignedItems = list
+        assignedItems = dataList
             .map((e) => AssignedPrescription.fromJson(e))
             .toList();
         isLoading = false;
@@ -237,12 +242,12 @@ class AssignedPrescriptionCard extends StatelessWidget {
     return InkWell(
       onTap: () {
         if (isVerified) {
-          // Navigator.push(
-            // context,
-            // MaterialPageRoute(
-              // builder: (context) => AssignedDetailScreen(request: item),
-            // ),
-          // );
+          Navigator.push(
+          context,
+          MaterialPageRoute(
+          builder: (context) => AssignedDetailScreen(request: item),
+          ),
+          );
         }
       },
 

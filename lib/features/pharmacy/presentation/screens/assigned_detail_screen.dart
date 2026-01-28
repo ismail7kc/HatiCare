@@ -7,15 +7,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../models/prescription_request.dart';
 
 class AssignedDetailScreen extends StatefulWidget {
-  final PrescriptionRequest request;
+  final AssignedPrescription request;
 
-  const AssignedDetailScreen({
-    super.key,
-    required this.request,
-  });
+  const AssignedDetailScreen({super.key, required this.request});
 
   @override
   State<AssignedDetailScreen> createState() => _AssignedDetailScreenState();
@@ -88,7 +84,7 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        'Issued',
+                        widget.request.pharmacyStatus.toUpperCase(),
                         style: TextStyle(
                           color: AppColors.primaryDark,
                           fontSize: 12,
@@ -111,19 +107,24 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
                 ),
                 child: Column(
                   children: [
-                    _buildInfoRow(
-                      'Patient:',
-                      '${widget.request.patientName}, ${widget.request.patientAge}',
-                    ),
+                    _buildInfoRow('Patient:', widget.request.patientName),
                     const SizedBox(height: 12),
-                    _buildInfoRow('Issuing Doctor:', widget.request.doctorName),
+                    _buildInfoRow('Issuing Doctor:', widget.request.doctor),
                     const SizedBox(height: 12),
                     if (widget.request.patientPhone.isNotEmpty)
-                      _buildInfoRow('Patient Phone:', widget.request.patientPhone),
-                    if (widget.request.patientPhone.isNotEmpty) const SizedBox(height: 12),
+                      _buildInfoRow(
+                        'Patient Phone:',
+                        widget.request.patientPhone,
+                      ),
+                    if (widget.request.patientPhone.isNotEmpty)
+                      const SizedBox(height: 12),
                     _buildInfoRow(
                       'Date Issued:',
-                      DateFormat('dd/MM/yyyy').format(widget.request.dateIssued),
+                      widget.request.verifiedAt != null
+                          ? DateFormat(
+                              'dd/MM/yyyy',
+                            ).format(widget.request.verifiedAt!)
+                          : '-',
                     ),
                   ],
                 ),
@@ -175,50 +176,6 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Notes Card (if available)
-              if (widget.request.notes.isNotEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(
-                            Icons.note_outlined,
-                            color: Colors.black,
-                            size: 20,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Note',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        widget.request.notes,
-                        style: TextStyle(
-                          color: Colors.grey[700],
-                          fontSize: 14,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              if (widget.request.notes.isNotEmpty) const SizedBox(height: 16),
-
               // Actions Card
               Container(
                 width: double.infinity,
@@ -239,8 +196,7 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Show only Complete button for assigned prescriptions
-                    if (widget.request.status == PrescriptionStatus.issued)
+                    if (widget.request.pharmacyStatus == 'assigned')
                       Row(
                         children: [
                           Expanded(
@@ -249,7 +205,9 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.transparent,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(25),
                                 ),
@@ -262,7 +220,9 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
                                 ),
                                 child: Container(
                                   width: double.infinity,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
                                   alignment: Alignment.center,
                                   child: const Text(
                                     'Complete',
@@ -277,8 +237,7 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
                           ),
                         ],
                       )
-                    else if (widget.request.status == PrescriptionStatus.fullyDispensed ||
-                             widget.request.status == PrescriptionStatus.partiallyDispensed)
+                    else if (widget.request.pharmacyStatus == 'dispensed')
                       Row(
                         children: [
                           Expanded(
@@ -287,7 +246,9 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.transparent,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(25),
                                 ),
@@ -300,7 +261,9 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
                                 ),
                                 child: Container(
                                   width: double.infinity,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
                                   alignment: Alignment.center,
                                   child: const Text(
                                     'Mark as Delivered',
@@ -320,15 +283,19 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         decoration: BoxDecoration(
-                          color: Color(0xFFE8F5E9),
+                          color: const Color(0xFFE8F5E9),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Color(0xFF4CA054)),
+                          border: Border.all(color: const Color(0xFF4CA054)),
                         ),
                         child: const Center(
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.check_circle, color: Color(0xFF4CA054), size: 20),
+                              Icon(
+                                Icons.check_circle,
+                                color: Color(0xFF4CA054),
+                                size: 20,
+                              ),
                               SizedBox(width: 8),
                               Text(
                                 'Medication Delivered',
@@ -403,11 +370,11 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
               ),
               children: [
                 TextSpan(
-                  text: '${medication.name} ${medication.dosage} ',
+                  text: '${medication.name} ${medication.dose} ',
                   style: const TextStyle(fontWeight: FontWeight.normal),
                 ),
                 TextSpan(
-                  text: '(${medication.instructions})',
+                  text: '(${medication.notes})',
                   style: TextStyle(color: Colors.grey[600]),
                 ),
               ],
@@ -440,16 +407,20 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
         'rex_code': widget.request.rxCode.replaceFirst('RX...', ''),
       };
 
-      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/complete/');
+      final uri = Uri.parse(
+        '${AppConfig.baseUrl}prescriptions/pharmacy/complete/',
+      );
       final client = ChuckerHttpClient(http.Client());
-      final response = await client.post(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 30));
+      final response = await client
+          .post(
+            uri,
+            headers: {
+              'Authorization': 'Bearer $accessToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -462,7 +433,9 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to complete prescription: ${response.statusCode}'),
+            content: Text(
+              'Failed to complete prescription: ${response.statusCode}',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -510,7 +483,11 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.warning_amber_outlined, color: Colors.orange[700], size: 20),
+                  Icon(
+                    Icons.warning_amber_outlined,
+                    color: Colors.orange[700],
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -530,9 +507,7 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF4CA054),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF4CA054)),
             child: const Text('Confirm Delivery'),
           ),
         ],
@@ -545,9 +520,7 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
@@ -556,19 +529,23 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
       final prescriptionId = widget.request.id;
 
       // Call API to mark as delivered
-      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/$prescriptionId/deliver/');
+      final uri = Uri.parse(
+        '${AppConfig.baseUrl}prescriptions/pharmacy/$prescriptionId/deliver/',
+      );
       final client = ChuckerHttpClient(http.Client());
-      final response = await client.patch(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'status': 'delivered',
-          'delivered_at': DateTime.now().toIso8601String(),
-        }),
-      ).timeout(const Duration(seconds: 30));
+      final response = await client
+          .patch(
+            uri,
+            headers: {
+              'Authorization': 'Bearer $accessToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({
+              'status': 'delivered',
+              'delivered_at': DateTime.now().toIso8601String(),
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
 
       // Dismiss loading dialog
       if (context.mounted) {
@@ -593,7 +570,9 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Failed to mark as delivered: ${response.statusCode}'),
+              content: Text(
+                'Failed to mark as delivered: ${response.statusCode}',
+              ),
               backgroundColor: Colors.red,
             ),
           );

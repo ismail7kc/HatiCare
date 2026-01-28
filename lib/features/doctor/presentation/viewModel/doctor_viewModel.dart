@@ -39,19 +39,6 @@ class DoctorViewModel extends ChangeNotifier {
     final body = {'is_online': isOnline};
 
     final response = await repository.updateDoctorInfo(body);
-
-    // final int statusCode = response['code'] ?? 0;
-    // final bool isActive = response['data']?['is_active'] ?? true;
-
-    // if (statusCode == 401 || !isActive) {
-    //   debugPrint('Doctor is inactive or unauthorized. Showing global alert...');
-    //   await ForceLogoutHelper.showInactiveAccountAlert(
-    //     rootNavigatorKey.currentContext!,
-    //     message: response['message'],
-    //   );
-    //   return;
-    // }
-
     if (response['success'] == true && response['data'] != null) {
       debugPrint(
         'Response when doctor sent online true: ${response['message']}',
@@ -67,20 +54,6 @@ class DoctorViewModel extends ChangeNotifier {
 
     try {
       final response = await repository.getPatientQueue();
-
-      // final int statusCode = response['code'] ?? 0;
-      // final bool isActive = response['data']?['is_active'] ?? true;
-
-      // if (statusCode == 401 || !isActive) {
-      //   debugPrint('User inactive or unauthorized. Showing alert...');
-      //   await ForceLogoutHelper.showInactiveAccountAlert(
-      //     rootNavigatorKey.currentContext!,
-      //     message: response['message'],
-      //   );
-
-      //   return;
-      // }
-
       if (response['success'] == true && response['data'] != null) {
         debugPrint('Fetch Patient Api Triggered');
         final List data = response['data'] as List;
