@@ -82,7 +82,18 @@ class DoctorViewModel extends ChangeNotifier {
     if (_isConnecting || _isDisposed) return;
     _isConnecting = true;
 
-    final socketUrl = 'wss://api.haticare.com/ws/doctor/queue/';
+    if (SaveLoginResponse.loginData == null) {
+      await SaveLoginResponse.loadLoginModel();
+    }
+    // final socketUrl = 'wss://api.haticare.com/ws/doctor/queue/';
+    final specialization = SaveLoginResponse.loginData?['specialization'] ?? '';
+    
+    // Construct URL with specialization
+    String socketUrl = 'wss://api.haticare.com/ws/doctor/queue/';
+    if (specialization.isNotEmpty) {
+      socketUrl += '?specialization=${Uri.encodeComponent(specialization)}';
+    }
+    
     debugPrint("WebSocket URL: $socketUrl");
     
     try {

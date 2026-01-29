@@ -2,18 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import 'package:haticare/core/theme/app_colors.dart';
-import 'package:haticare/features/pharmacy/models/pharmacy_history_item.dart';
 
 class PharmacyHistoryDetailScreen extends StatelessWidget {
-  final PharmacyHistoryItem item;
+  final Map<String, dynamic> prescription;
 
   const PharmacyHistoryDetailScreen({
     super.key,
-    required this.item,
+    required this.prescription,
   });
 
   @override
   Widget build(BuildContext context) {
+    final prescriptionId = prescription['prescription_id']?.toString() ?? '';
+    final patientName = prescription['patient_name']?.toString() ?? 'Unknown Patient';
+    final patientPhone = prescription['patient_phone']?.toString() ?? '';
+    final patientCity = prescription['patient_city']?.toString() ?? '';
+    final doctor = prescription['doctor']?.toString() ?? '';
+    final medications = prescription['medications'] as List<dynamic>? ?? [];
+    final pharmacyStatus = prescription['pharmacy_status']?.toString() ?? '';
+    final lastAction = prescription['last_action']?.toString() ?? '';
+    final createdAt = prescription['created_at']?.toString() ?? '';
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -43,22 +52,28 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Prescription Info Card
-            _buildPrescriptionInfoCard(),
+            _buildPrescriptionInfoCard(prescriptionId, pharmacyStatus, createdAt),
             const SizedBox(height: 16),
-            
-            // Action Info Card
-            _buildActionInfoCard(),
+
+            // Patient Info Card
+            _buildPatientInfoCard(patientName, patientPhone, patientCity),
             const SizedBox(height: 16),
-            
-            // Medications Card
-            if (item.medications.isNotEmpty) ...[
-              _buildMedicationsCard(),
+
+            // Doctor Info Card
+            if (doctor.isNotEmpty) ...[
+              _buildDoctorInfoCard(doctor),
               const SizedBox(height: 16),
             ],
-            
-            // Score and Comment Card
-            if (item.score != null || item.comment != null) ...[
-              _buildScoreCommentCard(),
+
+            // Medications Card
+            if (medications.isNotEmpty) ...[
+              _buildMedicationsCard(medications),
+              const SizedBox(height: 16),
+            ],
+
+            // Status Card
+            if (lastAction.isNotEmpty) ...[
+              _buildStatusCard(lastAction, pharmacyStatus),
             ],
           ],
         ),
@@ -66,7 +81,7 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPrescriptionInfoCard() {
+  Widget _buildPrescriptionInfoCard(String prescriptionId, String status, String createdAt) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -94,14 +109,11 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
                   gradient: AppColors.primaryGradient,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Center(
-                  child: Text(
-                    'RX',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                child: const Center(
+                  child: Icon(
+                    Icons.local_pharmacy_outlined,
+                    color: Colors.white,
+                    size: 24,
                   ),
                 ),
               ),
@@ -120,7 +132,7 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'ID: #${item.prescriptionId}',
+                      'ID: #$prescriptionId',
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 13,
@@ -129,19 +141,162 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              _buildStatusBadge(status),
             ],
+          ),
+          if (createdAt.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(
+                  Icons.calendar_today_outlined,
+                  size: 20,
+                  color: Colors.grey[600],
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _formatDate(createdAt),
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPatientInfoCard(String patientName, String patientPhone, String patientCity) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Patient Information',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
+            ),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               Icon(
-                Icons.calendar_today_outlined,
+                Icons.person_outline,
                 size: 20,
                 color: Colors.grey[600],
               ),
               const SizedBox(width: 8),
               Text(
-                DateFormat('dd MMMM yyyy, hh:mm a').format(item.createdAt),
+                patientName,
+                style: TextStyle(
+                  color: Colors.grey[700],
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          if (patientPhone.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  Icons.phone_outlined,
+                  size: 20,
+                  color: Colors.grey[600],
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  patientPhone,
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (patientCity.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  Icons.location_on_outlined,
+                  size: 20,
+                  color: Colors.grey[600],
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  patientCity,
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDoctorInfoCard(String doctor) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Doctor Information',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(
+                Icons.medical_services_outlined,
+                size: 20,
+                color: Colors.grey[600],
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Dr. $doctor',
                 style: TextStyle(
                   color: Colors.grey[700],
                   fontSize: 14,
@@ -154,7 +309,7 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionInfoCard() {
+  Widget _buildMedicationsCard(List<dynamic> medications) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -173,110 +328,47 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Action Details',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.black,
-            ),
+          Row(
+            children: [
+              const Text(
+                'Medications',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${medications.length}',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
-          _buildActionBadge(item.action),
-          const SizedBox(height: 12),
-          Text(
-            'Action: ${item.actionText}',
-            style: TextStyle(
-              color: Colors.grey[700],
-              fontSize: 14,
-            ),
-          ),
-          Text(
-            'Status: ${item.statusText}',
-            style: TextStyle(
-              color: Colors.grey[700],
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionBadge(HistoryAction action) {
-    Color backgroundColor;
-    Color textColor;
-    String text;
-
-    switch (action) {
-      case HistoryAction.selectedFull:
-        backgroundColor = const Color(0xFFE3F2FD);
-        textColor = const Color(0xFF1976D2);
-        text = 'Selected';
-      case HistoryAction.respondedFull:
-        backgroundColor = const Color(0xFFE8F5E9);
-        textColor = const Color(0xFF4CA054);
-        text = 'Fully Available';
-      case HistoryAction.respondedPartial:
-        backgroundColor = const Color(0xFFFFF1DA);
-        textColor = const Color(0xFFF2B544);
-        text = 'Partially Available';
-      case HistoryAction.selectedPartial:
-        backgroundColor = const Color(0xFFFCE4EC);
-        textColor = const Color(0xFFE91E63);
-        text = 'Partially Selected';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMedicationsCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Medications',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ...item.medications.asMap().entries.map((entry) {
+          ...medications.asMap().entries.map((entry) {
             final index = entry.key;
             final med = entry.value;
+            final medName = med['name']?.toString() ?? 'Unknown';
+            final dose = med['dose']?.toString() ?? '';
+            final frequency = med['frequency']?.toString() ?? '';
+            final duration = med['duration']?.toString() ?? '';
+            final quantity = med['quantity']?.toString() ?? '0';
+            final notes = med['notes']?.toString() ?? '';
+
             return Padding(
-              padding: EdgeInsets.only(bottom: index < item.medications.length - 1 ? 12 : 0),
+              padding: EdgeInsets.only(bottom: index < medications.length - 1 ? 12 : 0),
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -288,9 +380,18 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
                   children: [
                     Row(
                       children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            med.name,
+                            medName,
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -298,60 +399,47 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
                             ),
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: _getAvailabilityColor(med.availabilityStatus).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            med.availabilityStatus,
-                            style: TextStyle(
-                              color: _getAvailabilityColor(med.availabilityStatus),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                      ],
+                    ),
+                    if (dose.isNotEmpty || frequency.isNotEmpty || duration.isNotEmpty || quantity != '0') ...[
+                      const SizedBox(height: 8),
+                      if (dose.isNotEmpty)
+                        _buildMedicationDetail('Dose', dose),
+                      if (frequency.isNotEmpty)
+                        _buildMedicationDetail('Frequency', frequency),
+                      if (duration.isNotEmpty)
+                        _buildMedicationDetail('Duration', duration),
+                      if (quantity != '0')
+                        _buildMedicationDetail('Quantity', quantity),
+                    ],
+                    if (notes.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.note_outlined,
+                              size: 16,
+                              color: Colors.grey[600],
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Text(
-                          'Strength: ${med.strength}',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Text(
-                          'Required: ${med.requiredQty}',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Text(
-                          'Available: ${med.availableQty}',
-                          style: TextStyle(
-                            color: _getAvailabilityColor(med.availabilityStatus),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (med.notes.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        'Notes: ${med.notes}',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                          fontStyle: FontStyle.italic,
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                notes,
+                                style: TextStyle(
+                                  color: Colors.grey[700],
+                                  fontSize: 12,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -365,7 +453,35 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildScoreCommentCard() {
+  Widget _buildMedicationDetail(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          const SizedBox(width: 20),
+          Text(
+            '$label: ',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: Colors.grey[700],
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusCard(String lastAction, String pharmacyStatus) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -385,7 +501,7 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Additional Information',
+            'Status Information',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -393,89 +509,114 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          if (item.score != null) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.score_outlined,
-                    size: 20,
-                    color: AppColors.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Fulfillment Score: ${(item.score! * 100).toStringAsFixed(1)}%',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(8),
             ),
-            const SizedBox(height: 12),
-          ],
-          if (item.comment != null) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.comment_outlined,
-                        size: 20,
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 20,
+                      color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Last Action: ',
+                      style: TextStyle(
                         color: Colors.grey[600],
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
                       ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Comment',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    item.comment!,
-                    style: TextStyle(
-                      color: Colors.grey[700],
-                      fontSize: 14,
                     ),
-                  ),
-                ],
-              ),
+                    Text(
+                      lastAction,
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.local_pharmacy_outlined,
+                      size: 20,
+                      color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Pharmacy Status: ',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    _buildStatusBadge(pharmacyStatus),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
         ],
       ),
     );
   }
 
-  Color _getAvailabilityColor(String status) {
-    switch (status) {
-      case 'Available':
-        return const Color(0xFF4CA054);
-      case 'Partially Available':
-        return const Color(0xFFF2B544);
-      case 'Not Available':
-        return const Color(0xFFFF6B6B);
+  Widget _buildStatusBadge(String status) {
+    Color backgroundColor;
+    Color textColor;
+    String text;
+
+    switch (status.toLowerCase()) {
+      case 'completed':
+        backgroundColor = const Color(0xFFE8F5E9);
+        textColor = const Color(0xFF4CA054);
+        text = 'Completed';
+      case 'assigned':
+        backgroundColor = const Color(0xFFE3F2FD);
+        textColor = const Color(0xFF1976D2);
+        text = 'Assigned';
+      case 'open':
+        backgroundColor = const Color(0xFFFFF1DA);
+        textColor = const Color(0xFFF2B544);
+        text = 'Open';
       default:
-        return Colors.grey;
+        backgroundColor = Colors.grey[200]!;
+        textColor = Colors.grey[700]!;
+        text = status;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(25),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      return DateFormat('dd MMMM yyyy, hh:mm a').format(date);
+    } catch (e) {
+      return dateStr;
     }
   }
 }

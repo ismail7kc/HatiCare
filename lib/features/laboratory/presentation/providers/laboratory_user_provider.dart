@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -383,7 +384,7 @@ class LaboratoryUserProvider extends ChangeNotifier {
         return;
       }
 
-      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/$statusId/accept/');
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/status/$statusId/accept/');
       final client = ChuckerHttpClient(http.Client());
       
       final response = await client.patch(
@@ -426,5 +427,57 @@ class LaboratoryUserProvider extends ChangeNotifier {
     _isVerifying = false;
     _errorMessage = null;
     notifyListeners();
+  }
+  Future<bool> uploadReport(String prescriptionId, List<File> files) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token') ?? '';
+      
+      // Using assumed endpoint for report upload
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/$prescriptionId/report/');
+
+      final request = http.MultipartRequest('POST', uri);
+      request.headers.addAll({
+        'Authorization': 'Bearer $accessToken',
+        'Accept': 'application/json',
+      });
+
+      for (var file in files) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'files', // Common field name for multiple file uploads
+            file.path,
+          ),
+        );
+      }
+
+      // Add debug print
+      debugPrint('Uploading ${files.length} reports to $uri');
+
+      final client = ChuckerHttpClient(http.Client());
+      final streamedResponse = await client.send(request);
+      final response = await http.Response.fromStream(streamedResponse);
+
+      debugPrint('Upload response: ${response.statusCode} ${response.body}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = 'Failed to upload report: ${response.statusCode}';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = 'Error uploading report: $e';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 }

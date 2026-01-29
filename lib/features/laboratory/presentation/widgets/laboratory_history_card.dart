@@ -3,11 +3,11 @@ import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 
-class PharmacyHistoryCard extends StatelessWidget {
+class LaboratoryHistoryCard extends StatelessWidget {
   final Map<String, dynamic> prescription;
   final VoidCallback onTap;
 
-  const PharmacyHistoryCard({
+  const LaboratoryHistoryCard({
     super.key,
     required this.prescription,
     required this.onTap,
@@ -15,13 +15,14 @@ class PharmacyHistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final statusId = prescription['status_id']?.toString() ?? '';
     final prescriptionId = prescription['prescription_id']?.toString() ?? '';
     final patientName = prescription['patient_name']?.toString() ?? 'Unknown Patient';
     final patientPhone = prescription['patient_phone']?.toString() ?? '';
-    final medications = prescription['medications'] as List<dynamic>? ?? [];
-    final pharmacyStatus = prescription['pharmacy_status']?.toString() ?? '';
+    final labTests = prescription['lab_tests'] as List<dynamic>? ?? [];
+    final notes = prescription['notes']?.toString() ?? '';
     final createdAt = prescription['created_at']?.toString() ?? '';
-    final doctor = prescription['doctor']?.toString() ?? '';
+    final rexCode = prescription['rex_code']?.toString() ?? '';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -45,7 +46,7 @@ class PharmacyHistoryCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header with prescription ID and status
+              // Header with RX code and status
               Row(
                 children: [
                   Container(
@@ -57,7 +58,7 @@ class PharmacyHistoryCard extends StatelessWidget {
                     ),
                     child: const Center(
                       child: Icon(
-                        Icons.local_pharmacy_outlined,
+                        Icons.science_outlined,
                         color: Colors.white,
                         size: 24,
                       ),
@@ -68,14 +69,24 @@ class PharmacyHistoryCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Prescription #$prescriptionId',
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                        if (rexCode.isNotEmpty)
+                          Text(
+                            'RX: $rexCode',
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          )
+                        else
+                          Text(
+                            'Prescription #$prescriptionId',
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
                         const SizedBox(height: 4),
                         Text(
                           patientName,
@@ -87,12 +98,12 @@ class PharmacyHistoryCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  _buildStatusBadge(pharmacyStatus),
+                  _buildStatusBadge(),
                 ],
               ),
 
-              // Medications summary
-              if (medications.isNotEmpty) ...[
+              // Lab tests summary
+              if (labTests.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Container(
                   width: double.infinity,
@@ -105,7 +116,7 @@ class PharmacyHistoryCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Medications:',
+                        'Lab Tests:',
                         style: TextStyle(
                           color: Colors.grey[700],
                           fontSize: 12,
@@ -113,8 +124,8 @@ class PharmacyHistoryCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      ...medications.take(2).map((med) {
-                        final medName = med['name']?.toString() ?? 'Unknown';
+                      ...labTests.take(2).map((test) {
+                        final testName = test['name']?.toString() ?? 'Unknown Test';
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 2),
                           child: Row(
@@ -130,7 +141,7 @@ class PharmacyHistoryCard extends StatelessWidget {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  medName,
+                                  testName,
                                   style: const TextStyle(
                                     color: Colors.black87,
                                     fontSize: 13,
@@ -143,9 +154,9 @@ class PharmacyHistoryCard extends StatelessWidget {
                           ),
                         );
                       }),
-                      if (medications.length > 2)
+                      if (labTests.length > 2)
                         Text(
-                          '+${medications.length - 2} more medications',
+                          '+${labTests.length - 2} more tests',
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 11,
@@ -156,22 +167,27 @@ class PharmacyHistoryCard extends StatelessWidget {
                 ),
               ],
 
-              // Doctor name
-              if (doctor.isNotEmpty) ...[
+              // Notes
+              if (notes.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Row(
                   children: [
                     Icon(
-                      Icons.person_outline,
+                      Icons.note_outlined,
                       size: 14,
                       color: Colors.grey[600],
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      'Dr. $doctor',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
+                    Expanded(
+                      child: Text(
+                        notes,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -201,40 +217,17 @@ class PharmacyHistoryCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBadge(String status) {
-    Color backgroundColor;
-    Color textColor;
-    String text;
-
-    switch (status.toLowerCase()) {
-      case 'completed':
-        backgroundColor = const Color(0xFFE8F5E9);
-        textColor = const Color(0xFF4CA054);
-        text = 'Completed';
-      case 'assigned':
-        backgroundColor = const Color(0xFFE3F2FD);
-        textColor = const Color(0xFF1976D2);
-        text = 'Assigned';
-      case 'open':
-        backgroundColor = const Color(0xFFFFF1DA);
-        textColor = const Color(0xFFF2B544);
-        text = 'Open';
-      default:
-        backgroundColor = Colors.grey[200]!;
-        textColor = Colors.grey[700]!;
-        text = status;
-    }
-
+  Widget _buildStatusBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: const Color(0xFFE8F5E9),
         borderRadius: BorderRadius.circular(25),
       ),
-      child: Text(
-        text,
+      child: const Text(
+        'Completed',
         style: TextStyle(
-          color: textColor,
+          color: Color(0xFF4CA054),
           fontSize: 11,
           fontWeight: FontWeight.w600,
         ),

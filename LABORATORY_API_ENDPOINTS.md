@@ -34,7 +34,7 @@ Separated the API endpoints for Laboratory Home Screen and Laboratory Inventory 
 - **Getter**: `completedTestRequests`
 
 ### 4. Accept Prescription
-- **Endpoint**: `prescriptions/laboratory/{status_id}/accept/`
+- **Endpoint**: `prescriptions/laboratory/status/{status_id}/accept/`
 - **Method**: PATCH
 - **Purpose**: Accept a prescription/test request
 - **Provider Method**: `acceptPrescription(String statusId)`
@@ -45,6 +45,15 @@ Separated the API endpoints for Laboratory Home Screen and Laboratory Inventory 
   }
   ```
 - **Behavior**: After successful acceptance, refreshes both `_newRequests` and `_assignedRequests` lists
+
+### 5. Upload Lab Report (Assumed)
+- **Endpoint**: `prescriptions/laboratory/{prescription_id}/report/`
+- **Method**: POST
+- **Purpose**: Upload completed lab test reports (images/PDFs)
+- **Provider Method**: `uploadReport(String prescriptionId, List<File> files)`
+- **Request Format**: Multipart/form-data
+- **Body Keys**:
+  - `files`: The file(s) to upload
 
 ## Changes Made
 
@@ -72,6 +81,11 @@ bool _assignedRequestsLoading = false;
    - Calls `prescriptions/laboratory/assigned/`
    - Populates `_assignedRequests`
    - Used by Laboratory Inventory Screen
+
+3. **`uploadReport()`** (New)
+   - Calls `prescriptions/laboratory/{prescription_id}/report/`
+   - Uploads files via multipart request
+   - Returns success/failure boolean
 
 #### Backward Compatibility
 - `fetchTestRequests()` → calls `fetchNewRequests()`
@@ -144,3 +158,4 @@ UI displays via assignedRequests getter
 - [ ] Empty states display when no data is available
 - [ ] Error handling works for both endpoints
 - [ ] Backward compatibility maintained for existing code
+- [ ] Report upload works with the assumed endpoint

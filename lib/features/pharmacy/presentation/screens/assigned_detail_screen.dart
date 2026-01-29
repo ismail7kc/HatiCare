@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'package:chucker_flutter/chucker_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/features/pharmacy/models/assign_prescription.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/app_primary_button.dart';
 
 class AssignedDetailScreen extends StatefulWidget {
   final AssignedPrescription request;
@@ -18,6 +20,14 @@ class AssignedDetailScreen extends StatefulWidget {
 }
 
 class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
+  late String currentPharmacyStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    currentPharmacyStatus = widget.request.pharmacyStatus;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -26,10 +36,15 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: SvgPicture.asset(
+            'assets/icons/arrow_back_icon.svg',
+            width: 24,
+            height: 24,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text('Assigned Prescription Details'),
+        centerTitle: true,
         titleTextStyle: const TextStyle(
           color: Colors.black,
           fontSize: 18,
@@ -84,7 +99,7 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        widget.request.pharmacyStatus.toUpperCase(),
+                        currentPharmacyStatus.toUpperCase(),
                         style: TextStyle(
                           color: AppColors.primaryDark,
                           fontSize: 12,
@@ -196,87 +211,15 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    if (widget.request.pharmacyStatus == 'assigned')
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () => _completePrescription(),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: Ink(
-                                decoration: BoxDecoration(
-                                  gradient: AppColors.primaryGradient,
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                                child: Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: const Text(
-                                    'Complete',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                    if (currentPharmacyStatus == 'assigned')
+                      AppPrimaryButton(
+                        label: 'Complete',
+                        onPressed: _completePrescription,
                       )
-                    else if (widget.request.pharmacyStatus == 'dispensed')
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () => _markAsDelivered(),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: Ink(
-                                decoration: BoxDecoration(
-                                  gradient: AppColors.primaryGradient,
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                                child: Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: const Text(
-                                    'Mark as Delivered',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                    else if (currentPharmacyStatus == 'dispensed')
+                      AppPrimaryButton(
+                        label: 'Mark as Delivered',
+                        onPressed: _markAsDelivered,
                       )
                     else
                       Container(
@@ -423,6 +366,9 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
           .timeout(const Duration(seconds: 30));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        setState(() {
+          currentPharmacyStatus = 'dispensed';
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Prescription completed successfully'),
@@ -431,11 +377,11 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
         );
         Navigator.pop(context, true);
       } else {
+        final errorBody = jsonDecode(response.body);
+        final errorMessage = errorBody['error'] ?? errorBody['message'] ?? 'Failed to complete prescription';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Failed to complete prescription: ${response.statusCode}',
-            ),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );

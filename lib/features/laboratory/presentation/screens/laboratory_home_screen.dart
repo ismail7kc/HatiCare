@@ -66,7 +66,9 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = context.read<LaboratoryUserProvider>();
       await provider.fetchProfile(forceRefresh: true);
-      await provider.fetchPrescriptions();
+      provider.fetchPrescriptions();
+      provider.fetchAssignedPrescriptions();
+      provider.fetchHistory();
     });
   }
 
@@ -74,40 +76,21 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     final provider = context.read<LaboratoryUserProvider>();
     await provider.fetchProfile(forceRefresh: true);
 
-    await provider.fetchPrescriptions();
+    await Future.wait([
+      provider.fetchPrescriptions(),
+      provider.fetchAssignedPrescriptions(),
+      provider.fetchHistory(),
+    ]);
   }
 
-  int _getAvailableCount(List<dynamic> prescriptions) {
-    int available = 0;
-    for (final prescription in prescriptions) {
-      final status =
-          prescription['status']?.toString().toLowerCase() ?? 'pending';
-      if (status.contains('pending') || status.contains('new')) {
-        available++;
-      }
-    }
-    return available;
-  }
-
-  int _getDeliveredCount(List<dynamic> prescriptions) {
-    int delivered = 0;
-    for (final prescription in prescriptions) {
-      final status =
-          prescription['status']?.toString().toLowerCase() ?? 'pending';
-      if (status.contains('completed') || status.contains('delivered')) {
-        delivered++;
-      }
-    }
-    return delivered;
-  }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
 
     final laboratoryProvider = context.watch<LaboratoryUserProvider>();
-    final availableCount = _getAvailableCount(laboratoryProvider.prescriptions);
-    final deliveredCount = _getDeliveredCount(laboratoryProvider.prescriptions);
+    final availableCount = laboratoryProvider.assignedRequests.length;
+    final deliveredCount = laboratoryProvider.completedTestRequests.length;
     final prescriptions = laboratoryProvider.prescriptions;
     final isLoading = laboratoryProvider.prescriptionsLoading;
     final errorMessage = laboratoryProvider.errorMessage;
@@ -227,14 +210,14 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF2443A9),
+                                  color: Colors.white,
                                 ),
                               ),
                               const Text(
-                                'Available Lab Tests',
+                                'Assigned Tests',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Color(0xFF2443A9),
+                                  color: Colors.white,
                                 ),
                               ),
                             ],
@@ -269,7 +252,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                                 ),
                               ),
                               const Text(
-                                'Completed Lab Tests',
+                                'Completed Tests',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: Colors.white,
@@ -399,6 +382,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   Map<String, dynamic> _mapAssignedToListItem(dynamic raw) {
     if (raw is Map<String, dynamic>) {
       return {
+        'status_id': raw['status_id'],
         'prescription_id': raw['prescription_id'] ?? raw['id'],
         'patient_name': raw['patient_name'] ?? 'Unknown Patient',
         'patient_phone': raw['patient_phone'],
@@ -435,10 +419,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   }
 
   Widget _buildPrescriptionDetailsScreen(Map<String, dynamic> prescription) {
-    final statusId =
-        prescription['status_id']?.toString() ??
-        prescription['prescription_id']?.toString() ??
-        '';
+    final statusId = prescription['status_id']?.toString() ?? '';
 
     return Scaffold(
       backgroundColor: Color(0xFFF9FAFB),
