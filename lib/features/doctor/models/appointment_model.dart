@@ -33,49 +33,101 @@ class Patient {
   }
 }
 
-class AppointmentModel {
-  final int? id;
-  final Patient? patient;
-  final String? patientName;
-  final String? rawComplaint;
-  final String? severity;
-  final String? status;
-  final DateTime? createdAt;
-  final String? primarySpecialization;
+class TriageData {
+  final String severity;
+  final int priorityScore;
+  final List<String> suggestedSpecializations;
+  final String primarySpecializationName;
 
+  TriageData({
+    required this.severity,
+    required this.priorityScore,
+    required this.suggestedSpecializations,
+    required this.primarySpecializationName,
+  });
+
+  factory TriageData.fromJson(Map<String, dynamic> json) {
+    return TriageData(
+      severity: json['severity'] ?? '',
+      priorityScore: json['priority_score'] ?? 0,
+      suggestedSpecializations:
+          (json['suggested_specializations'] as List<dynamic>?)
+                  ?.map((e) => e.toString())
+                  .toList() ??
+              [],
+      primarySpecializationName:
+          json['primary_specialization_name'] ?? '',
+    );
+  }
+}
+
+
+
+class AppointmentModel {
+  final int id;
+  final Patient patient;
+  final String patientName;
+  final String rawComplaint;
+
+  final String severity;
+  final String severityColor;
+
+  final String status;
+  final DateTime createdAt;
+
+  final TriageData triageData;
+
+  // Timer Fields
   int remainingSeconds;
   double progress;
 
+  // Timer Start Time (used for reset)
+  DateTime timerStartTime;
+
   AppointmentModel({
-    this.id,
-    this.patient,
-    this.patientName,
-    this.rawComplaint,
-    this.severity,
-    this.status,
-    this.createdAt,
-    this.primarySpecialization,
+    required this.id,
+    required this.patient,
+    required this.patientName,
+    required this.rawComplaint,
+    required this.severity,
+    required this.severityColor,
+    required this.status,
+    required this.createdAt,
+    required this.triageData,
 
     this.remainingSeconds = 30,
     this.progress = 1.0,
-  });
+    DateTime? timerStartTime,
+  }) : timerStartTime = timerStartTime ?? DateTime.now();
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
     return AppointmentModel(
       id: json['id'] ?? 0,
-      patient: json['patient'] != null
-          ? Patient.fromJson(json['patient'])
-          : null,
+
+      patient: Patient.fromJson(json['patient'] ?? {}),
+
       patientName: json['patient_name'] ?? '',
       rawComplaint: json['raw_complaint'] ?? '',
+
       severity: json['severity'] ?? '',
+      severityColor: json['severity_color'] ?? '',
+
       status: json['status'] ?? '',
+
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
-      primarySpecialization:
-          json['triage_data']?['primary_specialization_name'] ?? '',
+
+      triageData: TriageData.fromJson(json['triage_data'] ?? {}),
 
       remainingSeconds: 30,
       progress: 1.0,
+      timerStartTime: DateTime.now(),
     );
   }
+
+  void resetTimer() {
+    remainingSeconds = 30;
+    progress = 1.0;
+    timerStartTime = DateTime.now();
+  }
 }
+

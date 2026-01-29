@@ -315,7 +315,7 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
                                 'Upload from Gallery',
                                 style: TextStyle(
                                   color: AppColors.primaryLight,
-                                  fontSize: 16,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -347,7 +347,7 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
                               'Capture',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 16,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
