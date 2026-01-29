@@ -761,17 +761,16 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
         allFullyAvailable = false;
       }
 
-      if (isAvailable) {
-        items.add({
-          'name': medication.name,
-          'strength': medication.dosage,
-          'required_qty': requiredQty.toString(),
-          'available_qty': availableQty.toString(),
-          'notes': availableQty >= requiredQty
-              ? 'In stock'
-              : 'Only $availableQty available',
-        });
-      }
+      // Always add the item to the list, with availableQty = 0 if not available
+      items.add({
+        'name': medication.name,
+        'strength': medication.dosage,
+        'required_qty': requiredQty, // Send as int
+        'available_qty': availableQty, // Send as int
+        'notes': !isAvailable 
+            ? 'Out of stock' 
+            : (availableQty >= requiredQty ? 'In stock' : 'Only $availableQty available'),
+      });
     }
 
     if (items.isEmpty) {
@@ -860,8 +859,9 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
 
       if (!mounted) return;
       
-      // Pop the loading dialog
-      Navigator.of(context).pop();
+      // Pop the loading dialog using rootNavigator to ensure we close the dialog 
+      // and not the screen or bottom sheet prematurely
+      Navigator.of(context, rootNavigator: true).pop();
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -874,11 +874,17 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                   : 'Availability updated successfully',
             ),
             backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
           ),
         );
 
+        // Small delay to ensure snackbar is visible or that the dialog pop has finished
+        await Future.delayed(const Duration(milliseconds: 200));
+
         // Pop the screen and return true to indicate refresh needed
-        Navigator.pop(context, true); 
+        if (mounted) {
+          Navigator.pop(context, true); 
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -893,7 +899,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
       if (!mounted) return;
       
       // Pop the loading dialog on error
-      Navigator.of(context).pop();
+      Navigator.of(context, rootNavigator: true).pop();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

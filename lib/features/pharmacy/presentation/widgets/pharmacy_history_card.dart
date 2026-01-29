@@ -168,7 +168,7 @@ class PharmacyHistoryCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Dr. $doctor',
+                      doctor.startsWith('Dr.') ? doctor : 'Dr. $doctor',
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 12,

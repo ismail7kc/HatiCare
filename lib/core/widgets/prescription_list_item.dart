@@ -206,7 +206,7 @@ class PrescriptionListItem extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          doctorName,
+                          doctorName.startsWith('Dr.') ? doctorName : 'Dr. $doctorName',
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,

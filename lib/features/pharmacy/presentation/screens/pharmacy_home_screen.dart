@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
@@ -15,8 +14,6 @@ import '../../../common/screens/notifications_screen.dart';
 import '../providers/pharmacy_user_provider.dart';
 import '../../presentation/utils/profile_notifier.dart';
 import 'prescription_details_screen.dart';
-
-
 
 class PharmacyHomeScreen extends StatefulWidget {
   const PharmacyHomeScreen({super.key});
@@ -82,7 +79,6 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
       }
     });
 
-    // Initialize WebSocket connection
     webSocketConnectionApi();
   }
 
@@ -428,14 +424,14 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF2443A9),
+                                  color: Colors.white,
                                 ),
                               ),
                                 const Text(
                                 'Assigned Prescriptions',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Color(0xFF2443A9),
+                                  color: Colors.white,
                                 ),
                               ),
                             ],
@@ -645,7 +641,10 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
       patientAge: int.tryParse(data['patient_age']?.toString() ?? '0') ?? 0,
       patientGender: data['patient_gender']?.toString() ?? 'Male',
       patientDob: data['patient_dob']?.toString() ?? '1992-11-15',
-      doctorName: data['doctor_name']?.toString() ?? 'Dr. Unknown',
+      doctorName: data['doctor']?.toString() ??
+          data['doctor_name']?.toString() ??
+          data['doctorName']?.toString() ??
+          'Dr. Unknown',
       doctorSpecialty:
           data['doctor_specialty']?.toString() ?? 'General Physician',
       dateIssued: issuedDate,
