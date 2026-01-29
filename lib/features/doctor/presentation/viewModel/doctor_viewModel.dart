@@ -86,14 +86,11 @@ class DoctorViewModel extends ChangeNotifier {
       await SaveLoginResponse.loadLoginModel();
     }
     // final socketUrl = 'wss://api.haticare.com/ws/doctor/queue/';
-    final specialization = SaveLoginResponse.loginData?['specialization'] ?? '';
-    
-    // Construct URL with specialization
-    String socketUrl = 'wss://api.haticare.com/ws/doctor/queue/';
-    if (specialization.isNotEmpty) {
-      socketUrl += '?specialization=${Uri.encodeComponent(specialization)}';
-    }
-    
+
+    final id = SaveLoginResponse.loginData?['id'] ?? '';
+    debugPrint("specialization : $id");
+    String socketUrl = 'wss://api.haticare.com/ws/doctor/queue/?specialization_id=$id';
+
     debugPrint("WebSocket URL: $socketUrl");
     
     try {
@@ -117,12 +114,12 @@ class DoctorViewModel extends ChangeNotifier {
               final String status = item['status'] ?? '';
 
               _appointments.removeWhere((e) => e.id == visitId);
+if (status == 'new_patient') {
 
-              if (status == 'pending') {
                 _appointments.insert(0, AppointmentModel.fromJson(item));
                 _startQueueTimer();
                 shouldNotify = true;
-              } else if (decoded['type'] == 'patient_expiry') {
+              } else if (decoded['type'] == 'relisted_patient') {
                 _handleExpiredPatient(decoded['patient']);
                 shouldNotify = true;
               }
