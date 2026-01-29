@@ -20,6 +20,8 @@ class DoctorViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool logoutSuccess = false;
 
+  bool isOnline = false;
+
   String _errorMessage = '';
   String get errorMessage => _errorMessage;
 
@@ -33,6 +35,11 @@ class DoctorViewModel extends ChangeNotifier {
   init() {
     fetchPatientQueue();
     webSocketConnectionApi();
+  }
+
+  void updateOnlineStatus(bool value) {
+    isOnline = value;
+    notifyListeners();
   }
 
   Future<void> isDoctorOnline({required bool isOnline}) async {
@@ -77,7 +84,7 @@ class DoctorViewModel extends ChangeNotifier {
 
     final socketUrl = 'wss://api.haticare.com/ws/doctor/queue/';
     debugPrint("WebSocket URL: $socketUrl");
-
+    
     try {
       _channel = WebSocketChannel.connect(Uri.parse(socketUrl));
 

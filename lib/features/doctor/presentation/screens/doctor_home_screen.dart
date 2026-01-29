@@ -405,13 +405,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             child: Opacity(
               opacity: (hasAdminApproval == true) ? 1.0 : 0.5,
               child: Switch(
-                value: isOnline,
+                value: doctorViewModel.isOnline,
                 activeThumbColor: const Color(0xFFFFFFFF),
                 activeTrackColor: const Color(0xFF34C759),
                 onChanged: (value) async {
-                  setState(() {
-                    isOnline = value;
-                  });
+                  
+                  doctorViewModel.updateOnlineStatus(value);
+
                   await doctorViewModel.isDoctorOnline(isOnline: value);
                   await doctorViewModel.fetchPatientQueue();
                 },
