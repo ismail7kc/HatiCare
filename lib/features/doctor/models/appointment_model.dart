@@ -52,16 +52,13 @@ class TriageData {
       priorityScore: json['priority_score'] ?? 0,
       suggestedSpecializations:
           (json['suggested_specializations'] as List<dynamic>?)
-                  ?.map((e) => e.toString())
-                  .toList() ??
-              [],
-      primarySpecializationName:
-          json['primary_specialization_name'] ?? '',
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      primarySpecializationName: json['primary_specialization_name'] ?? '',
     );
   }
 }
-
-
 
 class AppointmentModel {
   final int id;
@@ -125,9 +122,8 @@ class AppointmentModel {
   }
 
   void resetTimer() {
+    timerStartTime = DateTime.now();
     remainingSeconds = 30;
     progress = 1.0;
-    timerStartTime = DateTime.now();
   }
 }
-

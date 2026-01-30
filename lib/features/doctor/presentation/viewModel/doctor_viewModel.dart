@@ -25,6 +25,9 @@ class DoctorViewModel extends ChangeNotifier {
   String _errorMessage = '';
   String get errorMessage => _errorMessage;
 
+  bool _isQueueLoading = false;
+  bool get isQueueLoading => _isQueueLoading;
+
   // socket propetties
   WebSocketChannel? _channel;
   bool _isConnecting = false;
@@ -83,9 +86,11 @@ class DoctorViewModel extends ChangeNotifier {
     if (_isConnecting || _isDisposed) return;
     _isConnecting = true;
 
+    _isQueueLoading = true;
+    notifyListeners();
+
     final response = await repository.getSingleDoctor();
     final specializationName = response['data']?['specialization'] ?? 'Unknown';
-    debugPrint('Doctor specialization: $specializationName');
 
     final socketUrl =
         'wss://api.haticare.com/ws/doctor/queue/?specialization=$specializationName';
@@ -103,51 +108,55 @@ class DoctorViewModel extends ChangeNotifier {
 
           try {
             final decoded = jsonDecode(message);
-            final List<dynamic> patients = decoded['data'];
 
             if (decoded['success'] != true || decoded['data'] == null) return;
 
-            bool shouldNotify = false;
+            final List<dynamic> patients = decoded['data'];
+            final type = decoded['type'] ?? '';
+
+            _isQueueLoading = false;
 
             for (final item in patients) {
               final int visitId = item['id'];
-
               _appointments.removeWhere((e) => e.id == visitId);
-
-              final type = decoded['type'] ?? '';
 
               switch (type) {
                 case 'initial_queue':
-                  debugPrint('Adding initial_queue patient');
-                  final newPatient = AppointmentModel.fromJson(item);
-                  _appointments.insert(0, newPatient);
-                  shouldNotify = true;
-                  break;
-
-                case 'relisted_patient':
-                  final relistedPatient = AppointmentModel.fromJson(item);
-                  relistedPatient.resetTimer();
-                  _appointments.add(relistedPatient);
+                  debugPrint("Adding initial_queue patient");
+                  final patient = AppointmentModel.fromJson(item);
+                  patient.resetTimer();
+                  _appointments.insert(0, patient);
                   notifyListeners();
                   break;
 
+                case 'relisted_patient':
+                  debugPrint("Adding relisted_patient immediately");
+
+                  final patient = AppointmentModel.fromJson(item);
+                  patient.resetTimer();
+                  _appointments.add(patient);
+
+                  notifyListeners();
+
+                  _startQueueTimer();
+                  break;
+
                 case 'new_patient':
-                  debugPrint('Adding new_patient at top');
-                  final newPatient = AppointmentModel.fromJson(item);
-                  newPatient.resetTimer();
-                  _appointments.insert(0, newPatient);
-                  shouldNotify = true;
+                  debugPrint("Adding new_patient");
+                  final patient = AppointmentModel.fromJson(item);
+                  patient.resetTimer();
+                  _appointments.add(patient);
+                  notifyListeners();
                   break;
 
                 default:
-                  debugPrint('Unknown patient type: $type');
+                  debugPrint("Unknown queue type: $type");
               }
             }
+            _startQueueTimer();
+            _updateTimersInstantly();
 
-            if (shouldNotify) {
-              _startQueueTimer();
-              notifyListeners();
-            }
+            notifyListeners();
           } catch (e) {
             debugPrint("WS parse error: $e");
           }
@@ -161,8 +170,23 @@ class DoctorViewModel extends ChangeNotifier {
     }
   }
 
+  void _updateTimersInstantly() {
+    for (final appt in _appointments) {
+      if (appt.timerStartTime == null) continue;
+
+      final elapsed = DateTime.now().difference(appt.timerStartTime!).inSeconds;
+
+      final remaining = (30 - elapsed).clamp(0, 30);
+
+      appt.remainingSeconds = remaining;
+      appt.progress = remaining / 30;
+    }
+  }
+
   void _startQueueTimer() {
-    _queueTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
+    if (_queueTimer != null) return;
+
+    _queueTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_appointments.isEmpty) {
         _queueTimer?.cancel();
         _queueTimer = null;
@@ -177,6 +201,7 @@ class DoctorViewModel extends ChangeNotifier {
         final elapsed = DateTime.now()
             .difference(appt.timerStartTime!)
             .inSeconds;
+
         final remaining = (30 - elapsed).clamp(0, 30);
 
         if (appt.remainingSeconds != remaining) {

@@ -141,4 +141,14 @@ class RepositoryLayer {
     }
     return PatientResponse.fromJson(response);
   }
+
+  Future<Map<String, dynamic>> futureVisitCompleted(int id, String notes) async {
+  final uri = '${AppConfig.baseUrl}patient/visits/$id/complete/';
+
+  final body = { "doctor_notes": notes };
+
+  final response = await _apiClient.doctorVisitComplete(uri, body);
+  return response;
+}
+
 }

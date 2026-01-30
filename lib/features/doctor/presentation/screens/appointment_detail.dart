@@ -4,6 +4,7 @@ import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/common/api_client.dart';
 import 'package:haticare/features/common/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/audio_call.dart';
+import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/issue_rx.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/appointment_detailVM.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
@@ -30,6 +31,10 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
   final symptoms = ["Fever", "Headache", "Cough"];
   bool _accepting = false;
 
+  final TextEditingController notesController = TextEditingController();
+  bool isNotesFilled = false;
+  bool _isCompleting = false; // loading indicator for complete button
+
   @override
   void initState() {
     super.initState();
@@ -41,6 +46,12 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
     if (widget.visitId != null) {
       appointmentDetailvm.visitId = widget.visitId!;
     }
+  }
+
+  @override
+  void dispose() {
+    notesController.dispose();
+    super.dispose();
   }
 
   @override
@@ -59,6 +70,66 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: !widget.isCameFromAccept
+            ? [
+                IconButton(
+                  icon: _isCompleting
+                      ? SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Icon(
+                          Icons.check_circle,
+                          color: isNotesFilled ? Colors.green : Colors.grey,
+                        ),
+                  onPressed: isNotesFilled && !_isCompleting
+                      ? () async {
+                          setState(() => _isCompleting = true);
+
+                          final notesText = notesController.text.trim();
+
+                          final response = await appointmentDetailvm
+                              .doctorCompleteVisit(notesText);
+
+                          if (!mounted) return;
+
+                          await showDialog(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: Text(
+                                response["success"] == true
+                                    ? "Success"
+                                    : "Error",
+                              ),
+                              content: Text(response["message"] ?? ""),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text("OK"),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          setState(() => _isCompleting = false);
+
+                          if (response["success"] == true) {
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (_) => const DoctorHomeScreen(),
+                              ),
+                              (route) => false,
+                            );
+                          }
+                        }
+                      : null,
+                ),
+              ]
+            : [],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
@@ -77,7 +148,6 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
               ),
               const SizedBox(height: 25),
             ],
-
             if (widget.isCameFromAccept) ...[
               Stack(
                 alignment: Alignment.center,
@@ -86,7 +156,6 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                     width: 90,
                     height: 90,
                     child: CircularProgressIndicator(
-                      // value: appointment.progressValue,
                       strokeWidth: 6,
                       backgroundColor: Colors.grey.shade200,
                       color: const Color(0xFF34C759),
@@ -114,15 +183,12 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                 ),
               ),
             ],
-
             const SizedBox(height: 18),
             Text(
               widget.appointment.patientName ?? '',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
-
             const SizedBox(height: 30),
-
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -156,9 +222,7 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 16),
-
             // Reported Symptoms
             Container(
               padding: const EdgeInsets.all(16),
@@ -208,7 +272,6 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 16),
             if (!widget.isCameFromAccept) ...[
               Container(
@@ -230,13 +293,19 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                       color: Colors.black,
                     ),
                     const SizedBox(width: 10),
-                    const Expanded(
+                    Expanded(
                       child: Padding(
-                        padding: EdgeInsets.only(top: 4),
+                        padding: const EdgeInsets.only(top: 4),
                         child: TextField(
+                          controller: notesController,
                           maxLines: null,
                           textAlignVertical: TextAlignVertical.top,
-                          decoration: InputDecoration(
+                          onChanged: (value) {
+                            setState(() {
+                              isNotesFilled = value.trim().isNotEmpty;
+                            });
+                          },
+                          decoration: const InputDecoration(
                             border: InputBorder.none,
                             hintText: 'Notes',
                             hintStyle: TextStyle(
@@ -251,9 +320,7 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 40),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -275,27 +342,10 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                 ],
               ),
             ],
-
             const SizedBox(height: 40),
-
             if (widget.isCameFromAccept) ...[
               Row(
                 children: [
-                  // Expanded(
-                  //   child: OutlinedButton(
-                  //     onPressed: () {},
-                  //     style: OutlinedButton.styleFrom(
-                  //       backgroundColor: const Color(0xFFF1F3F6),
-                  //       foregroundColor: Colors.black87,
-                  //       padding: const EdgeInsets.symmetric(vertical: 14),
-                  //       shape: RoundedRectangleBorder(
-                  //         borderRadius: BorderRadius.circular(10),
-                  //       ),
-                  //     ),
-                  //     child: const Text("Decline"),
-                  //   ),
-                  // ),
-                  // const SizedBox(width: 10),
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -309,7 +359,7 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                                 setState(() => _accepting = true);
 
                                 await appointmentDetailvm.acceptPatientResponse(
-                                  widget.appointment.id ?? 0,
+                                  widget.appointment.id,
                                 );
 
                                 final visitId = appointmentDetailvm.visitId;
@@ -317,13 +367,15 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                                 setState(() => _accepting = false);
 
                                 if (!mounted) return;
-                                
+
                                 if (visitId == 0) {
                                   showDialog(
                                     context: context,
                                     builder: (_) => AlertDialog(
-                                      title: Text('Error'),
-                                      content: Text(appointmentDetailvm.errorMessage),
+                                      title: const Text('Error'),
+                                      content: Text(
+                                        appointmentDetailvm.errorMessage,
+                                      ),
                                     ),
                                   );
                                   return;

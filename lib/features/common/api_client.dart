@@ -285,6 +285,43 @@ class ApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> doctorVisitComplete(
+    String uri,
+    Map<String, dynamic>? body,
+  ) async {
+    try {
+      final parsedUri = Uri.parse(uri);
+
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken =
+          SaveLoginResponse.loginData?['access_token'] ??
+          prefs.getString('access_token') ??
+          '';
+
+      final response = await _client.patch(
+        parsedUri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+        body: body != null ? jsonEncode(body) : null,
+      );
+
+      debugPrint('POST URL: $parsedUri');
+      debugPrint('Status Code: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
+
+      return _handleResponse(response);
+    } catch (error) {
+      debugPrint('doctorVisitComplete Error: $error');
+      return {
+        'success': false,
+        'message': 'Something went wrong: $error',
+        'data': {},
+      };
+    }
+  }
+
   Map<String, dynamic> _handleResponse(http.Response response) {
     try {
       final decoded = jsonDecode(response.body);

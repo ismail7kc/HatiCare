@@ -737,7 +737,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
-  Stack circularProgressBar(double progress, int minutesLeft) {
+  Widget circularProgressBar(double progress, int secondsLeft) {
+    if (secondsLeft == 0) {
+      return const SizedBox(
+        width: 32,
+        height: 32,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    }
+
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -747,12 +755,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           child: CircularProgressIndicator(
             value: progress,
             strokeWidth: 3,
-            backgroundColor: Colors.white,
+            backgroundColor: Colors.grey[300],
             color: const Color(0xFF34C759).withOpacity(0.7),
           ),
         ),
         Text(
-          "$minutesLeft",
+          "$secondsLeft",
           style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
