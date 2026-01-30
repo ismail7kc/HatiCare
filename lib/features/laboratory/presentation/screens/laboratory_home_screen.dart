@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
@@ -8,6 +10,7 @@ import 'package:haticare/features/laboratory/presentation/screens/laboratory_his
 import 'package:haticare/features/laboratory/presentation/screens/laboratory_inventory_screen.dart';
 import 'package:haticare/features/laboratory/presentation/screens/laboratory_settings_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../providers/laboratory_user_provider.dart';
 
@@ -59,6 +62,11 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   @override
   bool get wantKeepAlive => true;
 
+  // socket propetties
+  WebSocketChannel? _channel;
+  bool _isConnecting = false;
+  bool _isDisposed = false;
+
   @override
   void initState() {
     super.initState();
@@ -70,6 +78,69 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
       provider.fetchAssignedPrescriptions();
       provider.fetchHistory();
     });
+  }
+
+  Future<void> webSocketConnectionApi() async {
+    if (_isConnecting || _isDisposed) return;
+    _isConnecting = true;
+
+    final socketUrl = 'wss://api.haticare.com/ws/laboratory/list/';
+    debugPrint("WebSocket URL: $socketUrl");
+
+    try {
+      _channel = WebSocketChannel.connect(Uri.parse(socketUrl));
+
+      _channel!.stream.listen(
+            (message) async {
+          if (_isDisposed) return;
+
+          debugPrint("WS RAW: $message");
+
+          try {
+            final data = jsonDecode(message);
+            final isSuccess = data['results']['success'] == true;
+            if ((isSuccess) && (data['results']['data'] != null)) {
+              await context.read<LaboratoryUserProvider>().fetchPrescriptions();
+            }
+
+            if (_isDisposed) return;
+          } catch (e) {
+            debugPrint("WS parse error: $e");
+          }
+        },
+        onDone: () {
+          debugPrint("WS Closed");
+          _reconnect();
+        },
+        onError: (error) {
+          debugPrint("WS Error: $error");
+          _reconnect();
+        },
+        cancelOnError: true,
+      );
+    } catch (e) {
+      debugPrint("WS connect error: $e");
+      _reconnect();
+    }
+  }
+
+  void _reconnect() {
+    if (_isDisposed) return;
+
+    _isConnecting = false;
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!_isDisposed) {
+        webSocketConnectionApi();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _channel?.sink.close();
+    super.dispose();
   }
 
   Future<void> _onRefresh() async {
