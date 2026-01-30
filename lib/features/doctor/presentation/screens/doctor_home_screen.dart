@@ -136,7 +136,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     });
 
     if (hasAdminApproval == true) {
-      await doctorViewModel.fetchPatientQueue();
+      // await doctorViewModel.fetchPatientQueue();
+      await doctorViewModel.webSocketConnectionApi();
     }
   }
 
@@ -286,6 +287,20 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
+  Widget severityCircle(AppointmentModel appointment) {
+    final color = hexToColor(appointment.severityColor);
+
+    if (appointment.severity == "emergency") {
+      return BlinkingCircle(color: color);
+    }
+
+    return Container(
+      height: 20,
+      width: 20,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+    );
+  }
+
   Widget headerView() {
     final doctorProvider = context.watch<DoctorUserProvider>();
 
@@ -412,8 +427,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   setState(() {
                     isOnline = value;
                   });
+
                   await doctorViewModel.isDoctorOnline(isOnline: value);
-                  await doctorViewModel.fetchPatientQueue();
+                  await doctorViewModel.webSocketConnectionApi();
+                  // await doctorViewModel.fetchPatientQueue();
                 },
               ),
             ),
@@ -525,6 +542,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
+  Color hexToColor(String hex) {
+    hex = hex.replaceAll("#", "");
+
+    if (hex.length == 6) {
+      hex = "FF$hex";
+    }
+
+    return Color(int.parse(hex, radix: 16));
+  }
+
   Widget patientAppointmentView(
     BuildContext context,
     AppointmentModel appointment,
@@ -562,10 +589,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               Expanded(
                 child: Row(
                   children: [
-                    SvgPicture.asset(
-                      'assets/icons/appointment-Request.svg',
-                      height: 24,
-                    ),
+                    severityCircle(appointment),
+
                     const SizedBox(width: 10),
                     Flexible(
                       child: ShaderMask(
@@ -588,7 +613,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 ),
               ),
 
-              circularProgressBar(appointment.progress, appointment.remainingSeconds),
+              circularProgressBar(
+                appointment.progress,
+                appointment.remainingSeconds,
+              ),
             ],
           ),
 
@@ -635,7 +663,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      appointment.rawComplaint ?? '',
+                      appointment.rawComplaint,
                       style: const TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 14,
@@ -653,9 +681,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             children: [
               Expanded(
                 child: Text(
-                  doctorViewModel.formatAppointmentTime(
-                    appointment.createdAt ?? DateTime(1998),
-                  ),
+                  doctorViewModel.formatAppointmentTime(appointment.createdAt),
                   style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
               ),
@@ -721,8 +747,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           child: CircularProgressIndicator(
             value: progress,
             strokeWidth: 3,
-            backgroundColor: Colors.grey[300],
-            color: const Color(0xFF34C759),
+            backgroundColor: Colors.white,
+            color: const Color(0xFF34C759).withOpacity(0.7),
           ),
         ),
         Text(
@@ -803,6 +829,51 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
         ),
       ],
+    );
+  }
+}
+
+class BlinkingCircle extends StatefulWidget {
+  final Color color;
+
+  const BlinkingCircle({super.key, required this.color});
+
+  @override
+  State<BlinkingCircle> createState() => _BlinkingCircleState();
+}
+
+class _BlinkingCircleState extends State<BlinkingCircle>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
+
+    _animation = Tween<double>(begin: 1.0, end: 0.2).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _animation,
+      child: Container(
+        height: 20,
+        width: 20,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: widget.color),
+      ),
     );
   }
 }

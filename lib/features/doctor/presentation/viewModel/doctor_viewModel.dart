@@ -20,6 +20,8 @@ class DoctorViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool logoutSuccess = false;
 
+  // bool isOnline = false;
+
   String _errorMessage = '';
   String get errorMessage => _errorMessage;
 
@@ -34,6 +36,11 @@ class DoctorViewModel extends ChangeNotifier {
     fetchPatientQueue();
     webSocketConnectionApi();
   }
+
+  // void updateOnlineStatus(bool value) {
+  //   isOnline = value;
+  //   notifyListeners();
+  // }
 
   Future<void> isDoctorOnline({required bool isOnline}) async {
     final body = {'is_online': isOnline};
@@ -55,11 +62,12 @@ class DoctorViewModel extends ChangeNotifier {
     try {
       final response = await repository.getPatientQueue();
       if (response['success'] == true && response['data'] != null) {
-        debugPrint('Fetch Patient Api Triggered');
         final List data = response['data'] as List;
         _appointments =
             data.map((json) => AppointmentModel.fromJson(json)).toList()
-              ..sort((a, b) => b.createdAt!.compareTo(a.createdAt!));
+              ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+        debugPrint('Patient Response Data');
       } else {
         _errorMessage = response['message'] ?? 'Failed to fetch patient queue';
       }
@@ -75,14 +83,12 @@ class DoctorViewModel extends ChangeNotifier {
     if (_isConnecting || _isDisposed) return;
     _isConnecting = true;
 
-    if (SaveLoginResponse.loginData == null) {
-      await SaveLoginResponse.loadLoginModel();
-    }
-    // final socketUrl = 'wss://api.haticare.com/ws/doctor/queue/';
+    final response = await repository.getSingleDoctor();
+    final specializationName = response['data']?['specialization'] ?? 'Unknown';
+    debugPrint('Doctor specialization: $specializationName');
 
-    final id = SaveLoginResponse.loginData?['id'] ?? '';
-    debugPrint("specialization : $id");
-    String socketUrl = 'wss://api.haticare.com/ws/doctor/queue/?specialization_id=$id';
+    final socketUrl =
+        'wss://api.haticare.com/ws/doctor/queue/?specialization=$specializationName';
 
     debugPrint("WebSocket URL: $socketUrl");
 
@@ -98,34 +104,48 @@ class DoctorViewModel extends ChangeNotifier {
           try {
             final decoded = jsonDecode(message);
             final List<dynamic> patients = decoded['data'];
-            bool shouldNotify = false;
 
             if (decoded['success'] != true || decoded['data'] == null) return;
 
+            bool shouldNotify = false;
+
             for (final item in patients) {
               final int visitId = item['id'];
-              final String status = item['status'] ?? '';
 
               _appointments.removeWhere((e) => e.id == visitId);
-if (status == 'new_patient') {
 
-                _appointments.insert(0, AppointmentModel.fromJson(item));
-                _startQueueTimer();
-                shouldNotify = true;
-              } else if (decoded['type'] == 'relisted_patient') {
-                _handleExpiredPatient(decoded['patient']);
-                shouldNotify = true;
-              }
+              final type = decoded['type'] ?? '';
 
-              if (status == 'assigned') {
-                shouldNotify = true;
+              switch (type) {
+                case 'initial_queue':
+                  debugPrint('Adding initial_queue patient');
+                  final newPatient = AppointmentModel.fromJson(item);
+                  _appointments.insert(0, newPatient);
+                  shouldNotify = true;
+                  break;
+
+                case 'relisted_patient':
+                  final relistedPatient = AppointmentModel.fromJson(item);
+                  relistedPatient.resetTimer();
+                  _appointments.add(relistedPatient);
+                  notifyListeners();
+                  break;
+
+                case 'new_patient':
+                  debugPrint('Adding new_patient at top');
+                  final newPatient = AppointmentModel.fromJson(item);
+                  newPatient.resetTimer();
+                  _appointments.insert(0, newPatient);
+                  shouldNotify = true;
+                  break;
+
+                default:
+                  debugPrint('Unknown patient type: $type');
               }
             }
 
             if (shouldNotify) {
-              debugPrint(
-                "New pending patients added → ${_appointments.length}",
-              );
+              _startQueueTimer();
               notifyListeners();
             }
           } catch (e) {
@@ -141,16 +161,6 @@ if (status == 'new_patient') {
     }
   }
 
-  void _handleExpiredPatient(Map<String, dynamic> patientJson) {
-    final expiredPatient = AppointmentModel.fromJson(patientJson);
-    _appointments.removeWhere((e) => e.id == expiredPatient.id);
-
-    Future.delayed(const Duration(seconds: 5), () {
-      _appointments.add(expiredPatient);
-      notifyListeners();
-    });
-  }
-
   void _startQueueTimer() {
     _queueTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
       if (_appointments.isEmpty) {
@@ -162,10 +172,11 @@ if (status == 'new_patient') {
       bool shouldNotify = false;
 
       for (final appt in _appointments) {
-        if (appt.createdAt == null) continue;
+        if (appt.timerStartTime == null) continue;
 
-        final elapsed = DateTime.now().difference(appt.createdAt!).inSeconds;
-
+        final elapsed = DateTime.now()
+            .difference(appt.timerStartTime!)
+            .inSeconds;
         final remaining = (30 - elapsed).clamp(0, 30);
 
         if (appt.remainingSeconds != remaining) {
@@ -185,9 +196,7 @@ if (status == 'new_patient') {
     _isConnecting = false;
 
     Future.delayed(const Duration(seconds: 3), () {
-      if (!_isDisposed) {
-        webSocketConnectionApi();
-      }
+      if (!_isDisposed) webSocketConnectionApi();
     });
   }
 
