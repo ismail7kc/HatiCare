@@ -1,6 +1,6 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:haticare/core/theme/app_colors.dart';
@@ -21,6 +21,8 @@ class LaboratoryReportUploadScreen extends StatefulWidget {
 
 class _LaboratoryReportUploadScreenState extends State<LaboratoryReportUploadScreen> {
   final List<UploadedFile> _uploadedFiles = [];
+  final Map<int, TestResultInput> _testResults = {}; // index -> result
+  final Map<int, bool> _expandedTests = {}; // index -> expanded state
   final ImagePicker _imagePicker = ImagePicker();
 
   @override
@@ -29,17 +31,15 @@ class _LaboratoryReportUploadScreenState extends State<LaboratoryReportUploadScr
     final patientName = widget.prescription['patient_name']?.toString() ?? 'Unknown';
     final labTests = widget.prescription['lab_tests'] as List<dynamic>? ?? [];
 
+    final hasData = _testResults.values.any((r) => r.value.isNotEmpty) || _uploadedFiles.isNotEmpty;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: SvgPicture.asset(
-            'assets/icons/arrow_back_icon.svg',
-            width: 24,
-            height: 24,
-          ),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -70,48 +70,43 @@ class _LaboratoryReportUploadScreenState extends State<LaboratoryReportUploadScr
                         color: AppColors.primary.withValues(alpha: 0.2),
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                gradient: AppColors.primaryGradient,
-                                borderRadius: BorderRadius.circular(8),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            gradient: AppColors.primaryGradient,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.science_outlined,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Prescription #$prescriptionId',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                ),
                               ),
-                              child: const Icon(
-                                Icons.science_outlined,
-                                color: Colors.white,
-                                size: 20,
+                              const SizedBox(height: 2),
+                              Text(
+                                patientName,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Prescription #$prescriptionId',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    patientName,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -119,107 +114,86 @@ class _LaboratoryReportUploadScreenState extends State<LaboratoryReportUploadScr
 
                   const SizedBox(height: 24),
 
-                  // Tests to be reported
+                  // Tests Section
                   const Text(
-                    'Tests to be reported:',
+                    'Lab Tests',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[200]!),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: labTests.map((test) {
-                        final testName = test['name']?.toString() ?? 'Unknown Test';
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.primary,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  testName,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tap on each test to add results',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
                     ),
                   ),
+                  const SizedBox(height: 16),
+
+                  // Expandable Test Items
+                  ...labTests.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final test = entry.value;
+                    return _buildExpandableTestItem(index, test);
+                  }),
 
                   const SizedBox(height: 24),
+
+                  // File Upload Section
+                  const Text(
+                    'Supporting Documents',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Upload images or PDF files (optional)',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
 
                   // Upload Area
                   GestureDetector(
                     onTap: _showUploadOptions,
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(32),
+                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: AppColors.primary,
+                          color: AppColors.primary.withValues(alpha: 0.3),
                           width: 2,
-                          style: BorderStyle.solid,
                         ),
                       ),
                       child: Column(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.cloud_upload_outlined,
-                              size: 48,
-                              color: AppColors.primary,
-                            ),
+                          Icon(
+                            Icons.cloud_upload_outlined,
+                            size: 40,
+                            color: AppColors.primary.withValues(alpha: 0.6),
                           ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Upload Files',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                           Text(
-                            'Tap to select images or PDFs',
+                            'Tap to upload files',
                             style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[700],
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '(Multiple files allowed)',
+                            'Images or PDFs',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[500],
@@ -232,87 +206,392 @@ class _LaboratoryReportUploadScreenState extends State<LaboratoryReportUploadScr
 
                   // Uploaded Files List
                   if (_uploadedFiles.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        const Text(
-                          'Uploaded Files',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${_uploadedFiles.length}',
-                            style: const TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     ..._uploadedFiles.asMap().entries.map((entry) {
                       final index = entry.key;
                       final file = entry.value;
                       return _buildFileItem(file, index);
                     }),
                   ],
+
+                  const SizedBox(height: 100), // Space for submit button
                 ],
               ),
             ),
           ),
 
           // Submit Button
-          if (_uploadedFiles.isNotEmpty)
+          if (hasData)
             Container(
               padding: const EdgeInsets.all(20),
-              child: SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -5),
                   ),
-                  child: ElevatedButton(
-                    onPressed: _submitReports,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                ],
+              ),
+              child: SafeArea(
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: const Text(
-                      'Submit Reports',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                    child: ElevatedButton(
+                      onPressed: _submitReports,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Submit Reports',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpandableTestItem(int index, Map<String, dynamic> test) {
+    final testName = test['name']?.toString() ?? 'Unknown Test';
+    final unit = test['unit']?.toString() ?? '';
+    final referenceRange = test['reference_range']?.toString() ?? '';
+    
+    final isExpanded = _expandedTests[index] ?? false;
+    final hasValue = _testResults[index]?.value.isNotEmpty ?? false;
+
+    // Initialize test result if not exists
+    if (!_testResults.containsKey(index)) {
+      _testResults[index] = TestResultInput(
+        name: testName,
+        unit: unit,
+        referenceRange: referenceRange,
+      );
+    }
+
+    final result = _testResults[index]!;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: hasValue 
+              ? AppColors.primary.withValues(alpha: 0.3)
+              : Colors.grey[200]!,
+          width: hasValue ? 2 : 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          // Header
+          InkWell(
+            onTap: () {
+              setState(() {
+                _expandedTests[index] = !isExpanded;
+              });
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  // Status Indicator
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: hasValue ? Colors.green : Colors.grey[300],
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  
+                  // Test Name
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          testName,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                        ),
+                        if (hasValue) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '${result.value} ${result.unit}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  
+                  // Expand Icon
+                  Icon(
+                    isExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: Colors.grey[600],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Expanded Content
+          if (isExpanded) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Value Input
+                  TextField(
+                    controller: TextEditingController(text: result.value)
+                      ..selection = TextSelection.fromPosition(
+                        TextPosition(offset: result.value.length),
+                      ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Value *',
+                      hintText: 'Enter value',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        result.value = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Unit Input
+                  TextField(
+                    controller: TextEditingController(text: result.unit)
+                      ..selection = TextSelection.fromPosition(
+                        TextPosition(offset: result.unit.length),
+                      ),
+                    decoration: InputDecoration(
+                      labelText: 'Unit *',
+                      hintText: 'e.g., g/dL, mg/L',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        result.unit = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Reference Range Input
+                  TextField(
+                    controller: TextEditingController(text: result.referenceRange)
+                      ..selection = TextSelection.fromPosition(
+                        TextPosition(offset: result.referenceRange.length),
+                      ),
+                    decoration: InputDecoration(
+                      labelText: 'Reference Range *',
+                      hintText: 'e.g., 12.0 - 16.0',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        result.referenceRange = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Indicator Dropdown (Custom with proper anchoring)
+                  Builder(
+                    builder: (BuildContext dropdownContext) {
+                      return GestureDetector(
+                        onTap: () async {
+                          final RenderBox renderBox = dropdownContext.findRenderObject() as RenderBox;
+                          final offset = renderBox.localToGlobal(Offset.zero);
+                          final size = renderBox.size;
+                          
+                          final selected = await showMenu<String>(
+                            context: context,
+                            position: RelativeRect.fromLTRB(
+                              offset.dx,
+                              offset.dy + size.height, // Right below the field
+                              MediaQuery.of(context).size.width - offset.dx - size.width,
+                              offset.dy + size.height + 300,
+                            ),
+                            constraints: BoxConstraints(
+                              minWidth: size.width,
+                              maxWidth: size.width,
+                            ),
+                            items: [
+                              PopupMenuItem(
+                                value: 'low',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.arrow_downward, color: Colors.orange, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Low'),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'normal',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.check_circle, color: Colors.green, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Normal'),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'high',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.arrow_upward, color: Colors.red, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('High'),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'positive',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.add_circle, color: Colors.blue, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Positive'),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'negative',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.remove_circle, color: Colors.grey, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Negative'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            elevation: 8,
+                          );
+                          
+                          if (selected != null) {
+                            setState(() {
+                              result.indicator = selected;
+                            });
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    result.indicator == 'low' ? Icons.arrow_downward :
+                                    result.indicator == 'high' ? Icons.arrow_upward :
+                                    result.indicator == 'positive' ? Icons.add_circle :
+                                    result.indicator == 'negative' ? Icons.remove_circle :
+                                    Icons.check_circle,
+                                    color: result.indicator == 'low' ? Colors.orange :
+                                           result.indicator == 'high' ? Colors.red :
+                                           result.indicator == 'positive' ? Colors.blue :
+                                           result.indicator == 'negative' ? Colors.grey :
+                                           Colors.green,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    result.indicator == 'low' ? 'Low' :
+                                    result.indicator == 'high' ? 'High' :
+                                    result.indicator == 'positive' ? 'Positive' :
+                                    result.indicator == 'negative' ? 'Negative' :
+                                    'Normal',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -549,9 +828,28 @@ class _LaboratoryReportUploadScreenState extends State<LaboratoryReportUploadScr
   }
 
   Future<void> _submitReports() async {
+    // Try status_id first (used by API), fallback to prescription_id
+    final statusId = widget.prescription['status_id']?.toString() ?? '';
     final prescriptionId = widget.prescription['prescription_id']?.toString() ?? '';
-    if (prescriptionId.isEmpty) {
-      _showError('Invalid prescription ID');
+    
+    final idToUse = statusId.isNotEmpty ? statusId : prescriptionId;
+    
+    if (idToUse.isEmpty) {
+      _showError('Invalid prescription ID. Please try again.');
+      debugPrint('Prescription data: ${widget.prescription}');
+      return;
+    }
+
+    // Collect filled test results
+    final filledResults = <Map<String, dynamic>>[];
+    for (var result in _testResults.values) {
+      if (result.value.isNotEmpty) {
+        filledResults.add(result.toJson());
+      }
+    }
+
+    if (filledResults.isEmpty && _uploadedFiles.isEmpty) {
+      _showError('Please add at least one test result or file');
       return;
     }
 
@@ -565,7 +863,11 @@ class _LaboratoryReportUploadScreenState extends State<LaboratoryReportUploadScr
     final files = _uploadedFiles.map((f) => File(f.path)).toList();
     final provider = context.read<LaboratoryUserProvider>();
     
-    final success = await provider.uploadReport(prescriptionId, files);
+    final success = await provider.uploadReport(
+      idToUse, 
+      files,
+      labResults: filledResults.isNotEmpty ? filledResults : null,
+    );
 
     if (!mounted) return;
 
@@ -579,7 +881,7 @@ class _LaboratoryReportUploadScreenState extends State<LaboratoryReportUploadScr
           backgroundColor: Colors.green[700],
         ),
       );
-      // Navigate back to previous screen (inventory)
+      // Navigate back
       Navigator.pop(context);
     } else {
       _showError(provider.errorMessage ?? 'Failed to submit reports');
@@ -611,4 +913,30 @@ class UploadedFile {
     required this.path,
     required this.type,
   });
+}
+
+class TestResultInput {
+  final String name;
+  String unit;
+  String referenceRange;
+  String value;
+  String indicator;
+
+  TestResultInput({
+    required this.name,
+    required this.unit,
+    required this.referenceRange,
+    this.value = '',
+    this.indicator = 'normal',
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'value': value,
+      'unit': unit,
+      'reference_range': referenceRange,
+      'indicator': indicator,
+    };
+  }
 }
