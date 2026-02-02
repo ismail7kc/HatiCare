@@ -185,7 +185,7 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
             ],
             const SizedBox(height: 18),
             Text(
-              widget.appointment.patientName ?? '',
+              widget.appointment.patientName,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 30),
@@ -213,7 +213,7 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          widget.appointment.rawComplaint ?? '',
+                          widget.appointment.rawComplaint,
                           style: const TextStyle(color: Colors.grey),
                         ),
                       ],
@@ -223,7 +223,7 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            // Reported Symptoms
+            
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
