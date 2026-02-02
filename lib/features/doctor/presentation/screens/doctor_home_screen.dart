@@ -641,7 +641,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     const Text("Patient", style: TextStyle(color: Colors.grey)),
                     const SizedBox(height: 2),
                     Text(
-                      "${appointment.patientName}, ${appointment.patient?.age}",
+                      "${appointment.patientName}, ${appointment.patient.age}",
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 15,

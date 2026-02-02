@@ -2,8 +2,6 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
-import 'package:haticare/features/doctor/presentation/viewModel/doctor_viewModel.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl_phone_field/phone_number.dart';
 

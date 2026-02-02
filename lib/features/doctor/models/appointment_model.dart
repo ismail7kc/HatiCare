@@ -79,7 +79,7 @@ class AppointmentModel {
   double progress;
 
   // Timer Start Time (used for reset)
-  DateTime timerStartTime;
+  DateTime? timerStartTime;
 
   AppointmentModel({
     required this.id,

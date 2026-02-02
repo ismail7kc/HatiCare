@@ -13,7 +13,6 @@ class LaboratoryHistoryDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusId = prescription['status_id']?.toString() ?? '';
     final prescriptionId = prescription['prescription_id']?.toString() ?? '';
     final patientName = prescription['patient_name']?.toString() ?? 'Unknown Patient';
     final patientPhone = prescription['patient_phone']?.toString() ?? '';
