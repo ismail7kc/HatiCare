@@ -20,13 +20,13 @@ class DoctorViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool logoutSuccess = false;
 
-  // bool isOnline = false;
-
   String _errorMessage = '';
   String get errorMessage => _errorMessage;
 
   bool _isQueueLoading = false;
   bool get isQueueLoading => _isQueueLoading;
+
+  bool isOnline = false;
 
   // socket propetties
   WebSocketChannel? _channel;
@@ -40,21 +40,31 @@ class DoctorViewModel extends ChangeNotifier {
     webSocketConnectionApi();
   }
 
-  // void updateOnlineStatus(bool value) {
-  //   isOnline = value;
-  //   notifyListeners();
-  // }
-
-  Future<void> isDoctorOnline({required bool isOnline}) async {
+  Future<bool> isDoctorOnline({required bool isOnline}) async {
     final body = {'is_online': isOnline};
 
     final response = await repository.updateDoctorInfo(body);
-    if (response['success'] == true && response['data'] != null) {
-      debugPrint(
-        'Response when doctor sent online true: ${response['message']}',
-      );
-      notifyListeners();
+
+    if (response['success'] == true) {
+      return true;
     }
+
+    return false;
+  }
+
+  Future<void> loadOnlineStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    isOnline = prefs.getBool("doctor_online") ?? false;
+    notifyListeners();
+  }
+
+  Future<void> updateOnlineStatus(bool value) async {
+    isOnline = value;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool("doctor_online", value);
+
+    notifyListeners();
   }
 
   Future<void> fetchPatientQueue() async {
@@ -89,15 +99,16 @@ class DoctorViewModel extends ChangeNotifier {
     _isQueueLoading = true;
     notifyListeners();
 
-    final response = await repository.getSingleDoctor();
-    final specializationName = response['data']?['specialization'] ?? 'Unknown';
-
-    final socketUrl =
-        'wss://api.haticare.com/ws/doctor/queue/?specialization=$specializationName';
-
-    debugPrint("WebSocket URL: $socketUrl");
-
     try {
+      final response = await repository.getSingleDoctor();
+      final specializationName =
+          response['data']?['specialization'] ?? 'Unknown';
+
+      final socketUrl =
+          'wss://api.haticare.com/ws/doctor/queue/?specialization=$specializationName';
+
+      debugPrint("WebSocket URL: $socketUrl");
+
       _channel = WebSocketChannel.connect(Uri.parse(socketUrl));
 
       _channel!.stream.listen(
@@ -137,7 +148,6 @@ class DoctorViewModel extends ChangeNotifier {
                   _appointments.add(patient);
 
                   notifyListeners();
-
                   _startQueueTimer();
                   break;
 
@@ -167,6 +177,16 @@ class DoctorViewModel extends ChangeNotifier {
     } catch (e) {
       debugPrint("WS connect error: $e");
       _reconnect();
+    }
+  }
+
+  Future<void> disconnectWebSocket() async {
+    if (_channel != null) {
+      await _channel!.sink.close();
+      _channel = null;
+      _isConnecting = false;
+
+      debugPrint("WebSocket Disconnected");
     }
   }
 

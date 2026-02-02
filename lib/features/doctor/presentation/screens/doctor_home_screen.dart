@@ -120,6 +120,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   void initState() {
     super.initState();
     _loadApprovalStatus();
+
+    Future.microtask(() {
+      Provider.of<DoctorViewModel>(context, listen: false).loadOnlineStatus();
+    });
   }
 
   @override
@@ -190,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                           children: [
                             headerView(),
                             const SizedBox(height: 20),
-                            toggleView(),
+                            toggleView(vm),
                             const SizedBox(height: 20),
                             statsView(),
                             const SizedBox(height: 20),
@@ -245,7 +249,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       );
     }
 
-    if (!isOnline) {
+    if (!doctorViewModel.isOnline) {
       return Padding(
         padding: const EdgeInsets.all(16.0),
         child: patientQueueView(),
@@ -397,7 +401,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
-  Widget toggleView() {
+  Widget toggleView(DoctorViewModel vm) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       decoration: BoxDecoration(
@@ -408,10 +412,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            isOnline ? "Online" : "Offline",
+            vm.isOnline ? "Online" : "Offline",
             style: TextStyle(
               fontSize: 16,
-              color: isOnline ? const Color(0xFF34C759) : Colors.black,
+              color: vm.isOnline ? const Color(0xFF34C759) : Colors.black,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -420,17 +424,20 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             child: Opacity(
               opacity: (hasAdminApproval == true) ? 1.0 : 0.5,
               child: Switch(
-                value: isOnline,
+                value: vm.isOnline,
                 activeThumbColor: const Color(0xFFFFFFFF),
                 activeTrackColor: const Color(0xFF34C759),
                 onChanged: (value) async {
-                  setState(() {
-                    isOnline = value;
-                  });
+                  final success = await vm.isDoctorOnline(isOnline: value);
+                  if (!success) return;
+                  await vm.updateOnlineStatus(value);
 
-                  await doctorViewModel.isDoctorOnline(isOnline: value);
-                  await doctorViewModel.webSocketConnectionApi();
-                  // await doctorViewModel.fetchPatientQueue();
+                  if (value) {
+                    await vm.fetchPatientQueue();
+                    await vm.webSocketConnectionApi();
+                  } else {
+                    await vm.disconnectWebSocket();
+                  }
                 },
               ),
             ),
@@ -533,7 +540,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       ),
       child: Center(
         child: Text(
-          isOnline
+          doctorViewModel.isOnline
               ? "Waiting for patients..."
               : "Go online to see patient requests",
           style: const TextStyle(color: Colors.grey),

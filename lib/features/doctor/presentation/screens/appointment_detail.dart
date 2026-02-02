@@ -83,7 +83,7 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                           ),
                         )
                       : Icon(
-                          Icons.check_circle,
+                           Icons.check,
                           color: isNotesFilled ? Colors.green : Colors.grey,
                         ),
                   onPressed: isNotesFilled && !_isCompleting

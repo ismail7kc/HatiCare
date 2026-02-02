@@ -170,7 +170,7 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                         ],
                       ),
                       const SizedBox(height: 14),
-                      
+
                       Row(
                         children: [
                           Expanded(
@@ -189,12 +189,52 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                     ],
 
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        GestureDetector(
-                          onTap: _openLabTestDialog,
+                        // ✅ Lab Test Button
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: _openLabTestDialog,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(6),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      getSelectedLabTestLabel(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Icon(Icons.keyboard_arrow_down),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 12),
+
+                        // ✅ Add Another Button
+                        Expanded(
                           child: Container(
-                            constraints: const BoxConstraints(maxWidth: 190),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(6),
@@ -206,57 +246,28 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                                 ),
                               ],
                             ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    getSelectedLabTestLabel(),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(color: Colors.black),
-                                  ),
+                            child: TextButton.icon(
+                              onPressed: _addAnotherMedicine,
+                              icon: const Icon(
+                                Icons.add,
+                                size: 18,
+                                color: Colors.black,
+                              ),
+                              label: const Text(
+                                "Add Another",
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 12,
                                 ),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.keyboard_arrow_down),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(6),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                foregroundColor: Colors.black,
                               ),
-                            ],
-                          ),
-                          child: TextButton.icon(
-                            onPressed: _addAnotherMedicine,
-                            icon: const Icon(
-                              Icons.add,
-                              size: 18,
-                              color: Colors.black,
-                            ),
-                            label: const Text("Add Another"),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 10,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              backgroundColor: Colors.transparent,
-                              foregroundColor: Colors.black,
                             ),
                           ),
                         ),
