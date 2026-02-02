@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
@@ -8,7 +10,9 @@ import 'package:haticare/features/laboratory/presentation/screens/laboratory_his
 import 'package:haticare/features/laboratory/presentation/screens/laboratory_inventory_screen.dart';
 import 'package:haticare/features/laboratory/presentation/screens/laboratory_settings_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
+import '../../../common/shared_prefs_helper.dart';
 import '../providers/laboratory_user_provider.dart';
 
 class ProfileNotifier {
@@ -59,6 +63,11 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
   @override
   bool get wantKeepAlive => true;
 
+  // socket propetties
+  WebSocketChannel? _channel;
+  bool _isConnecting = false;
+  bool _isDisposed = false;
+
   @override
   void initState() {
     super.initState();
@@ -69,7 +78,82 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
       provider.fetchPrescriptions();
       provider.fetchAssignedPrescriptions();
       provider.fetchHistory();
+      
+      webSocketConnectionApi();
     });
+  }
+
+  Future<void> webSocketConnectionApi() async {
+    if (_isConnecting || _isDisposed) return;
+    _isConnecting = true;
+
+    // Get user ID from provider (which loads it from SharedPreferences)
+    final provider = context.read<LaboratoryUserProvider>();
+    final userId = provider.userId.isNotEmpty ? provider.userId : 'userid';
+    // Fixed: Use 'queue' endpoint like Postman, not 'list'
+    final socketUrl = 'wss://api.haticare.com/ws/laboratory/queue/?user_id=$userId';
+    
+    debugPrint("WebSocket URL: $socketUrl");
+    debugPrint("Laboratory User ID: $userId");
+
+    try {
+      _channel = WebSocketChannel.connect(Uri.parse(socketUrl));
+
+      _channel!.stream.listen(
+            (message) async {
+          if (_isDisposed) return;
+
+          debugPrint("WS RAW: $message");
+
+          try {
+            final data = jsonDecode(message);
+            // The API returns: {"type": "...", "success": true, "data": [...]}
+            // NOT: {"results": {"success": true, "data": [...]}}
+            final isSuccess = data['success'] == true;
+            if (isSuccess && data['data'] != null) {
+              // Directly update the provider's list for instant UI update
+              // No need to fetch from API - we already have the data!
+              context.read<LaboratoryUserProvider>().handleWebSocketUpdate(data);
+            }
+
+            if (_isDisposed) return;
+          } catch (e) {
+            debugPrint("WS parse error: $e");
+          }
+        },
+        onDone: () {
+          debugPrint("WS Closed");
+          _reconnect();
+        },
+        onError: (error) {
+          debugPrint("WS Error: $error");
+          _reconnect();
+        },
+        cancelOnError: true,
+      );
+    } catch (e) {
+      debugPrint("WS connect error: $e");
+      _reconnect();
+    }
+  }
+
+  void _reconnect() {
+    if (_isDisposed) return;
+
+    _isConnecting = false;
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!_isDisposed) {
+        webSocketConnectionApi();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _channel?.sink.close();
+    super.dispose();
   }
 
   Future<void> _onRefresh() async {

@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
@@ -12,13 +11,12 @@ import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_setting
 import 'package:provider/provider.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../../../common/screens/notifications_screen.dart';
+import '../../../common/shared_prefs_helper.dart';
 import '../providers/pharmacy_user_provider.dart';
 import '../../presentation/utils/profile_notifier.dart';
 import 'prescription_details_screen.dart';
 
-
-
-class PharmacyHomeScreen extends StatefulWidget {
+class PharmacyHomeScreen extends StatefulWidget  {
   const PharmacyHomeScreen({super.key});
 
   @override
@@ -68,6 +66,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = context.read<PharmacyUserProvider>();
       await provider.fetchProfile(forceRefresh: true);
@@ -82,7 +81,6 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
       }
     });
 
-    // Initialize WebSocket connection
     webSocketConnectionApi();
   }
 
@@ -90,8 +88,13 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     if (_isConnecting || _isDisposed) return;
     _isConnecting = true;
 
-    final socketUrl = 'wss://api.haticare.com/ws/pharmacy/queue/';
+    // Get user ID from provider (which loads it from SharedPreferences)
+    final provider = context.read<PharmacyUserProvider>();
+    final userId = provider.userId.isNotEmpty ? provider.userId : 'userid';
+    final socketUrl = 'wss://api.haticare.com/ws/pharmacy/queue/?user_id=$userId';
+
     debugPrint("WebSocket URL: $socketUrl");
+    debugPrint("Pharmacy User ID: $userId");
 
     try {
       _channel = WebSocketChannel.connect(Uri.parse(socketUrl));
@@ -104,9 +107,13 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
 
           try {
             final data = jsonDecode(message);
-            final isSuccess = data['results']['success'] == true;
-            if ((isSuccess) && (data['results']['data'] != null)) {
-              await context.read<PharmacyUserProvider>().fetchPrescriptions();
+            // The API returns: {"type": "...", "success": true, "data": [...]}
+            // NOT: {"results": {"success": true, "data": [...]}}
+            final isSuccess = data['success'] == true;
+            if (isSuccess && data['data'] != null) {
+              // Directly update the provider's list for instant UI update
+              // No need to fetch from API - we already have the data!
+              context.read<PharmacyUserProvider>().handleWebSocketUpdate(data);
             }
 
             if (_isDisposed) return;
@@ -428,14 +435,14 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF2443A9),
+                                  color: Colors.white,
                                 ),
                               ),
                                 const Text(
                                 'Assigned Prescriptions',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Color(0xFF2443A9),
+                                  color: Colors.white,
                                 ),
                               ),
                             ],
@@ -645,7 +652,10 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
       patientAge: int.tryParse(data['patient_age']?.toString() ?? '0') ?? 0,
       patientGender: data['patient_gender']?.toString() ?? 'Male',
       patientDob: data['patient_dob']?.toString() ?? '1992-11-15',
-      doctorName: data['doctor_name']?.toString() ?? 'Dr. Unknown',
+      doctorName: data['doctor']?.toString() ??
+          data['doctor_name']?.toString() ??
+          data['doctorName']?.toString() ??
+          'Dr. Unknown',
       doctorSpecialty:
           data['doctor_specialty']?.toString() ?? 'General Physician',
       dateIssued: issuedDate,

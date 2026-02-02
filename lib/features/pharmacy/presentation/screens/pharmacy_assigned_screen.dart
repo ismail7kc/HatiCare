@@ -551,6 +551,20 @@ class AssignedPrescriptionCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.medical_services_outlined, color: Colors.grey[600], size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  item.doctor.startsWith('Dr.') ? item.doctor : 'Dr. ${item.doctor}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
 
             Row(
               children: [

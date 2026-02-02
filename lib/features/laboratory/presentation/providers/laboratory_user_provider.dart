@@ -12,6 +12,7 @@ class LaboratoryUserProvider extends ChangeNotifier {
   String _profilePictureUrl = '';
   String _contactPerson = '';
   String _licenseNumber = '';
+  String _userId = '';
   bool _isLoading = true;
   String? _errorMessage;
   
@@ -35,6 +36,7 @@ class LaboratoryUserProvider extends ChangeNotifier {
   String get profilePictureUrl => _profilePictureUrl;
   String get contactPerson => _contactPerson;
   String get licenseNumber => _licenseNumber;
+  String get userId => _userId;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   
@@ -63,6 +65,11 @@ class LaboratoryUserProvider extends ChangeNotifier {
     try {
       await SaveLoginResponse.loadLoginModel();
       _laboratoryName = SaveLoginResponse.loginData?['laboratory_name'] ?? '';
+      
+      // Load user ID from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      _userId = prefs.getString('laboratory_id') ?? '';
+      
       notifyListeners();
       fetchProfile();
     } catch (e) {
@@ -428,7 +435,11 @@ class LaboratoryUserProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
   }
-  Future<bool> uploadReport(String prescriptionId, List<File> files) async {
+  Future<bool> uploadReport(
+    String prescriptionId, 
+    List<File> files, {
+    List<Map<String, dynamic>>? labResults,
+  }) async {
     try {
       _isLoading = true;
       notifyListeners();
@@ -436,8 +447,8 @@ class LaboratoryUserProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final accessToken = prefs.getString('access_token') ?? '';
       
-      // Using assumed endpoint for report upload
-      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/$prescriptionId/report/');
+      // Fixed endpoint to match Postman: /prescriptions/laboratory/status/{id}/upload_result/
+      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/status/$prescriptionId/upload_result/');
 
       final request = http.MultipartRequest('POST', uri);
       request.headers.addAll({
@@ -445,17 +456,25 @@ class LaboratoryUserProvider extends ChangeNotifier {
         'Accept': 'application/json',
       });
 
+      // Add lab_results as JSON if provided
+      if (labResults != null && labResults.isNotEmpty) {
+        request.fields['lab_results'] = jsonEncode(labResults);
+      }
+
+      // Add files
       for (var file in files) {
         request.files.add(
           await http.MultipartFile.fromPath(
-            'files', // Common field name for multiple file uploads
+            'files', // Field name for multiple file uploads
             file.path,
           ),
         );
       }
 
       // Add debug print
-      debugPrint('Uploading ${files.length} reports to $uri');
+      debugPrint('Uploading to $uri');
+      debugPrint('Lab results: ${labResults != null ? jsonEncode(labResults) : 'none'}');
+      debugPrint('Files: ${files.length}');
 
       final client = ChuckerHttpClient(http.Client());
       final streamedResponse = await client.send(request);
@@ -468,7 +487,22 @@ class LaboratoryUserProvider extends ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        _errorMessage = 'Failed to upload report: ${response.statusCode}';
+        // Parse error message from response
+        String errorMsg = 'Failed to upload report';
+        try {
+          final errorData = jsonDecode(response.body);
+          if (errorData is Map) {
+            // Try different error message fields
+            errorMsg = errorData['detail']?.toString() ?? 
+                      errorData['message']?.toString() ?? 
+                      errorData['error']?.toString() ?? 
+                      'Failed to upload report: ${response.statusCode}';
+          }
+        } catch (e) {
+          errorMsg = 'Failed to upload report: ${response.statusCode}';
+        }
+        
+        _errorMessage = errorMsg;
         _isLoading = false;
         notifyListeners();
         return false;
@@ -478,6 +512,41 @@ class LaboratoryUserProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return false;
+    }
+  }
+
+  /// Handle WebSocket updates by directly updating the new requests list
+  /// This avoids unnecessary API calls and provides instant UI updates
+  void handleWebSocketUpdate(Map<String, dynamic> wsData) {
+    try {
+      final type = wsData['type'] as String?;
+      final data = wsData['data'] as List<dynamic>?;
+      
+      if (data == null || data.isEmpty) return;
+      
+      final newRequest = data[0] as Map<String, dynamic>;
+      final statusId = newRequest['status_id'];
+      
+      if (type == 'initial_item') {
+        // Initial items are already loaded, skip
+        return;
+      } else if (type == 'update_request') {
+        // Find and update existing request, or add if new
+        final index = _newRequests.indexWhere(
+          (p) => p is Map && p['status_id'] == statusId
+        );
+        
+        if (index != -1) {
+          _newRequests[index] = newRequest;
+        } else {
+          // New request, add to the beginning of the list
+          _newRequests.insert(0, newRequest);
+        }
+        
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error handling WebSocket update: $e');
     }
   }
 }
