@@ -464,7 +464,7 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
   void updatePhoneNumber(PhoneNumber? phoneNumber) {
     if (phoneNumber != null) {
       _phoneNumber = phoneNumber.completeNumber;
-      _countryCode = phoneNumber.countryISOCode ?? 'US';
+      _countryCode = phoneNumber.countryISOCode;
     } else {
       _phoneNumber = null;
     }

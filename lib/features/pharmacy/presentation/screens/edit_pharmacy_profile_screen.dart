@@ -689,7 +689,6 @@ class _EditPharmacyProfileView extends StatelessWidget {
 
   Widget _buildStateDropdown(BuildContext context, PharmacyProfileViewModel viewModel) {
     final isEnabled = viewModel.selectedCountry != null && viewModel.selectedCountry!.isNotEmpty;
-    final states = isEnabled ? viewModel.getStateNames() : [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -753,7 +752,6 @@ class _EditPharmacyProfileView extends StatelessWidget {
 
   Widget _buildCityDropdown(BuildContext context, PharmacyProfileViewModel viewModel) {
     final isEnabled = viewModel.selectedState != null && viewModel.selectedState!.isNotEmpty;
-    final cities = isEnabled ? viewModel.getCityNames() : [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

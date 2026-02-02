@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
-import 'package:haticare/core/widgets/app_primary_button.dart';
 import 'laboratory_report_upload_screen.dart';
 
 class PrescriptionDetailScreen extends StatelessWidget {
@@ -18,7 +17,6 @@ class PrescriptionDetailScreen extends StatelessWidget {
     
     // Extract data from prescription map
     final prescriptionId = prescription['prescription_id']?.toString() ?? '';
-    final statusId = prescription['status_id']?.toString() ?? '';
     final patientName = prescription['patient_name']?.toString() ?? 'Unknown';
     final patientPhone = prescription['patient_phone']?.toString() ?? '';
     final labTests = prescription['lab_tests'] as List<dynamic>? ?? [];

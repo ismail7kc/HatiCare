@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class PharmacyHistoryCard extends StatelessWidget {
@@ -17,10 +16,8 @@ class PharmacyHistoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final prescriptionId = prescription['prescription_id']?.toString() ?? '';
     final patientName = prescription['patient_name']?.toString() ?? 'Unknown Patient';
-    final patientPhone = prescription['patient_phone']?.toString() ?? '';
     final medications = prescription['medications'] as List<dynamic>? ?? [];
     final pharmacyStatus = prescription['pharmacy_status']?.toString() ?? '';
-    final createdAt = prescription['created_at']?.toString() ?? '';
     final doctor = prescription['doctor']?.toString() ?? '';
 
     return Container(

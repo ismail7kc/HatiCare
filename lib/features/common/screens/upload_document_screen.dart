@@ -27,7 +27,7 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
   CameraController? _cameraController;
   bool _isCameraReady = false;
   File? _selectedFile;
-  String? _selectedFileName;
+  String? selectedFileName;
 
   @override
   void initState() {
@@ -141,7 +141,7 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
 
           setState(() {
             _selectedFile = croppedFile;
-            _selectedFileName = croppedFileName;
+            selectedFileName = croppedFileName;
           });
 
           // Return the cropped file
@@ -234,7 +234,7 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
 
         setState(() {
           _selectedFile = croppedFile;
-          _selectedFileName = fileName;
+          selectedFileName = fileName;
         });
 
         // Return the cropped file
@@ -306,7 +306,6 @@ class _UploadDocumentScreenState extends State<UploadDocumentScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
 
     // Responsive camera preview size - smaller to fit everything
     final cameraWidth = (screenWidth * 0.85).clamp(280.0, 340.0);

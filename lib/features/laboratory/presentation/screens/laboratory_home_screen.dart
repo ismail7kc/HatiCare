@@ -12,7 +12,6 @@ import 'package:haticare/features/laboratory/presentation/screens/laboratory_set
 import 'package:provider/provider.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-import '../../../common/shared_prefs_helper.dart';
 import '../providers/laboratory_user_provider.dart';
 
 class ProfileNotifier {

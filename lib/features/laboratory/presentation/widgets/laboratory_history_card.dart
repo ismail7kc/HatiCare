@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class LaboratoryHistoryCard extends StatelessWidget {
@@ -15,13 +14,10 @@ class LaboratoryHistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusId = prescription['status_id']?.toString() ?? '';
     final prescriptionId = prescription['prescription_id']?.toString() ?? '';
     final patientName = prescription['patient_name']?.toString() ?? 'Unknown Patient';
-    final patientPhone = prescription['patient_phone']?.toString() ?? '';
     final labTests = prescription['lab_tests'] as List<dynamic>? ?? [];
     final notes = prescription['notes']?.toString() ?? '';
-    final createdAt = prescription['created_at']?.toString() ?? '';
     final rexCode = prescription['rex_code']?.toString() ?? '';
 
     return Container(

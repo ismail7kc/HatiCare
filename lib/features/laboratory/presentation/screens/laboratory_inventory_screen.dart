@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
-import 'package:haticare/features/laboratory/models/test_request.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/laboratory_user_provider.dart';
@@ -828,16 +825,5 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
         ),
       ),
     );
-  }
-
-  String _getStatusText(TestRequestStatus status) {
-    switch (status) {
-      case TestRequestStatus.issued:
-        return 'Issued';
-      case TestRequestStatus.inProgress:
-        return 'In Progress';
-      case TestRequestStatus.completed:
-        return 'Completed';
-    }
   }
 }

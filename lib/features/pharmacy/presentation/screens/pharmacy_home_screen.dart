@@ -11,7 +11,6 @@ import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_setting
 import 'package:provider/provider.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../../../common/screens/notifications_screen.dart';
-import '../../../common/shared_prefs_helper.dart';
 import '../providers/pharmacy_user_provider.dart';
 import '../../presentation/utils/profile_notifier.dart';
 import 'prescription_details_screen.dart';
@@ -169,35 +168,6 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     ]);
   }
 
-  // Calculate available count for summary card
-  int _getAvailableCount(List<dynamic> prescriptions) {
-    int available = 0;
-    int partiallyAvailable = 0;
-    for (final prescription in prescriptions) {
-      final availability =
-          prescription['availability']?.toString().toLowerCase() ?? 'pending';
-      if (availability.contains('full')) {
-        available++;
-      } else if (availability.contains('partial')) {
-        partiallyAvailable++;
-      }
-    }
-    return available + partiallyAvailable;
-  }
-
-  // Calculate delivered count
-  int _getDeliveredCount(List<dynamic> prescriptions) {
-    int delivered = 0;
-    for (final prescription in prescriptions) {
-      final availability =
-          prescription['availability']?.toString().toLowerCase() ?? 'pending';
-      if (availability.contains('delivered')) {
-        delivered++;
-      }
-    }
-    return delivered;
-  }
-
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
@@ -206,8 +176,6 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     final availableCount = pharmacyProvider.assignedRequests.length;
     final deliveredCount = pharmacyProvider.historyRequests.length;
     final prescriptionsRaw = pharmacyProvider.prescriptions;
-    final isLoadingPrescriptions = pharmacyProvider.prescriptionsLoading;
-    final hasFetchedPrescriptions = prescriptionsRaw.isNotEmpty;
 
     final List<Map<String, dynamic>> newRequestsRaw = prescriptionsRaw
         .whereType<Map<String, dynamic>>()
