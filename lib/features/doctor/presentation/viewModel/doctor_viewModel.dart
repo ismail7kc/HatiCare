@@ -100,9 +100,23 @@ class DoctorViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // final response = await repository.getSingleDoctor();
+      // final specializationName =
+      //     response['data']?['specialization'] ?? 'Unknown';
+
       final response = await repository.getSingleDoctor();
-      final specializationName =
-          response['data']?['specialization'] ?? 'Unknown';
+      String specializationName =
+          response['data']?['specialization'] ?? "Unknown";
+
+      final prefs = await SharedPreferences.getInstance();
+      final localSpec = prefs.getString("doctor_specialization");
+
+      if (localSpec != null && localSpec.isNotEmpty) {
+        specializationName = localSpec;
+        debugPrint("Using updated specialization from local storage");
+      } else {
+        debugPrint("Using specialization from API");
+      }
 
       final socketUrl =
           'wss://api.haticare.com/ws/doctor/queue/?specialization=$specializationName';
@@ -188,6 +202,21 @@ class DoctorViewModel extends ChangeNotifier {
 
       debugPrint("WebSocket Disconnected");
     }
+  }
+
+  Future<void> refreshQueueAfterSpecializationChange() async {
+    debugPrint("Refreshing queue after specialization update...");
+    await disconnectWebSocket();
+    _appointments.clear();
+    notifyListeners();
+    await fetchPatientQueue();
+
+    await webSocketConnectionApi();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove("doctor_specialization");
+
+    debugPrint("Local specialization override cleared");
   }
 
   void _updateTimersInstantly() {

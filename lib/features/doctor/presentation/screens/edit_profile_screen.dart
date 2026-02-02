@@ -7,6 +7,7 @@ import 'package:haticare/core/widgets/app_dropdown_field.dart';
 import 'package:haticare/core/widgets/custom_dropdown_dialog.dart';
 import 'package:haticare/features/common/screens/upload_document_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/doctor_profile_view_model.dart';
+import 'package:haticare/features/doctor/presentation/viewModel/doctor_viewModel.dart';
 import 'package:intl/intl.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:provider/provider.dart';
@@ -186,8 +187,21 @@ class _EditProfileView extends StatelessWidget {
                                     : 'Submit',
                                 onPressed: viewModel.isSubmitting
                                     ? null
-                                    : () => viewModel.submitProfile(),
+                                    : () async {
+                                        await viewModel.submitProfile();
+
+                                        if (viewModel.shouldNavigateToHome && viewModel.specializationChanged) {
+                                          final doctorVM = Provider.of<DoctorViewModel>(context, listen: false);
+                                          await doctorVM.refreshQueueAfterSpecializationChange();
+                                        }
+                                        
+                                        if (viewModel.shouldNavigateToHome) {
+                                          Navigator.pop(context);
+                                          viewModel.resetNavigation();
+                                        }
+                                      },
                               ),
+
                             const SizedBox(height: 24),
                           ],
                         ),

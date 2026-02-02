@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
+import 'package:haticare/features/doctor/presentation/viewModel/doctor_viewModel.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl_phone_field/phone_number.dart';
 
@@ -73,6 +75,10 @@ class DoctorProfileViewModel extends ChangeNotifier {
 
   bool get hasChanges => _hasChanges;
   bool get shouldNavigateToHome => _shouldNavigateToHome;
+
+  // Track specialization change
+  bool specializationChanged = false;
+  String? _oldSpecialization;
 
   DoctorProfileViewModel({
     required this.doctorId,
@@ -271,6 +277,10 @@ class DoctorProfileViewModel extends ChangeNotifier {
 
       selectedDate = doc.dob;
       selectedSpecialization = doc.specialization;
+      // ✅ Store old specialization when profile loads
+      _oldSpecialization = doc.specialization;
+      specializationChanged = false;
+
       selectedLicenseType = doc.licenseType;
 
       // 🔥 IMPORTANT PART
@@ -483,6 +493,20 @@ class DoctorProfileViewModel extends ChangeNotifier {
         // Update shared preferences
         await prefs.setString('user_first_name', firstName);
         await prefs.setString('user_last_name', lastName);
+
+        final newSpecialization = response['data']['specialization'];
+        if (newSpecialization != _oldSpecialization) {
+          await prefs.setString("doctor_specialization", newSpecialization);
+
+          specializationChanged = true;
+
+          debugPrint("Specialization changed → queue refresh needed");
+        } else {
+          specializationChanged = false;
+          debugPrint("Specialization not changed → no refresh needed");
+        }
+
+        _oldSpecialization = newSpecialization;
 
         successMessage = 'Doctor profile updated successfully';
         _shouldNavigateToHome = true;
