@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:haticare/features/common/repository_layer.dart';
 import 'package:haticare/features/doctor/models/lab_test_model.dart';
 import 'package:haticare/features/doctor/models/prescription_model.dart';
@@ -92,4 +93,17 @@ class AppointmentDetailvm extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<Map<String, dynamic>> doctorCompleteVisit(String notes) async {
+  try {
+    final response = await respositoryLayer.futureVisitCompleted(visitId, notes);
+
+    return response;
+  } catch (error) {
+    return {
+      "success": false,
+      "message": "Something went wrong: $error"
+    };
+  }
+}
 }

@@ -118,7 +118,7 @@ class AudioCallScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => AppointmentDetailScreen(appointment: appointments, visitId: visitId) // ✅ SAME ID),
+                      builder: (_) => AppointmentDetailScreen(appointment: appointments, visitId: visitId)
                     ),
                   );
                 },
