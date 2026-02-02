@@ -11,6 +11,7 @@ class PharmacyUserProvider extends ChangeNotifier {
   String _profilePictureUrl = '';
   String _contactPerson = '';
   String _licenseNumber = '';
+  String _userId = '';
   bool _isLoading = true;
   String? _errorMessage;
   List<dynamic> _prescriptions = [];
@@ -26,6 +27,7 @@ class PharmacyUserProvider extends ChangeNotifier {
   String get profilePictureUrl => _profilePictureUrl;
   String get contactPerson => _contactPerson;
   String get licenseNumber => _licenseNumber;
+  String get userId => _userId;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<dynamic> get prescriptions => _prescriptions;
@@ -44,6 +46,11 @@ class PharmacyUserProvider extends ChangeNotifier {
   Future<void> _loadInitialData() async {
       await SaveLoginResponse.loadLoginModel();
       _pharmacyName = SaveLoginResponse.loginData?['pharmacy_name'] ?? '';
+      
+      // Load user ID from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      _userId = prefs.getString('pharmacy_id') ?? '';
+      
       notifyListeners();
       fetchProfile();
   }
@@ -313,5 +320,40 @@ class PharmacyUserProvider extends ChangeNotifier {
   void clearSearch() {
     _errorMessage = null;
     fetchPrescriptions();
+  }
+
+  /// Handle WebSocket updates by directly updating the prescription list
+  /// This avoids unnecessary API calls and provides instant UI updates
+  void handleWebSocketUpdate(Map<String, dynamic> wsData) {
+    try {
+      final type = wsData['type'] as String?;
+      final data = wsData['data'] as List<dynamic>?;
+      
+      if (data == null || data.isEmpty) return;
+      
+      final newPrescription = data[0] as Map<String, dynamic>;
+      final statusId = newPrescription['status_id'];
+      
+      if (type == 'initial_item') {
+        // Initial items are already loaded, skip
+        return;
+      } else if (type == 'update_request') {
+        // Find and update existing prescription, or add if new
+        final index = _prescriptions.indexWhere(
+          (p) => p is Map && p['status_id'] == statusId
+        );
+        
+        if (index != -1) {
+          _prescriptions[index] = newPrescription;
+        } else {
+          // New prescription, add to the beginning of the list
+          _prescriptions.insert(0, newPrescription);
+        }
+        
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error handling WebSocket update: $e');
+    }
   }
 }

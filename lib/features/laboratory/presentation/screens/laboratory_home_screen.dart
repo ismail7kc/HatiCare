@@ -12,6 +12,7 @@ import 'package:haticare/features/laboratory/presentation/screens/laboratory_set
 import 'package:provider/provider.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import '../../../common/shared_prefs_helper.dart';
 import '../providers/laboratory_user_provider.dart';
 
 class ProfileNotifier {
@@ -77,6 +78,8 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
       provider.fetchPrescriptions();
       provider.fetchAssignedPrescriptions();
       provider.fetchHistory();
+      
+      webSocketConnectionApi();
     });
   }
 
@@ -84,8 +87,14 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     if (_isConnecting || _isDisposed) return;
     _isConnecting = true;
 
-    final socketUrl = 'wss://api.haticare.com/ws/laboratory/list/';
+    // Get user ID from provider (which loads it from SharedPreferences)
+    final provider = context.read<LaboratoryUserProvider>();
+    final userId = provider.userId.isNotEmpty ? provider.userId : 'userid';
+    // Fixed: Use 'queue' endpoint like Postman, not 'list'
+    final socketUrl = 'wss://api.haticare.com/ws/laboratory/queue/?user_id=$userId';
+    
     debugPrint("WebSocket URL: $socketUrl");
+    debugPrint("Laboratory User ID: $userId");
 
     try {
       _channel = WebSocketChannel.connect(Uri.parse(socketUrl));
@@ -98,9 +107,13 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
 
           try {
             final data = jsonDecode(message);
-            final isSuccess = data['results']['success'] == true;
-            if ((isSuccess) && (data['results']['data'] != null)) {
-              await context.read<LaboratoryUserProvider>().fetchPrescriptions();
+            // The API returns: {"type": "...", "success": true, "data": [...]}
+            // NOT: {"results": {"success": true, "data": [...]}}
+            final isSuccess = data['success'] == true;
+            if (isSuccess && data['data'] != null) {
+              // Directly update the provider's list for instant UI update
+              // No need to fetch from API - we already have the data!
+              context.read<LaboratoryUserProvider>().handleWebSocketUpdate(data);
             }
 
             if (_isDisposed) return;

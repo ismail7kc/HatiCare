@@ -12,6 +12,7 @@ class LaboratoryUserProvider extends ChangeNotifier {
   String _profilePictureUrl = '';
   String _contactPerson = '';
   String _licenseNumber = '';
+  String _userId = '';
   bool _isLoading = true;
   String? _errorMessage;
   
@@ -35,6 +36,7 @@ class LaboratoryUserProvider extends ChangeNotifier {
   String get profilePictureUrl => _profilePictureUrl;
   String get contactPerson => _contactPerson;
   String get licenseNumber => _licenseNumber;
+  String get userId => _userId;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   
@@ -63,6 +65,11 @@ class LaboratoryUserProvider extends ChangeNotifier {
     try {
       await SaveLoginResponse.loadLoginModel();
       _laboratoryName = SaveLoginResponse.loginData?['laboratory_name'] ?? '';
+      
+      // Load user ID from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      _userId = prefs.getString('laboratory_id') ?? '';
+      
       notifyListeners();
       fetchProfile();
     } catch (e) {
@@ -478,6 +485,41 @@ class LaboratoryUserProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return false;
+    }
+  }
+
+  /// Handle WebSocket updates by directly updating the new requests list
+  /// This avoids unnecessary API calls and provides instant UI updates
+  void handleWebSocketUpdate(Map<String, dynamic> wsData) {
+    try {
+      final type = wsData['type'] as String?;
+      final data = wsData['data'] as List<dynamic>?;
+      
+      if (data == null || data.isEmpty) return;
+      
+      final newRequest = data[0] as Map<String, dynamic>;
+      final statusId = newRequest['status_id'];
+      
+      if (type == 'initial_item') {
+        // Initial items are already loaded, skip
+        return;
+      } else if (type == 'update_request') {
+        // Find and update existing request, or add if new
+        final index = _newRequests.indexWhere(
+          (p) => p is Map && p['status_id'] == statusId
+        );
+        
+        if (index != -1) {
+          _newRequests[index] = newRequest;
+        } else {
+          // New request, add to the beginning of the list
+          _newRequests.insert(0, newRequest);
+        }
+        
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error handling WebSocket update: $e');
     }
   }
 }
