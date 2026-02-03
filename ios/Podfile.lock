@@ -125,6 +125,10 @@ PODS:
     - Flutter
   - SwiftyGif (5.4.5)
   - TOCropViewController (2.8.0)
+  - twilio_voice (0.0.1):
+    - Flutter
+    - TwilioVoice (~> 6.13.1)
+  - TwilioVoice (6.13.5)
 
 DEPENDENCIES:
   - camera_avfoundation (from `.symlinks/plugins/camera_avfoundation/ios`)
@@ -143,6 +147,7 @@ DEPENDENCIES:
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - smart_auth (from `.symlinks/plugins/smart_auth/ios`)
+  - twilio_voice (from `.symlinks/plugins/twilio_voice/ios`)
 
 SPEC REPOS:
   trunk:
@@ -164,6 +169,7 @@ SPEC REPOS:
     - SDWebImage
     - SwiftyGif
     - TOCropViewController
+    - TwilioVoice
 
 EXTERNAL SOURCES:
   camera_avfoundation:
@@ -198,6 +204,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
   smart_auth:
     :path: ".symlinks/plugins/smart_auth/ios"
+  twilio_voice:
+    :path: ".symlinks/plugins/twilio_voice/ios"
 
 SPEC CHECKSUMS:
   camera_avfoundation: 281867ff09f1da66f031a184ecfbc6f2e625c9f5
@@ -234,6 +242,8 @@ SPEC CHECKSUMS:
   smart_auth: 4bedbc118723912d0e45a07e8ab34039c19e04f2
   SwiftyGif: 706c60cf65fa2bc5ee0313beece843c8eb8194d4
   TOCropViewController: 797deaf39c90e6e9ddd848d88817f6b9a8a09888
+  twilio_voice: 2dddbea775f5be1abd0b3ac3740f85e9da31ff86
+  TwilioVoice: 237d012c91fc149943589628703dfd6c7cb2eb31
 
 PODFILE CHECKSUM: 807ebca8e2f043369ebffe5808852eee7fd4e4ad
 

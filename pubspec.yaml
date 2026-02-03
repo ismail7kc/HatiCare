@@ -57,6 +57,7 @@ dependencies:
   google_mlkit_text_recognition: ^0.15.0  # For text detection and blur checking
   image: ^4.7.1  # For image quality analysis
   web_socket_channel: ^3.0.0
+  twilio_voice: ^0.3.2+2
 
 
 dev_dependencies:

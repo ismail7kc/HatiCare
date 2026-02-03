@@ -7,8 +7,10 @@ import 'package:haticare/features/doctor/presentation/screens/audio_call.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/issue_rx.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/appointment_detailVM.dart';
+import 'package:haticare/features/doctor/presentation/viewModel/audio_callVM.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:haticare/features/doctor/models/appointment_model.dart';
+import 'package:provider/provider.dart';
 
 class AppointmentDetailScreen extends StatefulWidget {
   final AppointmentModel appointment;
@@ -83,7 +85,7 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                           ),
                         )
                       : Icon(
-                           Icons.check,
+                          Icons.check,
                           color: isNotesFilled ? Colors.green : Colors.grey,
                         ),
                   onPressed: isNotesFilled && !_isCompleting
@@ -223,7 +225,7 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -383,9 +385,12 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
 
                                 PersistentNavBarNavigator.pushNewScreen(
                                   context,
-                                  screen: AudioCallScreen(
-                                    appointments: widget.appointment,
-                                    visitId: visitId,
+                                  screen: ChangeNotifierProvider(
+                                    create: (_) => AudioCallVM(),
+                                    child: AudioCallScreen(
+                                      appointments: widget.appointment,
+                                      visitId: visitId,
+                                    ),
                                   ),
                                   withNavBar: false,
                                   pageTransitionAnimation:

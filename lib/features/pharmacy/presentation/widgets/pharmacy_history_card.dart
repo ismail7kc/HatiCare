@@ -15,7 +15,8 @@ class PharmacyHistoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final prescriptionId = prescription['prescription_id']?.toString() ?? '';
-    final patientName = prescription['patient_name']?.toString() ?? 'Unknown Patient';
+    final patientName =
+        prescription['patient_name']?.toString() ?? 'Unknown Patient';
     final medications = prescription['medications'] as List<dynamic>? ?? [];
     final pharmacyStatus = prescription['pharmacy_status']?.toString() ?? '';
     final doctor = prescription['doctor']?.toString() ?? '';
@@ -166,10 +167,7 @@ class PharmacyHistoryCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       doctor.startsWith('Dr.') ? doctor : 'Dr. $doctor',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
                     ),
                   ],
                 ),
