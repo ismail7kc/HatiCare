@@ -13,7 +13,7 @@ class AudioCallVM extends ChangeNotifier {
   String duration = "00:00";
 
   Timer? _timer;
-  int _seconds = 0;
+  int seconds = 0;
 
   Future<void> startCall({
     required int visitId,
@@ -78,21 +78,21 @@ class AudioCallVM extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _startTimer() {
-    _seconds = 0;
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _seconds++;
-      final minutes = (_seconds ~/ 60).toString().padLeft(2, '0');
-      final seconds = (_seconds % 60).toString().padLeft(2, '0');
-      duration = "$minutes:$seconds";
-      notifyListeners();
-    });
-  }
+  // void _startTimer() {
+  //   _seconds = 0;
+  //   _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+  //     _seconds++;
+  //     final minutes = (_seconds ~/ 60).toString().padLeft(2, '0');
+  //     final seconds = (_seconds % 60).toString().padLeft(2, '0');
+  //     duration = "$minutes:$seconds";
+  //     notifyListeners();
+  //   });
+  // }
 
   void _stopTimer() {
     _timer?.cancel();
     _timer = null;
-    _seconds = 0;
+    seconds = 0;
     duration = "00:00";
   }
 
