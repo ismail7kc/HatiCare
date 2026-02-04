@@ -64,11 +64,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: SvgPicture.asset(
-            'assets/icons/arrow_back_icon.svg',
-            width: 24,
-            height: 24,
-          ),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -85,7 +81,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             TextButton(
               onPressed: _markAllAsRead,
               child: ShaderMask(
-                shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+                shaderCallback: (bounds) =>
+                    AppColors.primaryGradient.createShader(bounds),
                 child: const Text(
                   'Mark all read',
                   style: TextStyle(
@@ -139,10 +136,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           const SizedBox(height: 8),
           Text(
             'You\'re all caught up!',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
           ),
         ],
       ),
@@ -165,7 +159,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: notification.isRead ? Colors.white : AppColors.primaryLight.withOpacity(0.05),
+            color: notification.isRead
+                ? Colors.white
+                : AppColors.primaryLight.withOpacity(0.05),
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -176,7 +172,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    gradient: notification.isRead 
+                    gradient: notification.isRead
                         ? LinearGradient(
                             colors: [Colors.grey[300]!, Colors.grey[400]!],
                           )
@@ -202,7 +198,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               notification.title,
                               style: TextStyle(
                                 fontSize: 15,
-                                fontWeight: notification.isRead ? FontWeight.w500 : FontWeight.w600,
+                                fontWeight: notification.isRead
+                                    ? FontWeight.w500
+                                    : FontWeight.w600,
                                 color: Colors.black,
                               ),
                             ),
@@ -230,10 +228,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       const SizedBox(height: 8),
                       Text(
                         _formatTime(notification.time),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                       ),
                     ],
                   ),
@@ -289,12 +284,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 }
 
-enum NotificationType {
-  newRequest,
-  completed,
-  alert,
-  system,
-}
+enum NotificationType { newRequest, completed, alert, system }
 
 class NotificationItem {
   final String id;

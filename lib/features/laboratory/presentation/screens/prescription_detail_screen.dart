@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'laboratory_report_upload_screen.dart';
 
@@ -15,7 +14,6 @@ class PrescriptionDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     
-    // Extract data from prescription map
     final prescriptionId = prescription['prescription_id']?.toString() ?? '';
     final patientName = prescription['patient_name']?.toString() ?? 'Unknown';
     final patientPhone = prescription['patient_phone']?.toString() ?? '';
@@ -28,12 +26,8 @@ class PrescriptionDetailScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: SvgPicture.asset(
-            'assets/icons/arrow_back_icon.svg',
-            width: 24,
-            height: 24,
-          ),
+         leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -50,7 +44,6 @@ class PrescriptionDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Prescription ID Section
             _InfoSection(
               label: 'Prescription ID',
               value: prescriptionId,
@@ -58,7 +51,6 @@ class PrescriptionDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             
-            // Patient Information
             _InfoRow(label: 'Patient:', value: patientName),
             if (patientPhone.isNotEmpty)
               _InfoRow(label: 'Phone:', value: patientPhone),

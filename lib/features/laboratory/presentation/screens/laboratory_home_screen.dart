@@ -40,7 +40,10 @@ class _LaboratoryHomeScreenState extends State<LaboratoryHomeScreen> {
         ],
         tabs: const [
           TabItemData(title: "Home", iconPath: 'assets/icons/home.svg'),
-          TabItemData(title: "Assigned", iconPath: 'assets/icons/inventory.svg',),
+          TabItemData(
+            title: "Assigned",
+            iconPath: 'assets/icons/inventory.svg',
+          ),
           TabItemData(title: "History", iconPath: 'assets/icons/history.svg'),
           TabItemData(title: "Settings", iconPath: 'assets/icons/setting.svg'),
         ],
@@ -77,7 +80,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
       provider.fetchPrescriptions();
       provider.fetchAssignedPrescriptions();
       provider.fetchHistory();
-      
+
       webSocketConnectionApi();
     });
   }
@@ -90,8 +93,9 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     final provider = context.read<LaboratoryUserProvider>();
     final userId = provider.userId.isNotEmpty ? provider.userId : 'userid';
     // Fixed: Use 'queue' endpoint like Postman, not 'list'
-    final socketUrl = 'wss://api.haticare.com/ws/laboratory/queue/?user_id=$userId';
-    
+    final socketUrl =
+        'wss://api.haticare.com/ws/laboratory/queue/?user_id=$userId';
+
     debugPrint("WebSocket URL: $socketUrl");
     debugPrint("Laboratory User ID: $userId");
 
@@ -99,7 +103,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
       _channel = WebSocketChannel.connect(Uri.parse(socketUrl));
 
       _channel!.stream.listen(
-            (message) async {
+        (message) async {
           if (_isDisposed) return;
 
           debugPrint("WS RAW: $message");
@@ -112,7 +116,9 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
             if (isSuccess && data['data'] != null) {
               // Directly update the provider's list for instant UI update
               // No need to fetch from API - we already have the data!
-              context.read<LaboratoryUserProvider>().handleWebSocketUpdate(data);
+              context.read<LaboratoryUserProvider>().handleWebSocketUpdate(
+                data,
+              );
             }
 
             if (_isDisposed) return;
@@ -165,7 +171,6 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
       provider.fetchHistory(),
     ]);
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -268,107 +273,99 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
               const SizedBox(height: 20),
 
               // Counter Cards
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 80,
-                        margin: const EdgeInsets.only(right: 8),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF54DCDF), Color(0xFF4CA054)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 16.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '$availableCount',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 80,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF54DCDF),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 16.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '$availableCount',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
-                              const Text(
-                                'Assigned Tests',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.white,
-                                ),
+                            ),
+                            const Text(
+                              'Assigned Tests',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.white,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    Expanded(
-                      child: Container(
-                        height: 80,
-                        margin: const EdgeInsets.only(left: 8),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF07498A), Color(0xFF0A2463)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 16.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '$deliveredCount',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      height: 80,
+                      margin: const EdgeInsets.only(left: 8),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF07498A),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 16.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '$deliveredCount',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
-                              const Text(
-                                'Completed Tests',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.white,
-                                ),
+                            ),
+                            const Text(
+                              'Completed Tests',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.white,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'New Requests',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(height: 24),
-                const Text(
-                  'New Requests',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: _onRefresh,
+                  color: AppColors.primary,
+                  child: _buildAssignedBody(
+                    isLoading: isLoading,
+                    prescriptions: prescriptions,
+                    errorMessage: errorMessage,
                   ),
                 ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: _onRefresh,
-                    color: AppColors.primary,
-                    child: _buildAssignedBody(
-                      isLoading: isLoading,
-                      prescriptions: prescriptions,
-                      errorMessage: errorMessage,
-                    ),
-                  ),
-                ),
+              ),
             ],
           ),
         ),
@@ -406,7 +403,10 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                 ),
                 child: const Text('Retry'),
               ),
@@ -428,7 +428,11 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
+                    Icon(
+                      Icons.inbox_outlined,
+                      size: 64,
+                      color: Colors.grey[400],
+                    ),
                     const SizedBox(height: 12),
                     const Text(
                       'No new request',
@@ -451,7 +455,9 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
         final raw = prescriptions[index];
         final mapped = _mapAssignedToListItem(raw);
         return Padding(
-          padding: EdgeInsets.only(bottom: index < prescriptions.length - 1 ? 12 : 0),
+          padding: EdgeInsets.only(
+            bottom: index < prescriptions.length - 1 ? 12 : 0,
+          ),
           child: PrescriptionListItem(
             data: mapped,
             itemType: ItemType.labTest,
@@ -485,7 +491,6 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
       'lab_tests': const [],
     };
   }
-
 
   Future<void> _openPrescriptionDetails(
     Map<String, dynamic> prescription,
@@ -721,95 +726,104 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                   ),
                 ),
 
-                // Accept Prescription Button
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Consumer<LaboratoryUserProvider>(
-                    builder: (context, provider, child) {
-                      final isEnabled = statusId.isNotEmpty;
-                      
-                      return SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: isEnabled 
-                                ? AppColors.primaryGradient 
-                                : null,
-                            color: isEnabled ? null : Colors.grey,
-                            borderRadius: BorderRadius.circular(25),
-                            boxShadow: isEnabled
-                                ? [
-                                    BoxShadow(
-                                      color: AppColors.primaryDark.withOpacity(0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: isEnabled
-                                  ? () async {
-                                      await provider.acceptPrescription(statusId);
+              // Accept Prescription Button
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Consumer<LaboratoryUserProvider>(
+                  builder: (context, provider, child) {
+                    final isEnabled = statusId.isNotEmpty;
 
-                                      if (provider.errorMessage == null) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Prescription accepted successfully!',
-                                            ),
-                                            backgroundColor: Colors.green,
+                    return SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: isEnabled
+                              ? AppColors.primaryGradient
+                              : null,
+                          color: isEnabled ? null : Colors.grey,
+                          borderRadius: BorderRadius.circular(25),
+                          boxShadow: isEnabled
+                              ? [
+                                  BoxShadow(
+                                    color: AppColors.primaryDark.withOpacity(
+                                      0.3,
+                                    ),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: isEnabled
+                                ? () async {
+                                    await provider.acceptPrescription(statusId);
+
+                                    if (provider.errorMessage == null) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Prescription accepted successfully!',
                                           ),
-                                        );
-                                        Navigator.pop(context); // Go back to list
-                                      } else {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text(provider.errorMessage!),
-                                            backgroundColor: Colors.red,
-                                          ),
-                                        );
-                                      }
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                      Navigator.pop(context); // Go back to list
+                                    } else {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(provider.errorMessage!),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
                                     }
-                                  : null,
-                              borderRadius: BorderRadius.circular(25),
-                              child: Container(
-                                alignment: Alignment.center,
-                                child: provider.isVerifying
-                                    ? const SizedBox(
-                                        width: 22,
-                                        height: 22,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                        ),
-                                      )
-                                    : const Text(
-                                        'Accept Prescription',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                        ),
+                                  }
+                                : null,
+                            borderRadius: BorderRadius.circular(25),
+                            child: Container(
+                              alignment: Alignment.center,
+                              child: provider.isVerifying
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
                                       ),
-                              ),
+                                    )
+                                  : const Text(
+                                      'Accept Prescription',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                             ),
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
+              ),
 
-                const SizedBox(height: 24), // Bottom spacing
-              ],
-            ),
+              const SizedBox(height: 24), // Bottom spacing
+            ],
           ),
         ),
+      ),
     );
   }
 

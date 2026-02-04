@@ -1,20 +1,20 @@
-// import 'package:twilio_voice/twilio_voice.dart';
+import 'package:flutter/services.dart';
 
 class TwilioCallService {
+  static const MethodChannel _channel =
+      MethodChannel("twilio_call");
+
   static Future<void> startCall({
     required String token,
     required String patientNumber,
   }) async {
-    // await TwilioVoice.instance.connect(
-    //   accessToken: token,
-    //   params: {
-    //     "To": patientNumber,
-    //   },
-    // );
+    await _channel.invokeMethod("startCall", {
+      "token": token,
+      "to": patientNumber,
+    });
   }
 
   static Future<void> endCall() async {
-    // await TwilioVoice.instance.disconnect();
+    await _channel.invokeMethod("endCall");
   }
 }
-

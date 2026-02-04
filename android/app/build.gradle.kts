@@ -40,6 +40,7 @@ android {
 dependencies {
     // OkHttp3 for image_cropper
     implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("com.twilio:voice-android:6.4.2")
 }
 
 flutter {
