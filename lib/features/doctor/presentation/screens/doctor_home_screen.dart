@@ -5,6 +5,7 @@ import 'package:haticare/features/common/screens/notifications_screen.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/common/repository_layer.dart';
 import 'package:haticare/features/doctor/presentation/screens/appointment_detail.dart';
+import 'package:haticare/features/doctor/presentation/screens/blinking_circle.dart';
 import 'package:haticare/features/doctor/presentation/screens/consultation_history.dart';
 import 'package:haticare/features/doctor/presentation/screens/setting_screen.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/doctor_viewModel.dart';
@@ -844,51 +845,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
         ),
       ],
-    );
-  }
-}
-
-class BlinkingCircle extends StatefulWidget {
-  final Color color;
-
-  const BlinkingCircle({super.key, required this.color});
-
-  @override
-  State<BlinkingCircle> createState() => _BlinkingCircleState();
-}
-
-class _BlinkingCircleState extends State<BlinkingCircle>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 1),
-    )..repeat(reverse: true);
-
-    _animation = Tween<double>(begin: 1.0, end: 0.2).animate(_controller);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _animation,
-      child: Container(
-        height: 20,
-        width: 20,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: widget.color),
-      ),
     );
   }
 }

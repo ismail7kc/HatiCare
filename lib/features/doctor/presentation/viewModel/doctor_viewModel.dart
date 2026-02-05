@@ -1,12 +1,13 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:haticare/core/services/device_id_provider.dart';
-import 'package:haticare/features/common/shared_prefs_helper.dart';
+import 'package:haticare/features/common/global_alert.dart';
 import 'package:haticare/features/common/repository_layer.dart';
+import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/models/appointment_model.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DoctorViewModel extends ChangeNotifier {
   final RepositoryLayer repository;
@@ -41,15 +42,20 @@ class DoctorViewModel extends ChangeNotifier {
   }
 
   Future<bool> isDoctorOnline({required bool isOnline}) async {
-    final body = {'is_online': isOnline};
+    try {
+      final body = {'is_online': isOnline};
+      final response = await repository.updateDoctorInfo(body);
 
-    final response = await repository.updateDoctorInfo(body);
-
-    if (response['success'] == true) {
-      return true;
+      if (response['success'] == true) {
+        return true;
+      } else {
+        GlobalAlert.show(response['message'] ?? "Failed to update status");
+        return false;
+      }
+    } catch (error) {
+      GlobalAlert.show("Something went wrong: $error");
+      return false;
     }
-
-    return false;
   }
 
   Future<void> loadOnlineStatus() async {
@@ -79,13 +85,14 @@ class DoctorViewModel extends ChangeNotifier {
         _appointments =
             data.map((json) => AppointmentModel.fromJson(json)).toList()
               ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
         debugPrint('Patient Response Data');
       } else {
         _errorMessage = response['message'] ?? 'Failed to fetch patient queue';
+        GlobalAlert.show(response['message']);
       }
     } catch (e) {
       _errorMessage = e.toString();
+      GlobalAlert.show(_errorMessage);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -100,10 +107,6 @@ class DoctorViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // final response = await repository.getSingleDoctor();
-      // final specializationName =
-      //     response['data']?['specialization'] ?? 'Unknown';
-
       final response = await repository.getSingleDoctor();
       String specializationName =
           response['data']?['specialization'] ?? "Unknown";
@@ -156,11 +159,9 @@ class DoctorViewModel extends ChangeNotifier {
 
                 case 'relisted_patient':
                   debugPrint("Adding relisted_patient immediately");
-
                   final patient = AppointmentModel.fromJson(item);
                   patient.resetTimer();
                   _appointments.add(patient);
-
                   notifyListeners();
                   _startQueueTimer();
                   break;
@@ -190,6 +191,7 @@ class DoctorViewModel extends ChangeNotifier {
       );
     } catch (e) {
       debugPrint("WS connect error: $e");
+      GlobalAlert.show("WebSocket connection failed: $e");
       _reconnect();
     }
   }
@@ -336,6 +338,7 @@ class DoctorViewModel extends ChangeNotifier {
       return true;
     } catch (error) {
       debugPrint('Logout Error: $error');
+      GlobalAlert.show('Logout failed: $error');
       return false;
     } finally {
       notifyListeners();

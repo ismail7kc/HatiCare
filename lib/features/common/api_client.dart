@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:haticare/features/common/api_error_message.dart';
 import 'package:http/http.dart' as http;
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,33 +15,51 @@ class ApiClient {
     required Map<String, dynamic> body,
     Map<String, String>? headers,
   }) async {
-    final uri = Uri.parse(url);
+    try {
+      final uri = Uri.parse(url);
 
-    final response = await _client.post(
-      uri,
-      headers:
-          headers ??
-          {'Content-Type': 'application/json', 'Accept': 'application/json'},
-      body: jsonEncode(body),
-    );
+      final response = await _safeRequest(() {
+        return _client.post(
+          uri,
+          headers:
+              headers ??
+              {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+              },
+          body: jsonEncode(body),
+        );
+      });
 
-    return _handleResponse(response);
+      return _handleResponse(response);
+    } on ApiException catch (e) {
+      return {"success": false, "message": e.message, "data": {}};
+    }
   }
 
   Future<Map<String, dynamic>> getRequest(
     String url, {
     Map<String, String>? headers,
   }) async {
-    final uri = Uri.parse(url);
+    try {
+      final uri = Uri.parse(url);
 
-    final response = await _client.get(
-      uri,
-      headers:
-          headers ??
-          {'Content-Type': 'application/json', 'Accept': 'application/json'},
-    );
+      final response = await _safeRequest(() {
+        return _client.get(
+          uri,
+          headers:
+              headers ??
+              {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+              },
+        );
+      });
 
-    return _handleResponse(response);
+      return _handleResponse(response);
+    } on ApiException catch (e) {
+      return {"success": false, "message": e.message, "data": {}};
+    }
   }
 
   Future<Map<String, dynamic>> uploadProfileImage(
@@ -63,14 +83,16 @@ class ApiClient {
         await http.MultipartFile.fromPath('profile_picture', imageFile.path),
       );
 
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      final streamedResponse = await _safeRequest(() async {
+        final stream = await request.send();
+        return http.Response.fromStream(stream);
+      });
 
       debugPrint('✅ PATCH URL: $uri');
-      debugPrint('✅ Status Code: ${response.statusCode}');
-      debugPrint('✅ Response Body: ${response.body}');
+      debugPrint('✅ Status Code: ${streamedResponse.statusCode}');
+      debugPrint('✅ Response Body: ${streamedResponse.body}');
 
-      return _handleResponse(response);
+      return _handleResponse(streamedResponse);
     } catch (e) {
       debugPrint('Upload Exception: $e');
       return {"success": false, "message": e.toString()};
@@ -80,17 +102,15 @@ class ApiClient {
   Future<Map<String, dynamic>> getSingleDoctor(String url) async {
     final uri = Uri.parse(url);
 
-    // Get access token from SharedPreferences as fallback
     final prefs = await SharedPreferences.getInstance();
     final accessToken =
         SaveLoginResponse.loginData?['access_token'] ??
         prefs.getString('access_token') ??
         '';
 
-    final response = await http.get(
-      uri,
-      headers: {'Authorization': 'Bearer $accessToken'},
-    );
+    final response = await _safeRequest(() {
+      return http.get(uri, headers: {'Authorization': 'Bearer $accessToken'});
+    });
 
     debugPrint('✅ PATCH URL: $uri');
     debugPrint('✅ Status Code: ${response.statusCode}');
@@ -107,7 +127,6 @@ class ApiClient {
       final uri = Uri.parse(url);
       final request = http.MultipartRequest('PATCH', uri);
 
-      // Get access token from SharedPreferences as fallback
       final prefs = await SharedPreferences.getInstance();
       final accessToken =
           SaveLoginResponse.loginData?['access_token'] ??
@@ -136,9 +155,10 @@ class ApiClient {
           request.fields[key] = value.toString();
         }
       }
-
-      final streamed = await request.send();
-      final response = await http.Response.fromStream(streamed);
+      final response = await _safeRequest(() async {
+        final streamed = await request.send();
+        return http.Response.fromStream(streamed);
+      });
 
       debugPrint('PATCH $url');
       debugPrint('Status Code: ${response.statusCode}');
@@ -155,20 +175,21 @@ class ApiClient {
     try {
       final uri = Uri.parse(url);
 
-      // Get access token from SharedPreferences as fallback
       final prefs = await SharedPreferences.getInstance();
       final accessToken =
           SaveLoginResponse.loginData?['access_token'] ??
           prefs.getString('access_token') ??
           '';
 
-      final response = await _client.get(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Accept': 'application/json',
-        },
-      );
+      final response = await _safeRequest(() {
+        return _client.get(
+          uri,
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Accept': 'application/json',
+          },
+        );
+      });
 
       debugPrint('GET PatientQueue URL: $uri');
       debugPrint('Status Code: ${response.statusCode}');
@@ -185,17 +206,18 @@ class ApiClient {
     try {
       final uri = Uri.parse(url);
 
-      // Get access token from SharedPreferences as fallback
       final prefs = await SharedPreferences.getInstance();
       final accessToken =
           SaveLoginResponse.loginData?['access_token'] ??
           prefs.getString('access_token') ??
           '';
 
-      final response = await _client.post(
-        uri,
-        headers: {'Authorization': 'Bearer $accessToken'},
-      );
+      final response = await _safeRequest(() {
+        return _client.post(
+          uri,
+          headers: {'Authorization': 'Bearer $accessToken'},
+        );
+      });
 
       debugPrint('Patient Accecpt Response URL: $uri');
       debugPrint('Status Code: ${response.statusCode}');
@@ -215,22 +237,22 @@ class ApiClient {
     try {
       final uri = Uri.parse(url);
 
-      // Get access token from SharedPreferences as fallback
       final prefs = await SharedPreferences.getInstance();
       final accessToken =
           SaveLoginResponse.loginData?['access_token'] ??
           prefs.getString('access_token') ??
           '';
 
-      final response = await _client.post(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-        body: body != null ? jsonEncode(body) : null,
-      );
-
+      final response = await _safeRequest(() {
+        return _client.post(
+          uri,
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+          },
+          body: body != null ? jsonEncode(body) : null,
+        );
+      });
       debugPrint('Create Presecription Response URL: $uri');
       debugPrint('Status Code: ${response.statusCode}');
       debugPrint('Response Body: ${response.body}');
@@ -245,7 +267,9 @@ class ApiClient {
   Future<Map<String, dynamic>> getLabTestFromServer(String url) async {
     try {
       final uri = Uri.parse(url);
-      final response = await _client.get(uri);
+      final response = await _safeRequest(() {
+        return _client.get(uri);
+      });
 
       debugPrint('Server Success Response is $response');
 
@@ -266,13 +290,15 @@ class ApiClient {
           pref.getString('access_token') ??
           '';
 
-      final response = await _client.get(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-      );
+      final response = await _safeRequest(() {
+        return _client.get(
+          uri,
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+          },
+        );
+      });
 
       debugPrint('Fetch Visit Patient Api : $uri');
       debugPrint('Status Code: ${response.statusCode}');
@@ -298,14 +324,16 @@ class ApiClient {
           prefs.getString('access_token') ??
           '';
 
-      final response = await _client.patch(
-        parsedUri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-        body: body != null ? jsonEncode(body) : null,
-      );
+      final response = await _safeRequest(() {
+        return _client.patch(
+          parsedUri,
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+          },
+          body: body != null ? jsonEncode(body) : null,
+        );
+      });
 
       debugPrint('POST URL: $parsedUri');
       debugPrint('Status Code: ${response.statusCode}');
@@ -319,6 +347,23 @@ class ApiClient {
         'message': 'Something went wrong: $error',
         'data': {},
       };
+    }
+  }
+
+  Future<http.Response> _safeRequest(
+    Future<http.Response> Function() request,
+  ) async {
+    try {
+      return await request().timeout(const Duration(minutes: 1));
+    } on SocketException {
+      // GlobalAlert.show(ApiErrorMessages.noInternet);
+      throw ApiException(ApiErrorMessages.noInternet);
+    } on TimeoutException {
+      // GlobalAlert.show(ApiErrorMessages.timeout);
+      throw ApiException(ApiErrorMessages.timeout);
+    } catch (_) {
+      // GlobalAlert.show(ApiErrorMessages.timeout);
+      throw ApiException(ApiErrorMessages.timeout);
     }
   }
 

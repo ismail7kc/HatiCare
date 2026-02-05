@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:haticare/features/common/global_alert.dart';
+import 'package:haticare/features/common/repository_layer.dart';
 import 'package:haticare/features/doctor/models/updated_doctor_model.dart';
 import 'package:intl/intl.dart';
-import 'package:haticare/features/common/repository_layer.dart';
 
 class EditViewmodel extends ChangeNotifier {
   final RepositoryLayer repositoryLayer;
@@ -20,12 +21,18 @@ class EditViewmodel extends ChangeNotifier {
       final response = await repositoryLayer.getSpecialization();
       debugPrint('Specialization Response: $response');
 
-      specializationList = List<Map<String, dynamic>>.from(response['data']);
-      specializationNames = specializationList
-          .map((item) => item['name'] as String)
-          .toList();
+      if (response['success'] == true && response['data'] != null) {
+        specializationList = List<Map<String, dynamic>>.from(response['data']);
+        specializationNames = specializationList
+            .map((item) => item['name'] as String)
+            .toList();
 
-      debugPrint('Loaded ${specializationNames.length} specializations: $specializationNames');
+        debugPrint(
+            'Loaded ${specializationNames.length} specializations: $specializationNames');
+      } else {
+        GlobalAlert.show(response['message'] ?? "Failed to fetch specializations");
+      }
+
       notifyListeners();
     } catch (error) {
       debugPrint('Error Fetching Specialization: $error');
@@ -55,7 +62,7 @@ class EditViewmodel extends ChangeNotifier {
       licenseNumber: licenseNumber,
       licenseType: licenseType ?? "",
       specialization: specialization ?? "",
-      yearsOfExperience: int.tryParse(yearsExperience!) ?? 0,
+      yearsOfExperience: int.tryParse(yearsExperience ?? '') ?? 0,
       licenseIssuingAuthority: licenseAuthority,
       gender: gender,
       dob: dob,
@@ -88,36 +95,40 @@ class EditViewmodel extends ChangeNotifier {
       body['gender'] = doctorInstance!.gender == "Male"
           ? "M"
           : doctorInstance!.gender == "Female"
-          ? "F"
-          : "O";
+              ? "F"
+              : "O";
     }
 
     if (doctorInstance?.dob != null) {
-      body['date_of_birth'] = DateFormat(
-        'yyyy-MM-dd',
-      ).format(doctorInstance!.dob!);
+      body['date_of_birth'] = DateFormat('yyyy-MM-dd').format(doctorInstance!.dob!);
     }
 
     final safeBody = sanitizeForJson(body);
 
     debugPrint('Doctor update body: $safeBody');
-    final response = await repositoryLayer.updateDoctorInfo(safeBody);
 
-    if (response['success'] == true && response['data'] != null) {
-      debugPrint('Creating Doctor from JSON: ${response['data']}');
-      try {
-        doctorInstance = Doctor.fromJson(response['data']);
-        debugPrint('Doctor instance created successfully');
-        // await SaveDoctorResponse.saveDoctorModel(response['data']);
-        notifyListeners();
-      } catch (e) {
-        debugPrint('Error creating Doctor from JSON: $e');
-        debugPrint('Response data: ${response['data']}');
-        rethrow;
+    try {
+      final response = await repositoryLayer.updateDoctorInfo(safeBody);
+
+      if (response['success'] == true && response['data'] != null) {
+        try {
+          doctorInstance = Doctor.fromJson(response['data']);
+          debugPrint('Doctor instance created successfully');
+          notifyListeners();
+        } catch (e) {
+          debugPrint('Error creating Doctor from JSON: $e');
+          GlobalAlert.show('Failed to parse doctor data');
+          rethrow;
+        }
+      } else {
+        GlobalAlert.show(response['message'] ?? "Failed to update doctor info");
       }
-    }
 
-    return response;
+      return response;
+    } catch (error) {
+      debugPrint('Update Doctor Info Error: $error');
+      return {'success': false, 'message': error.toString()};
+    }
   }
 
   Map<String, dynamic> sanitizeForJson(Map<String, dynamic> data) {
@@ -125,7 +136,7 @@ class EditViewmodel extends ChangeNotifier {
 
     data.forEach((key, value) {
       debugPrint('Processing field: $key = $value (${value.runtimeType})');
-      
+
       if (value == null) {
         debugPrint('Skipping null field: $key');
         return;
@@ -153,16 +164,36 @@ class EditViewmodel extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> sendProfileImageToServr(File image) async {
-    final response = await repositoryLayer.sendProfileImageToServer(image);
-    debugPrint('📥 ViewModel Response: $response');
-    return response;
+    try {
+      final response = await repositoryLayer.sendProfileImageToServer(image);
+      debugPrint('📥 ViewModel Response: $response');
+
+      if (response['success'] != true) {
+        GlobalAlert.show(response['message'] ?? "Failed to upload profile image");
+      }
+
+      return response;
+    } catch (error) {
+      debugPrint('Profile Image Upload Error: $error');
+      return {'success': false, 'message': error.toString()};
+    }
   }
 
   Future<Map<String, dynamic>> getSignleDocResponse() async {
-    final response = await repositoryLayer.getSingleDoctor();
-     debugPrint('📥 ViewModel Single Doctor Response: $response');
-     doctorInstance = Doctor.fromJson(response['data']);
-     
-    return response;
+    try {
+      final response = await repositoryLayer.getSingleDoctor();
+      debugPrint('📥 ViewModel Single Doctor Response: $response');
+
+      if (response['success'] == true && response['data'] != null) {
+        doctorInstance = Doctor.fromJson(response['data']);
+      } else {
+        GlobalAlert.show(response['message'] ?? "Failed to fetch doctor data");
+      }
+
+      return response;
+    } catch (error) {
+      debugPrint('Get Single Doctor Error: $error');
+      return {'success': false, 'message': error.toString()};
+    }
   }
 }

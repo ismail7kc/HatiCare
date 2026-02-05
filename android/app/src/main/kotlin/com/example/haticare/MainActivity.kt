@@ -2,6 +2,7 @@ package com.example.haticare
 
 import android.util.Log
 import com.twilio.voice.Call
+import com.twilio.voice.CallException
 import com.twilio.voice.ConnectOptions
 import com.twilio.voice.Voice
 
@@ -28,7 +29,7 @@ class MainActivity : FlutterActivity() {
                     val token = call.argument<String>("token")
                     val to = call.argument<String>("to")
 
-                    if (token == null || to == null) {
+                    if (token.isNullOrEmpty() || to.isNullOrEmpty()) {
                         result.error("INVALID", "Missing token or number", null)
                         return@setMethodCallHandler
                     }
@@ -57,19 +58,38 @@ class MainActivity : FlutterActivity() {
             .params(params)
             .build()
 
-        activeCall = Voice.connect(this, connectOptions, object : Call.Listener {
+        activeCall = Voice.connect(
+            this,
+            connectOptions,
+            object : Call.Listener {
 
-            override fun onConnected(call: Call) {
-                Log.d("TWILIO", "Call Connected")
-            }
+                override fun onConnected(call: Call) {
+                    Log.d("TWILIO", "Call Connected")
+                }
 
-            override fun onDisconnected(call: Call, error: Call.Exception?) {
-                Log.d("TWILIO", "Call Disconnected")
-            }
+                override fun onRinging(call: Call) {
+                    Log.d("TWILIO", "Call Ringing")
+                }
 
-            override fun onConnectFailure(call: Call, error: Call.Exception) {
-                Log.e("TWILIO", "Call Failed: ${error.message}")
+                override fun onReconnecting(call: Call, error: CallException) {
+                    Log.w("TWILIO", "Call Reconnecting: ${error.message}")
+                }
+
+                override fun onReconnected(call: Call) {
+                    Log.d("TWILIO", "Call Reconnected")
+                }
+
+                override fun onDisconnected(call: Call, error: CallException?) {
+                    Log.d(
+                        "TWILIO",
+                        "Call Disconnected: ${error?.message ?: "no error"}"
+                    )
+                }
+
+                override fun onConnectFailure(call: Call, error: CallException) {
+                    Log.e("TWILIO", "Call Failed: ${error.message}")
+                }
             }
-        })
+        )
     }
 }

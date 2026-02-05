@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+import 'package:haticare/features/common/global_alert.dart';
 import 'package:haticare/features/common/repository_layer.dart';
 import 'package:haticare/features/doctor/models/lab_test_model.dart';
 import 'package:haticare/features/doctor/models/prescription_model.dart';
@@ -30,7 +30,7 @@ class AppointmentDetailvm extends ChangeNotifier {
         visitId = response['data']['id'];
         debugPrint('visit Id is $visitId');
       } else {
-        _errorMessage = response['message'] ?? 'Failed to accept patient';
+        GlobalAlert.show(response['message']);
       }
     } catch (error) {
       debugPrint('Accept Patient error: $error');
@@ -52,6 +52,8 @@ class AppointmentDetailvm extends ChangeNotifier {
         labTests = (response['data'] as List)
             .map((e) => LabTest.fromJson(e))
             .toList();
+      } else {
+        GlobalAlert.show(response['message']);
       }
     } catch (error) {
       debugPrint('Laboratory Test Error: $error');
@@ -81,7 +83,7 @@ class AppointmentDetailvm extends ChangeNotifier {
       );
 
       if (response['success'] != true) {
-        _errorMessage = response['message'] ?? 'Unknown error';
+        GlobalAlert.show(response['message']);
       }
 
       return response;
@@ -95,15 +97,19 @@ class AppointmentDetailvm extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> doctorCompleteVisit(String notes) async {
-  try {
-    final response = await respositoryLayer.futureVisitCompleted(visitId, notes);
+    try {
+      final response = await respositoryLayer.futureVisitCompleted(
+        visitId,
+        notes,
+      );
 
-    return response;
-  } catch (error) {
-    return {
-      "success": false,
-      "message": "Something went wrong: $error"
-    };
+      if (response['success'] != true) {
+        GlobalAlert.show(response['message'] ?? 'Failed to complete visit');
+      }
+
+      return response;
+    } catch (error) {
+      return {"success": false, "message": "Something went wrong: $error"};
+    }
   }
-}
 }
