@@ -24,7 +24,7 @@ class SignupViewModel extends ChangeNotifier {
   final phoneNumberController = TextEditingController();
   String? _doctorPhoneNumber;
   PhoneNumber? _doctorPhoneMeta;
-  String _doctorCountryCode = '+1';
+  String doctorCountryCode = '+1';
   final genderController = TextEditingController();
   final dateOfBirthController = TextEditingController();
   final companyNameController = TextEditingController();
@@ -40,7 +40,7 @@ class SignupViewModel extends ChangeNotifier {
   final businessPhoneController = TextEditingController();
   String? _businessPhoneNumber;
   PhoneNumber? _businessPhoneMeta;
-  String _businessCountryCode = '+1';
+  String businessCountryCode = '+1';
   final addressLine1Controller = TextEditingController();
   final addressLine2Controller = TextEditingController();
   final cityController = TextEditingController();
@@ -55,7 +55,7 @@ class SignupViewModel extends ChangeNotifier {
   final laboratoryPhoneController = TextEditingController();
   String? _laboratoryPhoneNumber;
   PhoneNumber? _laboratoryPhoneMeta;
-  String _laboratoryCountryCode = '+1';
+  String laboratoryCountryCode = '+1';
   final laboratoryEmailController = TextEditingController();
   final laboratoryPasswordController = TextEditingController();
   final laboratoryConfirmPasswordController = TextEditingController();
@@ -295,25 +295,25 @@ class SignupViewModel extends ChangeNotifier {
   void updateDoctorPhone(PhoneNumber? phone) {
     _doctorPhoneMeta = phone;
     if (phone != null) {
-      _doctorCountryCode = phone.countryCode;
+      doctorCountryCode = phone.countryCode;
       _doctorPhoneNumber = _normalizePhoneNumber(phone);
     }
   }
 
   void updateDoctorCountryCode(String countryCode) {
-    _doctorCountryCode = _normalizeCountryCodeString(countryCode);
+    doctorCountryCode = _normalizeCountryCodeString(countryCode);
   }
 
   void updateBusinessPhone(PhoneNumber? phone) {
     _businessPhoneMeta = phone;
     if (phone != null) {
-      _businessCountryCode = phone.countryCode;
+      businessCountryCode = phone.countryCode;
       _businessPhoneNumber = _normalizePhoneNumber(phone);
     }
   }
 
   void updateBusinessCountryCode(String countryCode) {
-    _businessCountryCode = _normalizeCountryCodeString(countryCode);
+    businessCountryCode = _normalizeCountryCodeString(countryCode);
   }
 
   String? validateDoctorPhone(PhoneNumber? phone) {
@@ -506,13 +506,13 @@ class SignupViewModel extends ChangeNotifier {
   void updateLaboratoryPhone(PhoneNumber? phone) {
     _laboratoryPhoneMeta = phone;
     if (phone != null) {
-      _laboratoryCountryCode = phone.countryCode;
+      laboratoryCountryCode = phone.countryCode;
       _laboratoryPhoneNumber = _normalizePhoneNumber(phone);
     }
   }
 
   void updateLaboratoryCountryCode(String countryCode) {
-    _laboratoryCountryCode = _normalizeCountryCodeString(countryCode);
+    laboratoryCountryCode = _normalizeCountryCodeString(countryCode);
   }
 
   void setDoctorLicenseDocument({required String path, required String name}) {

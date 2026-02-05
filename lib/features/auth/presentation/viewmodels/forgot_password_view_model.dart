@@ -18,7 +18,6 @@ class ForgotPasswordViewModel extends ChangeNotifier {
   String? errorMessage;
   String? successMessage;
   bool _shouldNavigateToOtp = false;
-  final bool _showValidation = false;
 
   void _setupEmailListener() {
     emailController.addListener(_onEmailChanged);

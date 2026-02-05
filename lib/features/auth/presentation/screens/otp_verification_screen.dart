@@ -253,7 +253,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final viewInsets = MediaQuery.of(context).viewInsets;
 
     return Scaffold(
       backgroundColor: Colors.white,
