@@ -450,7 +450,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
       final requiredQty = _extractQuantity(instructions) ?? 1;
 
       medicationAvailability[i] = {
-        'isAvailable': true,
+        'isAvailable': isFullyAvailable,
         'requiredQty': requiredQty,
         'availableQty': requiredQty, // Default to full availability
       };
