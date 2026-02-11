@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:haticare/features/common/global_alert.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/models/appointment_model.dart';
 import 'package:haticare/features/doctor/presentation/screens/appointment_detail.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/audio_callVM.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:twilio_voice/twilio_voice.dart';
 
 import '../../../../core/theme/app_colors.dart';
+
+Future<bool> requestMicPermission() async {
+  final status = await Permission.microphone.request();
+  return status == PermissionStatus.granted;
+}
 
 class AudioCallScreen extends StatefulWidget {
   final AppointmentModel appointments;
@@ -24,14 +32,23 @@ class AudioCallScreen extends StatefulWidget {
 }
 
 class _AudioCallScreenState extends State<AudioCallScreen> {
+  bool speakerOn = false;
+
   @override
   void initState() {
     super.initState();
-    initializaCallStuff();
+    _startCallOnce();
   }
 
-  void initializaCallStuff() {
-    Future.microtask(() async {
+  void _startCallOnce() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final micGranted = await requestMicPermission();
+      if (!micGranted) {
+        if (!mounted) return;
+        GlobalAlert.show("Please turn on microphone permission");
+        return;
+      }
+
       final vm = context.read<AudioCallVM>();
 
       final prefs = await SharedPreferences.getInstance();
@@ -76,6 +93,8 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
           width: double.infinity,
           height: double.infinity,
           child: SafeArea(
+            // child: SingleChildScrollView(
+            //   physics: const NeverScrollableScrollPhysics(),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -105,9 +124,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                 const SizedBox(height: 4),
 
                 Text(
-                  vm.isConnected
-                      ? vm.duration
-                      : vm.callStatus,
+                  vm.isConnected ? vm.duration : vm.callStatus,
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
 
@@ -143,8 +160,12 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                     children: [
                       _BottomButton(
                         icon: Icons.volume_up_rounded,
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: vm.speakerOn
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.2),
+                        onTap: () => vm.toggleSpeaker(),
                       ),
+
                       _BottomButton(
                         icon: Icons.videocam_rounded,
                         color: Colors.white.withValues(alpha: 0.2),
@@ -192,6 +213,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
           ),
         ),
       ),
+      // ),
     );
   }
 }
@@ -224,15 +246,23 @@ class _ActionButton extends StatelessWidget {
 class _BottomButton extends StatelessWidget {
   final IconData icon;
   final Color color;
+  final VoidCallback? onTap;
 
-  const _BottomButton({required this.icon, required this.color});
+  const _BottomButton({required this.icon, required this.color, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: 26,
-      backgroundColor: color,
-      child: Icon(icon, color: Colors.white, size: 24),
+    return GestureDetector(
+      onTap: onTap,
+      child: CircleAvatar(
+        radius: 26,
+        backgroundColor: Colors.white.withOpacity(0.2),
+         child: Icon(
+          icon,
+          color: color,
+          size: 24,
+        ),
+      ),
     );
   }
 }

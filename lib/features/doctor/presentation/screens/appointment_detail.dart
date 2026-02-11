@@ -360,6 +360,23 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                             : () async {
                                 setState(() => _accepting = true);
 
+                                final micGranted = await requestMicPermission();
+
+                                if (!micGranted) {
+                                  setState(() => _accepting = false);
+
+                                  if (!mounted) return;
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Microphone permission is required to start call',
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+
                                 await appointmentDetailvm.acceptPatientResponse(
                                   widget.appointment.id,
                                 );

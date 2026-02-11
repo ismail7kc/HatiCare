@@ -18,3 +18,13 @@ class TwilioCallService {
     await _channel.invokeMethod("endCall");
   }
 }
+
+class AudioRouteService {
+  static const _channel = MethodChannel('audio_route');
+
+  static Future<void> setSpeaker(bool enabled) async {
+    await _channel.invokeMethod('setSpeaker', {
+      'enabled': enabled,
+    });
+  }
+}

@@ -357,7 +357,7 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 50),
               ],
             ),
           ),

@@ -6,6 +6,9 @@ import com.twilio.voice.CallException
 import com.twilio.voice.ConnectOptions
 import com.twilio.voice.Voice
 
+import android.media.AudioManager
+import android.content.Context
+
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -15,16 +18,18 @@ class MainActivity : FlutterActivity() {
     private val CHANNEL = "twilio_call"
     private var activeCall: Call? = null
 
+    private val AUDIO_CHANNEL = "audio_route"
+    private lateinit var audioManager: AudioManager
+
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        MethodChannel(
-            flutterEngine.dartExecutor.binaryMessenger,
-            CHANNEL
-        ).setMethodCallHandler { call, result ->
+        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+        .setMethodCallHandler { call, result ->
             when (call.method) {
-
                 "startCall" -> {
                     val token = call.argument<String>("token")
                     val to = call.argument<String>("to")
@@ -47,6 +52,25 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, AUDIO_CHANNEL)
+        .setMethodCallHandler { call, result ->
+            when (call.method) {
+                "setSpeaker" -> {
+                    val enabled = call.argument<Boolean>("enabled") ?: false
+                    setSpeakerphone(enabled)
+                    result.success(null)
+                }
+
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    private fun setSpeakerphone(enabled: Boolean) {
+        audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+        audioManager.isSpeakerphoneOn = enabled
+        Log.d("AUDIO_ROUTE", "Speaker ${if (enabled) "ON" else "OFF"}")
     }
 
     private fun startTwilioCall(token: String, to: String) {

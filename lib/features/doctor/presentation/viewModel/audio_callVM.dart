@@ -8,12 +8,19 @@ import 'twilio_call_service.dart';
 class AudioCallVM extends ChangeNotifier {
   bool isCalling = false;
   bool isConnected = false;
+  bool speakerOn = false;
 
   String callStatus = "Initializing...";
   String duration = "00:00";
 
   Timer? _timer;
   int seconds = 0;
+
+  Future<void> toggleSpeaker() async {
+    speakerOn = !speakerOn;
+    await AudioRouteService.setSpeaker(speakerOn);
+    notifyListeners();
+  }
 
   Future<void> startCall({
     required int visitId,
