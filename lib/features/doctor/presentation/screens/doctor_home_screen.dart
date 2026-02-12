@@ -141,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     });
 
     if (hasAdminApproval == true) {
-      // await doctorViewModel.fetchPatientQueue();
+      await doctorViewModel.fetchPatientQueue();
       await doctorViewModel.webSocketConnectionApi();
     }
   }

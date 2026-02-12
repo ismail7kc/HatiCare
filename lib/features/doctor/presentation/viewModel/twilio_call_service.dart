@@ -1,8 +1,7 @@
 import 'package:flutter/services.dart';
 
 class TwilioCallService {
-  static const MethodChannel _channel =
-      MethodChannel("twilio_call");
+  static const MethodChannel _channel = MethodChannel("twilio_call");
 
   static Future<void> startCall({
     required String token,
@@ -11,6 +10,12 @@ class TwilioCallService {
     await _channel.invokeMethod("startCall", {
       "token": token,
       "to": patientNumber,
+    });
+  }
+
+  static Future<void> setMuted(bool muted) async {
+    await _channel.invokeMethod("setMuted", {
+      "muted": muted,
     });
   }
 

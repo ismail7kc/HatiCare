@@ -49,6 +49,12 @@ class MainActivity : FlutterActivity() {
                     result.success("Call Ended")
                 }
 
+                "setMuted" -> {
+                    val muted = call.argument<Boolean>("muted") ?: false
+                    activeCall?.mute(muted)
+                    result.success(null)
+                }
+
                 else -> result.notImplemented()
             }
         }

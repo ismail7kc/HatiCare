@@ -9,6 +9,7 @@ class AudioCallVM extends ChangeNotifier {
   bool isCalling = false;
   bool isConnected = false;
   bool speakerOn = false;
+  bool micMuted = false;
 
   String callStatus = "Initializing...";
   String duration = "00:00";
@@ -19,6 +20,12 @@ class AudioCallVM extends ChangeNotifier {
   Future<void> toggleSpeaker() async {
     speakerOn = !speakerOn;
     await AudioRouteService.setSpeaker(speakerOn);
+    notifyListeners();
+  }
+
+  Future<void> toggleMute() async {
+    micMuted = !micMuted;
+    await TwilioCallService.setMuted(micMuted);
     notifyListeners();
   }
 
@@ -63,8 +70,11 @@ class AudioCallVM extends ChangeNotifier {
         patientNumber: patientNumber,
       );
 
-      callStatus = "Calling Patient...";
+      callStatus = "Connected";
       isConnected = true;
+
+      _startTimer();
+
       notifyListeners();
     } catch (e) {
       callStatus = "Call Failed: $e";
@@ -85,16 +95,20 @@ class AudioCallVM extends ChangeNotifier {
     notifyListeners();
   }
 
-  // void _startTimer() {
-  //   _seconds = 0;
-  //   _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-  //     _seconds++;
-  //     final minutes = (_seconds ~/ 60).toString().padLeft(2, '0');
-  //     final seconds = (_seconds % 60).toString().padLeft(2, '0');
-  //     duration = "$minutes:$seconds";
-  //     notifyListeners();
-  //   });
-  // }
+  void _startTimer() {
+    if (_timer != null) return;
+
+    seconds = 0;
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      seconds++;
+
+      final minutes = (seconds ~/ 60).toString().padLeft(2, '0');
+      final secs = (seconds % 60).toString().padLeft(2, '0');
+
+      duration = "$minutes:$secs";
+      notifyListeners();
+    });
+  }
 
   void _stopTimer() {
     _timer?.cancel();

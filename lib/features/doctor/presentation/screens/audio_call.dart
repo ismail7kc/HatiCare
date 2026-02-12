@@ -85,27 +85,26 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
             'Audio Call',
             style: TextStyle(color: Colors.white, fontSize: 16),
           ),
-          centerTitle: false,
         ),
         body: Container(
           decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
           width: double.infinity,
           height: double.infinity,
           child: SafeArea(
-            // child: SingleChildScrollView(
-            //   physics: const NeverScrollableScrollPhysics(),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Spacer(flex: 2),
 
-                const CircleAvatar(
-                  radius: 60,
-                  backgroundColor: Color(0xFF1F3B7F),
-                  child: Icon(
-                    Icons.person_outline,
-                    size: 80,
-                    color: Colors.white,
+                Transform.translate(
+                  offset: const Offset(0, -16),
+                  child: const CircleAvatar(
+                    radius: 60,
+                    backgroundColor: Color(0xFF1F3B7F),
+                    child: Icon(
+                      Icons.person_outline,
+                      size: 80,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
 
@@ -120,17 +119,18 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
 
                 Text(
                   vm.isConnected ? vm.duration : vm.callStatus,
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
 
-                const Spacer(flex: 2),
+                /// ───────── ACTION BUTTONS ─────────
+                const Spacer(),
 
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: const [
@@ -150,10 +150,11 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                   ),
                 ),
 
+                /// ───────── CALL CONTROLS ─────────
                 const Spacer(),
 
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 48),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -161,23 +162,25 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                         icon: Icons.volume_up_rounded,
                         color: vm.speakerOn
                             ? Colors.white
-                            : Colors.white.withValues(alpha: 0.2),
-                        onTap: () => vm.toggleSpeaker(),
+                            : Colors.white.withOpacity(0.4),
+                        onTap: vm.toggleSpeaker,
                       ),
 
                       _BottomButton(
-                        icon: Icons.videocam_rounded,
-                        color: Colors.white.withValues(alpha: 0.2),
-                      ),
-                      _BottomButton(
-                        icon: Icons.mic_none_rounded,
-                        color: Colors.white.withValues(alpha: 0.2),
+                        icon: vm.micMuted
+                            ? Icons.mic_off_rounded
+                            : Icons.mic_none_rounded,
+                        color: vm.micMuted
+                            ? Colors.white
+                            : Colors.white.withOpacity(0.4),
+                        onTap: vm.toggleMute,
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                /// ───────── END CALL ─────────
+                const Spacer(),
 
                 GestureDetector(
                   onTap: () async {
@@ -192,27 +195,19 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                       ),
                     );
                   },
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Color(0xFFE53935),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: const Icon(
-                      Icons.call_end,
-                      color: Colors.white,
-                      size: 28,
-                    ),
+                  child: const CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Color(0xFFE53935),
+                    child: Icon(Icons.call_end, color: Colors.white, size: 28),
                   ),
                 ),
 
-                const Spacer(),
+                const Spacer(flex: 2),
               ],
             ),
           ),
         ),
       ),
-      // ),
     );
   }
 }
@@ -256,11 +251,7 @@ class _BottomButton extends StatelessWidget {
       child: CircleAvatar(
         radius: 26,
         backgroundColor: Colors.white.withOpacity(0.2),
-         child: Icon(
-          icon,
-          color: color,
-          size: 24,
-        ),
+        child: Icon(icon, color: color, size: 24),
       ),
     );
   }
