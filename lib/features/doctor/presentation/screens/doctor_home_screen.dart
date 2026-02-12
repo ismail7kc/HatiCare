@@ -141,13 +141,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     });
 
     if (hasAdminApproval == true) {
-      await doctorViewModel.fetchPatientQueue();
+      // await doctorViewModel.fetchPatientQueue();
       await doctorViewModel.webSocketConnectionApi();
     }
   }
 
   Future<void> _loadApprovalStatus() async {
-    // Load from SharedPreferences first
     final prefs = await SharedPreferences.getInstance();
     final cachedApproval = prefs.getBool('doctor_is_approved');
 

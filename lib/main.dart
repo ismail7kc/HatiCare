@@ -2,6 +2,7 @@ import 'package:chucker_flutter/chucker_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:haticare/features/auth/data/services/remote_auth_api_service.dart';
+import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
 import 'package:haticare/features/auth/presentation/screens/splash_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:haticare/core/theme/app_colors.dart';
@@ -42,11 +43,14 @@ class MyApp extends StatelessWidget {
               AuthRepositoryImpl(context.read<RemoteAuthApiService>()),
         ),
         ChangeNotifierProvider(create: (_) => PharmacyUserProvider()),
-
       ],
       child: MaterialApp(
         navigatorKey: navigatorKey,
         title: 'HatiCare',
+        routes: {
+          '/': (context) => SplashScreen(),
+          '/login': (context) => LoginScreen(),
+        },
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primaryDark)
@@ -60,7 +64,6 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
         ),
         navigatorObservers: [ChuckerFlutter.navigatorObserver],
-        home: const SplashScreen(),
       ),
     );
   }

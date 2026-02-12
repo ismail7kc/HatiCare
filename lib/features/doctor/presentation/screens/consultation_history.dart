@@ -52,6 +52,20 @@ class _ConsultationHistoryScreenState extends State<ConsultationHistoryScreen> {
                       return const Center(child: CircularProgressIndicator());
                     }
 
+                    if (vm.errorMessage != null) {
+                      return Center(
+                        child: Text(
+                          vm.errorMessage!,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.red,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    }
+
                     if (vm.history.isEmpty) {
                       return const Center(child: Text("No history found"));
                     }
@@ -63,7 +77,6 @@ class _ConsultationHistoryScreenState extends State<ConsultationHistoryScreen> {
                         itemCount: vm.history.length,
                         physics: const AlwaysScrollableScrollPhysics(),
 
-                        // padding: const EdgeInsets.only(bottom: 5),
                         itemBuilder: (context, index) {
                           final history = vm.history[index];
 

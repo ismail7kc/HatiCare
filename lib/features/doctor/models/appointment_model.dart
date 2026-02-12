@@ -77,9 +77,7 @@ class AppointmentModel {
   // Timer Fields
   int remainingSeconds;
   double progress;
-
-  // Timer Start Time (used for reset)
-  DateTime? timerStartTime;
+  DateTime lastServerSync;
 
   AppointmentModel({
     required this.id,
@@ -91,39 +89,23 @@ class AppointmentModel {
     required this.status,
     required this.createdAt,
     required this.triageData,
-
-    this.remainingSeconds = 30,
-    this.progress = 1.0,
-    DateTime? timerStartTime,
-  }) : timerStartTime = timerStartTime ?? DateTime.now();
+    required this.remainingSeconds,
+    required this.lastServerSync,
+  }) : progress = remainingSeconds / 30;
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
     return AppointmentModel(
       id: json['id'] ?? 0,
-
       patient: Patient.fromJson(json['patient'] ?? {}),
-
       patientName: json['patient_name'] ?? '',
       rawComplaint: json['raw_complaint'] ?? '',
-
       severity: json['severity'] ?? '',
       severityColor: json['severity_color'] ?? '',
-
       status: json['status'] ?? '',
-
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
-
       triageData: TriageData.fromJson(json['triage_data'] ?? {}),
-
-      remainingSeconds: 30,
-      progress: 1.0,
-      timerStartTime: DateTime.now(),
+      remainingSeconds: json['remaining_seconds'] ?? 0,
+      lastServerSync: DateTime.now(),
     );
-  }
-
-  void resetTimer() {
-    timerStartTime = DateTime.now();
-    remainingSeconds = 30;
-    progress = 1.0;
   }
 }

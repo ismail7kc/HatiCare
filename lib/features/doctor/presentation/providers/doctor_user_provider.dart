@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:haticare/features/common/session_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:chucker_flutter/chucker_flutter.dart';
@@ -79,6 +80,20 @@ class DoctorUserProvider extends ChangeNotifier {
             },
           )
           .timeout(const Duration(seconds: 30));
+
+      try {
+        final decoded = jsonDecode(response.body);
+        if (response.statusCode == 403 &&
+            (decoded['user_is_active'] == false ||
+                decoded['error'] == 'ACCOUNT_DEACTIVATED')) {
+          await SessionManager.forceLogout(
+            decoded['message'] ?? "Your account has been deactivated",
+          );
+          return;
+        }
+      } catch (_) {
+        // If response is not JSON, ignore force logout
+      }
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = jsonDecode(response.body);

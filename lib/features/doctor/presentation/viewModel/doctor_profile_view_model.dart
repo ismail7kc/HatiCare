@@ -75,8 +75,8 @@ class DoctorProfileViewModel extends ChangeNotifier {
   bool get shouldNavigateToHome => _shouldNavigateToHome;
 
   // Track specialization change
-  bool specializationChanged = false;
-  String? _oldSpecialization;
+  // bool specializationChanged = false;
+  // String? _oldSpecialization;
 
   DoctorProfileViewModel({
     required this.doctorId,
@@ -226,23 +226,18 @@ class DoctorProfileViewModel extends ChangeNotifier {
       notifyListeners();
 
       final response = await editViewModel.getSignleDocResponse();
-      debugPrint("SINGLE DOCTOR RES: $response");
 
       if (response['success'] == true && editViewModel.doctorInstance != null) {
         _populateFromDoctor(editViewModel.doctorInstance!);
         debugPrint("✅ Form fields populated successfully");
       } else {
         errorMessage = 'Failed to load doctor profile';
-        debugPrint("❌ Failed to load doctor profile");
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       errorMessage = 'Error loading profile: ${e.toString()}';
-      debugPrint("❌ Exception in fetchDoctorProfile: $e");
-      debugPrint("Stack trace: $stackTrace");
     } finally {
       isLoading = false;
       notifyListeners();
-      debugPrint('===== fetchDoctorProfile END =====');
     }
   }
 
@@ -276,8 +271,8 @@ class DoctorProfileViewModel extends ChangeNotifier {
       selectedDate = doc.dob;
       selectedSpecialization = doc.specialization;
       // ✅ Store old specialization when profile loads
-      _oldSpecialization = doc.specialization;
-      specializationChanged = false;
+      // _oldSpecialization = doc.specialization;
+      // specializationChanged = false;
 
       selectedLicenseType = doc.licenseType;
 
@@ -492,19 +487,19 @@ class DoctorProfileViewModel extends ChangeNotifier {
         await prefs.setString('user_first_name', firstName);
         await prefs.setString('user_last_name', lastName);
 
-        final newSpecialization = response['data']['specialization'];
-        if (newSpecialization != _oldSpecialization) {
-          await prefs.setString("doctor_specialization", newSpecialization);
+        // final newSpecialization = response['data']['specialization'];
+        // if (newSpecialization != _oldSpecialization) {
+        //   await prefs.setString("doctor_specialization", newSpecialization);
 
-          specializationChanged = true;
+        //   specializationChanged = true;
 
-          debugPrint("Specialization changed → queue refresh needed");
-        } else {
-          specializationChanged = false;
-          debugPrint("Specialization not changed → no refresh needed");
-        }
+        //   debugPrint("Specialization changed → queue refresh needed");
+        // } else {
+        //   specializationChanged = false;
+        //   debugPrint("Specialization not changed → no refresh needed");
+        // }
 
-        _oldSpecialization = newSpecialization;
+        // _oldSpecialization = newSpecialization;
 
         successMessage = 'Doctor profile updated successfully';
         _shouldNavigateToHome = true;
@@ -535,33 +530,14 @@ class DoctorProfileViewModel extends ChangeNotifier {
   ) async {
     final prefs = await SharedPreferences.getInstance();
     final dynamic rawDocId = SaveLoginResponse.loginData?['id'];
-    final String docID =
-        rawDocId?.toString() ?? prefs.getString('doctor_id') ?? '';
-    final accessToken =
-        SaveLoginResponse.loginData?['access_token'] ??
-        prefs.getString('access_token') ??
-        '';
-    final url = '${AppConfig.baseUrl}doc/doctors/$docID/';
-    debugPrint('updated Doctor URL Is $url');
-    debugPrint('Doctor ID: $docID');
-    debugPrint('Access Token exists: ${accessToken.isNotEmpty}');
-
-    if (docID.isEmpty) {
-      debugPrint('ERROR: Doctor ID is empty');
-      return {'success': false, 'message': 'Doctor ID not found'};
-    }
-
-    if (accessToken.isEmpty) {
-      debugPrint('ERROR: Access token is empty');
-      return {'success': false, 'message': 'Access token not found'};
-    }
-
-    debugPrint('Calling updateDocRequest with URL: $url');
-    debugPrint('Request body: $body');
+    final String docID = rawDocId?.toString() ?? prefs.getString('doctor_id') ?? '';
+    
     try {
+      final url = '${AppConfig.baseUrl}doc/doctors/$docID/';
+
       final response = await apiClient.updateDocRequest(url, body: body);
       debugPrint('Repository response: $response');
-      // notifyListeners();
+      notifyListeners();
       return response;
     } catch (e) {
       debugPrint('Error in repository layer: $e');

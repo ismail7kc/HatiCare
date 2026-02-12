@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:haticare/features/common/api_error_message.dart';
+import 'package:haticare/features/common/session_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -88,10 +89,6 @@ class ApiClient {
         return http.Response.fromStream(stream);
       });
 
-      debugPrint('✅ PATCH URL: $uri');
-      debugPrint('✅ Status Code: ${streamedResponse.statusCode}');
-      debugPrint('✅ Response Body: ${streamedResponse.body}');
-
       return _handleResponse(streamedResponse);
     } catch (e) {
       debugPrint('Upload Exception: $e');
@@ -111,10 +108,6 @@ class ApiClient {
     final response = await _safeRequest(() {
       return http.get(uri, headers: {'Authorization': 'Bearer $accessToken'});
     });
-
-    debugPrint('✅ PATCH URL: $uri');
-    debugPrint('✅ Status Code: ${response.statusCode}');
-    debugPrint('✅ Response Body: ${response.body}');
 
     return _handleResponse(response);
   }
@@ -160,10 +153,6 @@ class ApiClient {
         return http.Response.fromStream(streamed);
       });
 
-      debugPrint('PATCH $url');
-      debugPrint('Status Code: ${response.statusCode}');
-      debugPrint('Response Body: ${response.body}');
-
       return _handleResponse(response);
     } catch (e) {
       debugPrint("ERROR in updateDocRequest: $e");
@@ -191,10 +180,6 @@ class ApiClient {
         );
       });
 
-      debugPrint('GET PatientQueue URL: $uri');
-      debugPrint('Status Code: ${response.statusCode}');
-      debugPrint('Response Body: ${response.body}');
-
       return _handleResponse(response);
     } catch (e) {
       debugPrint('getPatientQueue Exception: $e');
@@ -218,10 +203,6 @@ class ApiClient {
           headers: {'Authorization': 'Bearer $accessToken'},
         );
       });
-
-      debugPrint('Patient Accecpt Response URL: $uri');
-      debugPrint('Status Code: ${response.statusCode}');
-      debugPrint('Response Body: ${response.body}');
 
       return _handleResponse(response);
     } catch (error) {
@@ -253,9 +234,6 @@ class ApiClient {
           body: body != null ? jsonEncode(body) : null,
         );
       });
-      debugPrint('Create Presecription Response URL: $uri');
-      debugPrint('Status Code: ${response.statusCode}');
-      debugPrint('Response Body: ${response.body}');
 
       return _handleResponse(response);
     } catch (error) {
@@ -300,10 +278,6 @@ class ApiClient {
         );
       });
 
-      debugPrint('Fetch Visit Patient Api : $uri');
-      debugPrint('Status Code: ${response.statusCode}');
-      debugPrint('Response Body: ${response.body}');
-
       return _handlePatientVisitHistoryResponse(response);
     } catch (error) {
       debugPrint('Patient Prescription: $error');
@@ -335,10 +309,6 @@ class ApiClient {
         );
       });
 
-      debugPrint('POST URL: $parsedUri');
-      debugPrint('Status Code: ${response.statusCode}');
-      debugPrint('Response Body: ${response.body}');
-
       return _handleResponse(response);
     } catch (error) {
       debugPrint('doctorVisitComplete Error: $error');
@@ -354,15 +324,30 @@ class ApiClient {
     Future<http.Response> Function() request,
   ) async {
     try {
-      return await request().timeout(const Duration(minutes: 1));
+      final response = await request().timeout(const Duration(minutes: 1));
+
+      try {
+        final decoded = jsonDecode(response.body);
+        final bool isAccountDeactivated =
+            response.statusCode == 403 &&
+            (decoded['user_is_active'] == false ||
+                decoded['error'] == 'ACCOUNT_DEACTIVATED');
+
+        if (isAccountDeactivated) {
+          SessionManager.forceLogout(
+            decoded['message'] ?? "Your account has been deactivated",
+          );
+        }
+      } catch (_) {
+        // Ignore JSON decode errors here
+      }
+
+      return response;
     } on SocketException {
-      // GlobalAlert.show(ApiErrorMessages.noInternet);
       throw ApiException(ApiErrorMessages.noInternet);
     } on TimeoutException {
-      // GlobalAlert.show(ApiErrorMessages.timeout);
       throw ApiException(ApiErrorMessages.timeout);
     } catch (_) {
-      // GlobalAlert.show(ApiErrorMessages.timeout);
       throw ApiException(ApiErrorMessages.timeout);
     }
   }

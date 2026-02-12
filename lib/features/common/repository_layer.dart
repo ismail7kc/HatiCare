@@ -41,30 +41,10 @@ class RepositoryLayer {
   ) async {
     final prefs = await SharedPreferences.getInstance();
     final dynamic rawDocId = SaveLoginResponse.loginData?['id'];
-    final String docID =
-        rawDocId?.toString() ?? prefs.getString('doctor_id') ?? '';
-    final accessToken =
-        SaveLoginResponse.loginData?['access_token'] ??
-        prefs.getString('access_token') ??
-        '';
-    final url = '${AppConfig.baseUrl}doc/doctors/$docID/';
-    debugPrint('updated Doctor URL Is $url');
-    debugPrint('Doctor ID: $docID');
-    debugPrint('Access Token exists: ${accessToken.isNotEmpty}');
-
-    if (docID.isEmpty) {
-      debugPrint('ERROR: Doctor ID is empty');
-      return {'success': false, 'message': 'Doctor ID not found'};
-    }
-
-    if (accessToken.isEmpty) {
-      debugPrint('ERROR: Access token is empty');
-      return {'success': false, 'message': 'Access token not found'};
-    }
-
-    debugPrint('Calling updateDocRequest with URL: $url');
-    debugPrint('Request body: $body');
+    final String docID = rawDocId?.toString() ?? prefs.getString('doctor_id') ?? '';
     try {
+      final url = '${AppConfig.baseUrl}doc/doctors/$docID/';
+      
       final response = await _apiClient.updateDocRequest(url, body: body);
       debugPrint('Repository response: $response');
       return response;

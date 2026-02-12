@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/features/common/session_manager.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/doctor/presentation/screens/doctor_home_screen.dart';
 import 'package:haticare/features/doctor/presentation/screens/edit_profile_screen.dart';
 import 'package:haticare/features/doctor/presentation/providers/doctor_user_provider.dart';
 import 'package:haticare/features/doctor/presentation/viewModel/doctor_viewModel.dart';
+import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
 import 'package:image_picker/image_picker.dart';
@@ -102,6 +104,20 @@ class SettingsContentState extends State<SettingsContent> {
       final client = ChuckerHttpClient(http.Client());
       final response = await client.send(request);
       final responseBody = await response.stream.bytesToString();
+
+      try {
+        final decoded = jsonDecode(responseBody);
+        if (response.statusCode == 403 &&
+            (decoded['user_is_active'] == false ||
+                decoded['error'] == 'ACCOUNT_DEACTIVATED')) {
+          await SessionManager.forceLogout(
+            decoded['message'] ?? "Your account has been deactivated",
+          );
+          return;
+        }
+      } catch (_) {
+        // If response is not JSON, ignore force logout
+      }
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = jsonDecode(responseBody);
@@ -464,13 +480,14 @@ class SettingsContentState extends State<SettingsContent> {
                       svgIcon: 'assets/icons/edit_profile_icon.svg',
                       title: 'Edit Profile',
                       onTap: () async {
-                        await Navigator.push(
+                        PersistentNavBarNavigator.pushNewScreen(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => const EditProfileScreen(),
-                          ),
+                          screen: const EditProfileScreen(),
+                          withNavBar: false,
+                          pageTransitionAnimation:
+                              PageTransitionAnimation.cupertino,
                         );
-                        // Refresh provider data after returning
+
                         if (context.mounted) {
                           context.read<DoctorUserProvider>().fetchProfile(
                             forceRefresh: true,
@@ -484,12 +501,12 @@ class SettingsContentState extends State<SettingsContent> {
                       svgIcon: 'assets/icons/notification_icon.svg',
                       title: 'Notifications',
                       onTap: () {
-                        Navigator.push(
+                        PersistentNavBarNavigator.pushNewScreen(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const NotificationsScreen(),
-                          ),
+                          screen: const NotificationsScreen(),
+                          withNavBar: false,
+                          pageTransitionAnimation:
+                              PageTransitionAnimation.cupertino,
                         );
                       },
                     ),
@@ -499,13 +516,14 @@ class SettingsContentState extends State<SettingsContent> {
                       svgIcon: 'assets/icons/privacy_policy_icon.svg',
                       title: 'Privacy Policy',
                       onTap: () {
-                        Navigator.push(
+                        PersistentNavBarNavigator.pushNewScreen(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const PrivacyPolicyScreen(),
-                          ),
+                          screen: const PrivacyPolicyScreen(),
+                          withNavBar: false,
+                          pageTransitionAnimation:
+                              PageTransitionAnimation.cupertino,
                         );
+                        
                       },
                     ),
                   ],
@@ -532,12 +550,12 @@ class SettingsContentState extends State<SettingsContent> {
                       svgIcon: 'assets/icons/help_center_icon.svg',
                       title: 'Help Center',
                       onTap: () {
-                        Navigator.push(
+                        PersistentNavBarNavigator.pushNewScreen(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const HelpCenterScreen(),
-                          ),
+                          screen: const HelpCenterScreen(),
+                          withNavBar: false,
+                          pageTransitionAnimation:
+                              PageTransitionAnimation.cupertino,
                         );
                       },
                     ),
@@ -547,12 +565,12 @@ class SettingsContentState extends State<SettingsContent> {
                       svgIcon: 'assets/icons/contact_support_icon.svg',
                       title: 'Contact Support',
                       onTap: () {
-                        Navigator.push(
+                        PersistentNavBarNavigator.pushNewScreen(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const ContactSupportScreen(),
-                          ),
+                          screen: const ContactSupportScreen(),
+                          withNavBar: false,
+                          pageTransitionAnimation:
+                              PageTransitionAnimation.cupertino,
                         );
                       },
                     ),

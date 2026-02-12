@@ -190,10 +190,10 @@ class _EditProfileView extends StatelessWidget {
                                     : () async {
                                         await viewModel.submitProfile();
 
-                                        if (viewModel.shouldNavigateToHome && viewModel.specializationChanged) {
-                                          final doctorVM = Provider.of<DoctorViewModel>(context, listen: false);
-                                          await doctorVM.refreshQueueAfterSpecializationChange();
-                                        }
+                                        // if (viewModel.shouldNavigateToHome && viewModel.specializationChanged) {
+                                        //   final doctorVM = Provider.of<DoctorViewModel>(context, listen: false);
+                                        //   await doctorVM.refreshQueueAfterSpecializationChange();
+                                        // }
                                         
                                         if (viewModel.shouldNavigateToHome) {
                                           Navigator.pop(context);
