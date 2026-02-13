@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 class Patient {
   final int id;
   final String fullName;
@@ -65,19 +67,15 @@ class AppointmentModel {
   final Patient patient;
   final String patientName;
   final String rawComplaint;
-
   final String severity;
   final String severityColor;
-
   final String status;
   final DateTime createdAt;
-
   final TriageData triageData;
 
-  // Timer Fields
+  int serverRemainingSeconds;
   int remainingSeconds;
   double progress;
-  DateTime lastServerSync;
 
   AppointmentModel({
     required this.id,
@@ -89,11 +87,13 @@ class AppointmentModel {
     required this.status,
     required this.createdAt,
     required this.triageData,
-    required this.remainingSeconds,
-    required this.lastServerSync,
-  }) : progress = remainingSeconds / 30;
+    required this.serverRemainingSeconds,
+  }) : remainingSeconds = serverRemainingSeconds,
+       progress = serverRemainingSeconds / 30;
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
+    final int remainingFromServer = json['remaining_seconds'] ?? 30;
+
     return AppointmentModel(
       id: json['id'] ?? 0,
       patient: Patient.fromJson(json['patient'] ?? {}),
@@ -104,8 +104,22 @@ class AppointmentModel {
       status: json['status'] ?? '',
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
       triageData: TriageData.fromJson(json['triage_data'] ?? {}),
-      remainingSeconds: json['remaining_seconds'] ?? 0,
-      lastServerSync: DateTime.now(),
+      serverRemainingSeconds: remainingFromServer + 2,
     );
+  }
+
+  void resetFromServer(int newRemaining) {
+    serverRemainingSeconds = newRemaining;
+    remainingSeconds = serverRemainingSeconds;
+    progress = remainingSeconds / 30;
+  }
+
+  void tick() {
+    if (remainingSeconds > 0) {
+      remainingSeconds -= 1;
+    } else {
+      remainingSeconds = serverRemainingSeconds;
+    }
+    progress = remainingSeconds / 30;
   }
 }

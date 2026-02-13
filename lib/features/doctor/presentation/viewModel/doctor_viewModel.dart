@@ -32,13 +32,14 @@ class DoctorViewModel extends ChangeNotifier {
   // socket propetties
   WebSocketChannel? _channel;
   bool _isConnecting = false;
-  final bool _isDisposed = false;
+  bool _isDisposed = false;
 
   Timer? _queueTimer;
 
   init() {
     fetchPatientQueue();
     webSocketConnectionApi();
+    _startQueueTimer();
   }
 
   Future<bool> isDoctorOnline({required bool isOnline}) async {
@@ -99,6 +100,14 @@ class DoctorViewModel extends ChangeNotifier {
     }
   }
 
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _queueTimer?.cancel();
+    disconnectWebSocket();
+    super.dispose();
+  }
+
   Future<void> webSocketConnectionApi() async {
     if (_isConnecting || _isDisposed) return;
     _isConnecting = true;
@@ -108,20 +117,8 @@ class DoctorViewModel extends ChangeNotifier {
 
     try {
       final doctorId = SaveLoginResponse.loginData?['id'] ?? '';
-      // final prefs = await SharedPreferences.getInstance();
-      // final localSpec = prefs.getString("doctor_specialization");
-
-      // if (localSpec != null && localSpec.isNotEmpty) {
-      //   specializationName = localSpec;
-      //   debugPrint("Using updated specialization from local storage");
-      // } else {
-      //   debugPrint("Using specialization from API");
-      // }
-
       final socketUrl =
           'wss://api.haticare.com/ws/doctor/queue/?user_id=$doctorId';
-
-      debugPrint("WebSocket URL: $socketUrl");
 
       _channel = WebSocketChannel.connect(Uri.parse(socketUrl));
 
@@ -129,53 +126,49 @@ class DoctorViewModel extends ChangeNotifier {
         (message) {
           if (_isDisposed) return;
 
-          debugPrint("WS RAW: $message");
-
           try {
             final decoded = jsonDecode(message);
-
             if (decoded['success'] != true || decoded['data'] == null) return;
 
             final List<dynamic> patients = decoded['data'];
-            final type = decoded['type'] ?? '';
 
-            _isQueueLoading = false;
+            final type = decoded['type'] ?? '';
 
             for (final item in patients) {
               final int visitId = item['id'];
-              _appointments.removeWhere((e) => e.id == visitId);
+              final serverRemaining = item['remaining_seconds'] ?? 30;
+
+              final index = _appointments.indexWhere((e) => e.id == visitId);
 
               switch (type) {
                 case 'initial_queue':
-                  debugPrint("Adding initial_queue patient");
-                  final patient = AppointmentModel.fromJson(item);
-                  _appointments.insert(0, patient);
-                  notifyListeners();
-                  break;
+                case 'new_patient':
+                  {
+                    if (index == -1) {
+                      debugPrint('Inside If Condition');
+                      _appointments.add(AppointmentModel.fromJson(item));
+                    }
+                    break;
+                  }
 
                 case 'relisted_patient':
-                  final patient = AppointmentModel.fromJson(item);
-                  _appointments.removeWhere((e) => e.id == patient.id);
-                  _appointments.add(patient);
-
-                  notifyListeners();
-                  break;
-
-                case 'new_patient':
-                  debugPrint("Adding new_patient");
-                  final patient = AppointmentModel.fromJson(item);
-                  _appointments.removeWhere((e) => e.id == patient.id);
-                  _appointments.add(patient);
-                  notifyListeners();
-                  break;
+                  {
+                    if (index == -1) {
+                      _appointments.add(AppointmentModel.fromJson(item));
+                    } else {
+                      debugPrint('Relisted Patient');
+                      _appointments[index].resetFromServer(serverRemaining);
+                      _startQueueTimer();
+                    }
+                    break;
+                  }
 
                 default:
                   debugPrint("Unknown queue type: $type");
               }
             }
-            _startQueueTimer();
-            _updateTimersInstantly();
 
+            _isQueueLoading = false;
             notifyListeners();
           } catch (e) {
             debugPrint("WS parse error: $e");
@@ -196,76 +189,29 @@ class DoctorViewModel extends ChangeNotifier {
       await _channel!.sink.close();
       _channel = null;
       _isConnecting = false;
-
       debugPrint("WebSocket Disconnected");
     }
   }
 
-  // Future<void> refreshQueueAfterSpecializationChange() async {
-  //   debugPrint("Refreshing queue after specialization update...");
-  //   await disconnectWebSocket();
-  //   _appointments.clear();
-  //   notifyListeners();
-  //   await fetchPatientQueue();
-
-  //   await webSocketConnectionApi();
-
-  //   final prefs = await SharedPreferences.getInstance();
-  //   await prefs.remove("doctor_specialization");
-
-  //   debugPrint("Local specialization override cleared");
-  // }
-
-  void _updateTimersInstantly() {
-    final now = DateTime.now();
-
-    for (final appt in _appointments) {
-      final elapsed = now.difference(appt.lastServerSync).inSeconds;
-
-      final newRemaining = (appt.remainingSeconds - elapsed).clamp(
-        0,
-        appt.remainingSeconds,
-      );
-
-      appt.remainingSeconds = newRemaining;
-      appt.progress = newRemaining / 30;
-    }
-
-    notifyListeners();
-  }
-
-  /// start count down from remainig time
   void _startQueueTimer() {
-    _queueTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
+    if (_queueTimer != null && _queueTimer!.isActive) return;
+
+    _queueTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       bool shouldNotify = false;
-      final now = DateTime.now();
 
       for (final appt in _appointments) {
-        if (appt.remainingSeconds <= 0) continue;
-
-        final elapsed = now.difference(appt.lastServerSync).inSeconds;
-
-        final newRemaining = (appt.remainingSeconds - elapsed).clamp(
-          0,
-          appt.remainingSeconds,
-        );
-
-        if (newRemaining != appt.remainingSeconds) {
-          appt.remainingSeconds = newRemaining;
-          appt.progress = newRemaining / 30;
-          shouldNotify = true;
-        }
+        appt.tick();
+        shouldNotify = true;
       }
 
       if (shouldNotify) notifyListeners();
     });
   }
-  
+
   void _reconnect() {
     if (_isDisposed) return;
 
     _isConnecting = false;
-
     Future.delayed(const Duration(seconds: 3), () {
       if (!_isDisposed) webSocketConnectionApi();
     });
