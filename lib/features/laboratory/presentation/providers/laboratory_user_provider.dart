@@ -15,18 +15,19 @@ class LaboratoryUserProvider extends ChangeNotifier {
   String _userId = '';
   bool _isLoading = true;
   String? _errorMessage;
-  
+
   // Separate lists for different screens
   List<dynamic> _newRequests = []; // For Laboratory Home Screen (list endpoint)
-  List<dynamic> _assignedRequests = []; // For Laboratory Inventory Screen (assigned endpoint)
+  List<dynamic> _assignedRequests =
+      []; // For Laboratory Inventory Screen (assigned endpoint)
   final List<dynamic> _testRequests = []; // Backward compatibility
   List<dynamic> _completedTestRequests = []; // For History Screen
-  
+
   // Separate loading states
   bool _newRequestsLoading = false;
   bool _assignedRequestsLoading = false;
   final bool _testRequestsLoading = false;
-  
+
   bool _isVerifying = false; // Backward compatibility
   final String _verifiedRxCode = ''; // Backward compatibility
   bool _isApproved = false;
@@ -39,19 +40,21 @@ class LaboratoryUserProvider extends ChangeNotifier {
   String get userId => _userId;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  
+
   // New getters for separate lists
   List<dynamic> get newRequests => _newRequests;
   List<dynamic> get assignedRequests => _assignedRequests;
   bool get newRequestsLoading => _newRequestsLoading;
   bool get assignedRequestsLoading => _assignedRequestsLoading;
-  
+
   // Backward compatibility getters
   List<dynamic> get testRequests => _testRequests;
-  List<dynamic> get prescriptions => _newRequests; // Point to new requests for home screen
+  List<dynamic> get prescriptions =>
+      _newRequests; // Point to new requests for home screen
   List<dynamic> get completedTestRequests => _completedTestRequests;
   bool get testRequestsLoading => _testRequestsLoading;
-  bool get prescriptionsLoading => _newRequestsLoading; // Point to new requests loading
+  bool get prescriptionsLoading =>
+      _newRequestsLoading; // Point to new requests loading
   bool get isVerifying => _isVerifying;
   String get verifiedRxCode => _verifiedRxCode;
   bool get isApproved => _isApproved;
@@ -65,11 +68,11 @@ class LaboratoryUserProvider extends ChangeNotifier {
     try {
       await SaveLoginResponse.loadLoginModel();
       _laboratoryName = SaveLoginResponse.loginData?['laboratory_name'] ?? '';
-      
+
       // Load user ID from SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       _userId = prefs.getString('laboratory_id') ?? '';
-      
+
       notifyListeners();
       fetchProfile();
     } catch (e) {
@@ -94,7 +97,9 @@ class LaboratoryUserProvider extends ChangeNotifier {
         return;
       }
 
-      final uri = Uri.parse('${AppConfig.baseUrl}lab/laboratories/$laboratoryId/');
+      final uri = Uri.parse(
+        '${AppConfig.baseUrl}lab/laboratories/$laboratoryId/',
+      );
       final cacheBuster = forceRefresh
           ? '?t=${DateTime.now().millisecondsSinceEpoch}'
           : '';
@@ -150,14 +155,18 @@ class LaboratoryUserProvider extends ChangeNotifier {
           }
 
           if (_profilePictureUrl.isNotEmpty) {
-            SaveLoginResponse.loginData?['profile_picture'] = _profilePictureUrl;
+            SaveLoginResponse.loginData?['profile_picture'] =
+                _profilePictureUrl;
           }
 
           SaveLoginResponse.loginData?['is_approved'] = _isApproved;
 
           // Save approval status to preferences for offline checking
           await prefs.setBool('laboratory_is_approved', _isApproved);
-          await prefs.setString('laboratory_approval_message', _approvalMessage);
+          await prefs.setString(
+            'laboratory_approval_message',
+            _approvalMessage,
+          );
         }
       } else {
         _errorMessage = 'Failed to load profile: ${response.statusCode}';
@@ -185,20 +194,24 @@ class LaboratoryUserProvider extends ChangeNotifier {
         return;
       }
 
-      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/list/');
+      final uri = Uri.parse(
+        '${AppConfig.baseUrl}prescriptions/laboratory/list/',
+      );
       final client = ChuckerHttpClient(http.Client());
-      final response = await client.get(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 30));
+      final response = await client
+          .get(
+            uri,
+            headers: {
+              'Authorization': 'Bearer $accessToken',
+              'Content-Type': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = jsonDecode(response.body);
-        
-        if (jsonResponse['results'] != null && 
+
+        if (jsonResponse['results'] != null &&
             jsonResponse['results']['data'] != null) {
           _newRequests = jsonResponse['results']['data'] as List<dynamic>;
         } else if (jsonResponse['data'] != null) {
@@ -212,7 +225,7 @@ class LaboratoryUserProvider extends ChangeNotifier {
         } else {
           _newRequests = [];
         }
-        
+
         _errorMessage = null;
       } else {
         _newRequests = [];
@@ -252,38 +265,38 @@ class LaboratoryUserProvider extends ChangeNotifier {
         return;
       }
 
-      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/assigned/');
+      final uri = Uri.parse(
+        '${AppConfig.baseUrl}prescriptions/laboratory/assigned/',
+      );
       final client = ChuckerHttpClient(http.Client());
-      final response = await client.get(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 30));
+      final response = await client
+          .get(
+            uri,
+            headers: {
+              'Authorization': 'Bearer $accessToken',
+              'Content-Type': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = jsonDecode(response.body);
-        
-        if (jsonResponse['results'] != null && 
-            jsonResponse['results']['data'] != null) {
-          _assignedRequests = jsonResponse['results']['data'] as List<dynamic>;
-        } else if (jsonResponse['data'] != null) {
-          _assignedRequests = jsonResponse['data'] as List<dynamic>;
-        } else if (jsonResponse['results'] != null) {
-          _assignedRequests = jsonResponse['results'] as List<dynamic>;
-        } else if (jsonResponse['items'] != null) {
-          _assignedRequests = jsonResponse['items'] as List<dynamic>;
-        } else if (jsonResponse['test_requests'] != null) {
-          _assignedRequests = jsonResponse['test_requests'] as List<dynamic>;
+        final results = jsonResponse['results'];
+        final data = results is Map<String, dynamic> ? results['data'] : null;
+
+        if (data is List) {
+          _assignedRequests = data;
         } else {
           _assignedRequests = [];
         }
-        
+
+        debugPrint('This is Lab Test Result $assignedRequests');
+
         _errorMessage = null;
       } else {
         _assignedRequests = [];
-        _errorMessage = 'Failed to load assigned prescriptions: ${response.statusCode}';
+        _errorMessage =
+            'Failed to load assigned prescriptions: ${response.statusCode}';
       }
     } catch (e) {
       _assignedRequests = [];
@@ -310,23 +323,28 @@ class LaboratoryUserProvider extends ChangeNotifier {
         return;
       }
 
-      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/history/');
+      final uri = Uri.parse(
+        '${AppConfig.baseUrl}prescriptions/laboratory/history/',
+      );
       final client = ChuckerHttpClient(http.Client());
-      final response = await client.get(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 30));
+      final response = await client
+          .get(
+            uri,
+            headers: {
+              'Authorization': 'Bearer $accessToken',
+              'Content-Type': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = jsonDecode(response.body);
-        
+
         // Parse the response and extract the history data
-        if (jsonResponse['results'] != null && 
+        if (jsonResponse['results'] != null &&
             jsonResponse['results']['data'] != null) {
-          _completedTestRequests = jsonResponse['results']['data'] as List<dynamic>;
+          _completedTestRequests =
+              jsonResponse['results']['data'] as List<dynamic>;
         } else if (jsonResponse['data'] != null) {
           _completedTestRequests = jsonResponse['data'] as List<dynamic>;
         } else if (jsonResponse['results'] != null) {
@@ -338,7 +356,7 @@ class LaboratoryUserProvider extends ChangeNotifier {
         } else {
           _completedTestRequests = [];
         }
-        
+
         _errorMessage = null;
       } else {
         _completedTestRequests = [];
@@ -391,19 +409,21 @@ class LaboratoryUserProvider extends ChangeNotifier {
         return;
       }
 
-      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/status/$statusId/accept/');
+      final uri = Uri.parse(
+        '${AppConfig.baseUrl}prescriptions/laboratory/status/$statusId/accept/',
+      );
       final client = ChuckerHttpClient(http.Client());
-      
-      final response = await client.patch(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'accept': true,
-        }),
-      ).timeout(const Duration(seconds: 30));
+
+      final response = await client
+          .patch(
+            uri,
+            headers: {
+              'Authorization': 'Bearer $accessToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'accept': true}),
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         _errorMessage = null;
@@ -414,7 +434,9 @@ class LaboratoryUserProvider extends ChangeNotifier {
         ]);
       } else {
         final jsonResponse = jsonDecode(response.body);
-        _errorMessage = jsonResponse['message'] ?? 'Failed to accept prescription: ${response.statusCode}';
+        _errorMessage =
+            jsonResponse['message'] ??
+            'Failed to accept prescription: ${response.statusCode}';
         notifyListeners();
       }
     } catch (e) {
@@ -423,7 +445,10 @@ class LaboratoryUserProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> updateTestAvailability(String prescriptionId, bool isAvailable) async {
+  Future<void> updateTestAvailability(
+    String prescriptionId,
+    bool isAvailable,
+  ) async {
     // Empty implementation for backward compatibility
     _errorMessage = null;
     notifyListeners();
@@ -435,8 +460,9 @@ class LaboratoryUserProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
   }
+
   Future<bool> uploadReport(
-    String prescriptionId, 
+    String labStatusID,
     List<File> files, {
     List<Map<String, dynamic>>? labResults,
   }) async {
@@ -446,9 +472,12 @@ class LaboratoryUserProvider extends ChangeNotifier {
 
       final prefs = await SharedPreferences.getInstance();
       final accessToken = prefs.getString('access_token') ?? '';
-      
-      // Fixed endpoint to match Postman: /prescriptions/laboratory/status/{id}/upload_result/
-      final uri = Uri.parse('${AppConfig.baseUrl}prescriptions/laboratory/status/$prescriptionId/upload_result/');
+
+      final uri = Uri.parse(
+        '${AppConfig.baseUrl}prescriptions/laboratory/status/$labStatusID/upload_result/',
+      );
+
+      debugPrint('Upload Report URL is here $uri');
 
       final request = http.MultipartRequest('POST', uri);
       request.headers.addAll({
@@ -456,7 +485,6 @@ class LaboratoryUserProvider extends ChangeNotifier {
         'Accept': 'application/json',
       });
 
-      // Add lab_results as JSON if provided
       if (labResults != null && labResults.isNotEmpty) {
         request.fields['lab_results'] = jsonEncode(labResults);
       }
@@ -473,7 +501,9 @@ class LaboratoryUserProvider extends ChangeNotifier {
 
       // Add debug print
       debugPrint('Uploading to $uri');
-      debugPrint('Lab results: ${labResults != null ? jsonEncode(labResults) : 'none'}');
+      debugPrint(
+        'Lab results: ${labResults != null ? jsonEncode(labResults) : 'none'}',
+      );
       debugPrint('Files: ${files.length}');
 
       final client = ChuckerHttpClient(http.Client());
@@ -493,15 +523,16 @@ class LaboratoryUserProvider extends ChangeNotifier {
           final errorData = jsonDecode(response.body);
           if (errorData is Map) {
             // Try different error message fields
-            errorMsg = errorData['detail']?.toString() ?? 
-                      errorData['message']?.toString() ?? 
-                      errorData['error']?.toString() ?? 
-                      'Failed to upload report: ${response.statusCode}';
+            errorMsg =
+                errorData['detail']?.toString() ??
+                errorData['message']?.toString() ??
+                errorData['error']?.toString() ??
+                'Failed to upload report: ${response.statusCode}';
           }
         } catch (e) {
           errorMsg = 'Failed to upload report: ${response.statusCode}';
         }
-        
+
         _errorMessage = errorMsg;
         _isLoading = false;
         notifyListeners();
@@ -521,28 +552,28 @@ class LaboratoryUserProvider extends ChangeNotifier {
     try {
       final type = wsData['type'] as String?;
       final data = wsData['data'] as List<dynamic>?;
-      
+
       if (data == null || data.isEmpty) return;
-      
+
       final newRequest = data[0] as Map<String, dynamic>;
       final statusId = newRequest['status_id'];
-      
+
       if (type == 'initial_item') {
         // Initial items are already loaded, skip
         return;
       } else if (type == 'update_request') {
         // Find and update existing request, or add if new
         final index = _newRequests.indexWhere(
-          (p) => p is Map && p['status_id'] == statusId
+          (p) => p is Map && p['status_id'] == statusId,
         );
-        
+
         if (index != -1) {
           _newRequests[index] = newRequest;
         } else {
           // New request, add to the beginning of the list
           _newRequests.insert(0, newRequest);
         }
-        
+
         notifyListeners();
       }
     } catch (e) {

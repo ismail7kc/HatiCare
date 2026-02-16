@@ -182,6 +182,7 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     final prescriptions = laboratoryProvider.prescriptions;
     final isLoading = laboratoryProvider.prescriptionsLoading;
     final errorMessage = laboratoryProvider.errorMessage;
+    final isApproved = laboratoryProvider.isApproved;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -359,11 +360,52 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
                 child: RefreshIndicator(
                   onRefresh: _onRefresh,
                   color: AppColors.primary,
-                  child: _buildAssignedBody(
-                    isLoading: isLoading,
-                    prescriptions: prescriptions,
-                    errorMessage: errorMessage,
-                  ),
+                  child: !isApproved
+                      ? LayoutBuilder(
+                          builder: (context, constraints) {
+                            return SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: SizedBox(
+                                height: constraints.maxHeight,
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.lock_outline,
+                                        size: 48,
+                                        color: Colors.grey[400],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'Waiting for Approval',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'To see prescriptions, your laboratory account must be approved by Admin.',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey[500],
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        )
+                      : _buildAssignedBody(
+                          isLoading: isLoading,
+                          prescriptions: prescriptions,
+                          errorMessage: errorMessage,
+                        ),
                 ),
               ),
             ],
