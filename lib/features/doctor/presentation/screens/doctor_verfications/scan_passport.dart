@@ -290,7 +290,7 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
                         padding: const EdgeInsets.only(bottom: 20),
                         child: SizedBox(
                           width: 236,
-                          height: 45,
+                          height: 35,
                           child: Container(
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(30),
@@ -307,7 +307,7 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
                                   borderRadius: BorderRadius.circular(30),
                                 ),
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 10,
+                                  vertical: 4,
                                 ),
                               ),
                               onPressed: _isUploading ? null : pickFromGallery,
@@ -336,7 +336,7 @@ class _ScanPassportScreenState extends State<ScanPassportScreen> {
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
+                                borderRadius: BorderRadius.circular(20),
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),

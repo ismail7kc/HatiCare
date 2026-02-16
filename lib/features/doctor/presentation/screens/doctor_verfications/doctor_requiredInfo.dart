@@ -27,6 +27,15 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
   final TextEditingController yearsExperienceController =
       TextEditingController();
 
+  final ScrollController _scrollController = ScrollController();
+  final FocusNode licenseNumberFocus = FocusNode();
+  final FocusNode yearsExperienceFocus = FocusNode();
+  final FocusNode licenseAuthorityFocus = FocusNode();
+
+  final GlobalKey _licenseNumberKey = GlobalKey();
+  final GlobalKey _yearsExperienceKey = GlobalKey();
+  final GlobalKey _licenseAuthorityKey = GlobalKey();
+
   String? selectedLicenseType;
   String? selectedSpecialization;
   bool _isSubmitting = false;
@@ -93,24 +102,39 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
         licenseAuthorityController.text.isNotEmpty;
   }
 
-  Future<void> _onSubmitPressed() async {
-    if (!_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fix the errors in the form'),
-          backgroundColor: Colors.red,
-        ),
+  Future<void> _scrollTo(GlobalKey key, FocusNode focusNode) async {
+    final context = key.currentContext;
+    if (context != null) {
+      await Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        alignment: 0.3,
       );
+      FocusScope.of(this.context).requestFocus(focusNode);
+    }
+  }
+
+  void _focusFirstInvalidField() {
+    if (licenseNumberController.text.trim().isEmpty) {
+      _scrollTo(_licenseNumberKey, licenseNumberFocus);
       return;
     }
 
-    if (!_areAllFieldsFilled()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill all required fields'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+    if (yearsExperienceController.text.trim().isEmpty) {
+      _scrollTo(_yearsExperienceKey, yearsExperienceFocus);
+      return;
+    }
+
+    if (licenseAuthorityController.text.trim().isEmpty) {
+      _scrollTo(_licenseAuthorityKey, licenseAuthorityFocus);
+      return;
+    }
+  }
+
+  Future<void> _onSubmitPressed() async {
+    if (!_formKey.currentState!.validate()) {
+      _focusFirstInvalidField();
       return;
     }
 
@@ -210,6 +234,7 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
+        controller: _scrollController,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Form(
@@ -230,6 +255,8 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
                 _buildTextField(
                   label: 'License Number',
                   controller: licenseNumberController,
+                  focusNode: licenseNumberFocus,
+                  fieldKey: _licenseNumberKey,
                   hintText: 'Enter license number',
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
@@ -309,6 +336,8 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
                 _buildTextField(
                   label: 'Years of Experience',
                   controller: yearsExperienceController,
+                  focusNode: yearsExperienceFocus,
+                  fieldKey: _yearsExperienceKey,
                   hintText: 'Enter years of experience',
                   keyboardType: TextInputType.number,
                   inputFormatters: [
@@ -416,6 +445,8 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
                 _buildTextField(
                   label: 'License Issuing Authority',
                   controller: licenseAuthorityController,
+                  focusNode: licenseAuthorityFocus,
+                  fieldKey: _licenseAuthorityKey,
                   hintText: 'Enter license issuing authority',
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(
@@ -486,62 +517,68 @@ class _DoctorRequiredInfoState extends State<DoctorRequiredInfo> {
     required String label,
     required TextEditingController controller,
     required String hintText,
+    FocusNode? focusNode,
+    GlobalKey? fieldKey,
     String? Function(String?)? validator,
     List<TextInputFormatter>? inputFormatters,
     TextInputType keyboardType = TextInputType.text,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
+    return Container(
+      key: fieldKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          validator: validator,
-          inputFormatters: inputFormatters,
-          keyboardType: keyboardType,
-          autovalidateMode: AutovalidateMode.onUnfocus,
-          decoration: InputDecoration(
-            hintText: hintText,
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(
-                color: AppColors.primary,
-                width: 1.5,
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: controller,
+            validator: validator,
+            focusNode: focusNode,
+            inputFormatters: inputFormatters,
+            keyboardType: keyboardType,
+            autovalidateMode: AutovalidateMode.onUnfocus,
+            decoration: InputDecoration(
+              hintText: hintText,
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 1.5,
+                ),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Colors.red, width: 1.5),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Colors.red, width: 1.5),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
               ),
             ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.red, width: 1.5),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.red, width: 1.5),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 12,
-            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

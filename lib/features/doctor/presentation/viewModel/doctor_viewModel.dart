@@ -147,19 +147,16 @@ class DoctorViewModel extends ChangeNotifier {
                     if (index == -1) {
                       debugPrint('Inside If Condition');
                       _appointments.add(AppointmentModel.fromJson(item));
+                      notifyListeners();
                     }
                     break;
                   }
 
                 case 'relisted_patient':
                   {
-                    if (index == -1) {
-                      _appointments.add(AppointmentModel.fromJson(item));
-                    } else {
-                      debugPrint('Relisted Patient');
-                      _appointments[index].resetFromServer(serverRemaining);
-                      _startQueueTimer();
-                    }
+                    debugPrint('Relisted Patient');
+                    _appointments[index].resetFromServer(serverRemaining);
+                    _startQueueTimer();
                     break;
                   }
 

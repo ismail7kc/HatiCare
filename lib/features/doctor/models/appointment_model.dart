@@ -1,4 +1,3 @@
-import 'package:flutter/widgets.dart';
 
 class Patient {
   final int id;
