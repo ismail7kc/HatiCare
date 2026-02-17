@@ -77,7 +77,6 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
   Future<void> _loadInventory() async {
     final provider = context.read<LaboratoryUserProvider>();
     await provider.fetchAssignedPrescriptions();
-    // Initialize filtered list with all prescriptions
     setState(() {
       _filteredPrescriptions = provider.assignedRequests;
     });
@@ -85,7 +84,6 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
 
   Future<void> _onRefresh() async {
     await _loadInventory();
-    // Reset search when refreshing
     _rxCodeController.clear();
   }
 
@@ -104,6 +102,15 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
         return rxCode.contains(queryUpper);
       }).toList();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final provider = context.read<LaboratoryUserProvider>();
+    if (provider.consumeInventoryDirty()) {
+      Future.microtask(() => _onRefresh());
+    }
   }
 
   @override
@@ -724,14 +731,6 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                                 color: Colors.black87,
                               ),
                             ),
-                            // TextSpan(
-                            //   text: 'FULL',
-                            //   style: TextStyle(
-                            //     fontSize: 14,
-                            //     fontWeight: FontWeight.w600,
-                            //     color: Colors.black87,
-                            //   ),
-                            // ),
                           ],
                         ),
                       ),

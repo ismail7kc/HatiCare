@@ -38,10 +38,14 @@ class _CustomBottomNavState extends State<CustomBottomNav> {
       final tab = entry.value;
       final bool isSelected = _controller.index == index;
 
-      final String selectedIconPath =
-          tab.iconPath.replaceFirst('.svg', '_selected.svg');
-      final String unselectedIconPath =
-          tab.iconPath.replaceFirst('.svg', '_unselected.svg');
+      final String selectedIconPath = tab.iconPath.replaceFirst(
+        '.svg',
+        '_selected.svg',
+      );
+      final String unselectedIconPath = tab.iconPath.replaceFirst(
+        '.svg',
+        '_unselected.svg',
+      );
 
       return PersistentBottomNavBarItem(
         icon: SizedBox(
@@ -69,9 +73,7 @@ class _CustomBottomNavState extends State<CustomBottomNav> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         SvgPicture.asset(
-                          isSelected
-                              ? selectedIconPath
-                              : unselectedIconPath,
+                          isSelected ? selectedIconPath : unselectedIconPath,
                           height: 22,
                         ),
                         if (isSelected) ...[

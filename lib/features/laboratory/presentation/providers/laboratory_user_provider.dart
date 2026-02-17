@@ -60,8 +60,21 @@ class LaboratoryUserProvider extends ChangeNotifier {
   bool get isApproved => _isApproved;
   String get approvalMessage => _approvalMessage;
 
+  bool _inventoryDirty = false;
+
   LaboratoryUserProvider() {
     _loadInitialData();
+  }
+
+  void markInventoryDirty() {
+    _inventoryDirty = true;
+    notifyListeners();
+  }
+
+  bool consumeInventoryDirty() {
+    final val = _inventoryDirty;
+    _inventoryDirty = false;
+    return val;
   }
 
   Future<void> _loadInitialData() async {
@@ -285,7 +298,9 @@ class LaboratoryUserProvider extends ChangeNotifier {
         final data = results is Map<String, dynamic> ? results['data'] : null;
 
         if (data is List) {
-          _assignedRequests = data;
+          _assignedRequests = data
+              .where((item) => item['lab_status'] != 'results_uploaded')
+              .toList();
         } else {
           _assignedRequests = [];
         }
@@ -464,7 +479,7 @@ class LaboratoryUserProvider extends ChangeNotifier {
   Future<bool> uploadReport(
     String labStatusID,
     List<File> files, {
-    List<Map<String, dynamic>>? labResults,
+    Map<String, dynamic>? labResults,
   }) async {
     try {
       _isLoading = true;
@@ -514,6 +529,7 @@ class LaboratoryUserProvider extends ChangeNotifier {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         _isLoading = false;
+        print('Response is here $response');
         notifyListeners();
         return true;
       } else {

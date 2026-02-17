@@ -862,20 +862,7 @@ class _LaboratoryReportUploadScreenState
   }
 
   Future<void> _submitReports() async {
-    // Try status_id first (used by API), fallback to prescription_id
     final statusId = widget.prescription['lab_status_id']?.toString() ?? '';
-    // final prescriptionId =
-    //     widget.prescription['prescription_id']?.toString() ?? '';
-
-    // final idToUse = statusId.isNotEmpty ? statusId : prescriptionId;
-
-    // if (idToUse.isEmpty) {
-    //   _showError('Invalid prescription ID. Please try again.');
-    //   debugPrint('Prescription data: ${widget.prescription}');
-    //   return;
-    // }
-
-    // Collect filled test results
     final filledResults = <Map<String, dynamic>>[];
     for (var result in _testResults.values) {
       if (result.value.isNotEmpty) {
@@ -883,17 +870,15 @@ class _LaboratoryReportUploadScreenState
       }
     }
 
+    Map<String, dynamic>? labResultsPayload;
+    if (filledResults.isNotEmpty) {
+      labResultsPayload = {"tests": filledResults};
+    }
+
     if (filledResults.isEmpty && _uploadedFiles.isEmpty) {
       _showError('Please add at least one test result or file');
       return;
     }
-
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
 
     final files = _uploadedFiles.map((f) => File(f.path)).toList();
     final provider = context.read<LaboratoryUserProvider>();
@@ -905,23 +890,23 @@ class _LaboratoryReportUploadScreenState
     final success = await provider.uploadReport(
       statusId,
       files,
-      labResults: filledResults.isNotEmpty ? filledResults : null,
+      labResults: labResultsPayload,
     );
 
     if (!mounted) return;
 
-    // Hide loading indicator
-    Navigator.pop(context);
-
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Reports submitted successfully!'),
-          backgroundColor: Colors.green[700],
+        const SnackBar(
+          content: Text('Reports submitted successfully!'),
+          backgroundColor: Colors.green,
         ),
       );
-      // Navigate back
-      Navigator.pop(context);
+
+      Navigator.of(context).popUntil((route) => route.isFirst);
+
+      final provider = context.read<LaboratoryUserProvider>();
+      provider.markInventoryDirty();
     } else {
       _showError(provider.errorMessage ?? 'Failed to submit reports');
     }
