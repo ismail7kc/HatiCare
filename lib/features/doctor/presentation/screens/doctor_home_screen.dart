@@ -141,8 +141,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     });
 
     if (hasAdminApproval == true) {
-      // await doctorViewModel.fetchPatientQueue();
-      await doctorViewModel.webSocketConnectionApi();
+      await doctorViewModel.fetchPatientQueue();
+      // await doctorViewModel.webSocketConnectionApi();
     }
   }
 
@@ -433,8 +433,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   await vm.updateOnlineStatus(value);
 
                   if (value) {
-                    // await vm.fetchPatientQueue();
-                    await vm.webSocketConnectionApi();
+                    await vm.fetchPatientQueue();
+                    // await vm.webSocketConnectionApi();
                   } else {
                     await vm.disconnectWebSocket();
                   }

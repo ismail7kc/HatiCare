@@ -143,10 +143,36 @@ class DoctorViewModel extends ChangeNotifier {
 
       bool listChanged = false;
 
-      // Make a copy of current list
       final List<AppointmentModel> updatedAppointments = List.from(
         _appointments,
       );
+
+      // for (final item in patients) {
+      //   final int visitId = item['id'];
+      //   int serverRemaining = item['remaining_seconds'] ?? 30;
+
+      //   final index = updatedAppointments.indexWhere((e) => e.id == visitId);
+
+      //   if (type == 'initial_queue' || type == 'new_patient') {
+      //     if (index == -1) {
+      //       updatedAppointments.add(AppointmentModel.fromJson(item));
+      //       listChanged = true;
+      //     } else {
+      //       updatedAppointments[index].resetFromServer(serverRemaining);
+      //       listChanged = true;
+      //     }
+      //   } else if (type == 'relisted_patient') {
+      //     if (index == -1) {
+      //       final appt = AppointmentModel.fromJson(item);
+      //       appt.remainingSeconds = 29;
+      //       updatedAppointments.add(appt);
+      //       listChanged = true;
+      //     } else {
+      //       updatedAppointments[index].resetFromServer(29);
+      //       listChanged = true;
+      //     }
+      //   }
+      // }
 
       for (final item in patients) {
         final int visitId = item['id'];
@@ -158,11 +184,9 @@ class DoctorViewModel extends ChangeNotifier {
             type == 'new_patient' ||
             type == 'relisted_patient') {
           if (index == -1) {
-            // Add new patient
             updatedAppointments.add(AppointmentModel.fromJson(item));
             listChanged = true;
           } else {
-            // Reset timer for existing patient
             updatedAppointments[index].resetFromServer(serverRemaining);
             listChanged = true;
           }
@@ -171,7 +195,7 @@ class DoctorViewModel extends ChangeNotifier {
 
       if (listChanged) {
         _appointments = updatedAppointments;
-        notifyListeners(); // ⚡ Trigger UI update
+        notifyListeners();
       }
 
       if (_appointments.isNotEmpty) _startQueueTimer();
@@ -197,7 +221,7 @@ class DoctorViewModel extends ChangeNotifier {
       bool shouldNotify = false;
 
       for (final appt in _appointments) {
-        appt.tick(); // ticks countdown, resets at 0
+        appt.tick();
         shouldNotify = true;
       }
 
