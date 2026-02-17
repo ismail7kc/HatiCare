@@ -6,11 +6,7 @@ import 'package:provider/provider.dart';
 import '../providers/laboratory_user_provider.dart';
 import 'prescription_detail_screen.dart';
 
-enum TestRequestStatus {
-  issued,
-  inProgress,
-  completed,
-}
+enum TestRequestStatus { issued, inProgress, completed }
 
 class LabTestRequest {
   final String id;
@@ -216,8 +212,8 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                               Expanded(
                                 child: TextField(
                                   controller: _rxCodeController,
-                                  textCapitalization: TextCapitalization
-                                      .characters,
+                                  textCapitalization:
+                                      TextCapitalization.characters,
                                   keyboardType: TextInputType.text,
                                   inputFormatters: [
                                     LengthLimitingTextInputFormatter(8),
@@ -228,8 +224,8 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                                   onChanged: (value) {
                                     // Convert to uppercase
                                     if (value != value.toUpperCase()) {
-                                      _rxCodeController.text =
-                                          value.toUpperCase();
+                                      _rxCodeController.text = value
+                                          .toUpperCase();
                                       _rxCodeController.selection =
                                           TextSelection.fromPosition(
                                             TextPosition(offset: value.length),
@@ -242,23 +238,28 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                                     );
                                   },
                                   decoration: InputDecoration(
-                                    hintText: 'Enter Rx Code (8 chars, e.g., 599147EF)',
+                                    hintText:
+                                        'Enter Rx Code (8 chars, e.g., 599147EF)',
                                     hintStyle: const TextStyle(
                                       color: Color(0xFF858585),
                                       fontSize: 14,
                                     ),
-                                    suffixIcon: _rxCodeController.text
-                                        .isNotEmpty
+                                    suffixIcon:
+                                        _rxCodeController.text.isNotEmpty
                                         ? IconButton(
-                                      icon: const Icon(Icons.clear, size: 20),
-                                      onPressed: () {
-                                        _rxCodeController.clear();
-                                        _filterPrescriptions(
-                                          '',
-                                          laboratoryProvider.assignedRequests,
-                                        );
-                                      },
-                                    )
+                                            icon: const Icon(
+                                              Icons.clear,
+                                              size: 20,
+                                            ),
+                                            onPressed: () {
+                                              _rxCodeController.clear();
+                                              _filterPrescriptions(
+                                                '',
+                                                laboratoryProvider
+                                                    .assignedRequests,
+                                              );
+                                            },
+                                          )
                                         : null,
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
@@ -291,8 +292,8 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                               ElevatedButton(
                                 onPressed: laboratoryProvider.isApproved
                                     ? () {
-                                  _verifyRxCode(laboratoryProvider);
-                                }
+                                        _verifyRxCode(laboratoryProvider);
+                                      }
                                     : null,
                                 style: ElevatedButton.styleFrom(
                                   padding: EdgeInsets.zero,
@@ -323,24 +324,24 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                                     alignment: Alignment.center,
                                     child: laboratoryProvider.isVerifying
                                         ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<
-                                            Color>(
-                                          Colors.white,
-                                        ),
-                                      ),
-                                    )
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    Colors.white,
+                                                  ),
+                                            ),
+                                          )
                                         : const Text(
-                                      'Search',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                    ),
+                                            'Search',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                          ),
                                   ),
                                 ),
                               ),
@@ -367,9 +368,7 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                         ),
                         if (_rxCodeController.text.isNotEmpty)
                           Text(
-                            'Showing ${_filteredPrescriptions
-                                .length} of ${laboratoryProvider
-                                .assignedRequests.length}',
+                            'Showing ${_filteredPrescriptions.length} of ${laboratoryProvider.assignedRequests.length}',
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontSize: 14,
@@ -436,46 +435,50 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                                     labTests =
                                         (testRequestData['lab_tests'] as List)
                                             .map(
-                                              (test) =>
-                                              LabTest(
+                                              (test) => LabTest(
                                                 name: test['name'] ?? 'Unknown',
                                                 dosage: test['dose'] ?? 'N/A',
                                                 instructions:
-                                                '${test['frequency'] ??
-                                                    ''} ${test['duration'] ??
-                                                    ''} ${test['notes'] ?? ''}'
-                                                    .trim(),
+                                                    '${test['frequency'] ?? ''} ${test['duration'] ?? ''} ${test['notes'] ?? ''}'
+                                                        .trim(),
                                               ),
-                                        )
+                                            )
                                             .toList();
                                   }
 
                                   final request = LabTestRequest(
-                                    id: testRequestData['prescription_id']
-                                        ?.toString() ??
+                                    id:
+                                        testRequestData['prescription_id']
+                                            ?.toString() ??
                                         'N/A',
                                     rxCode:
-                                    'RX...${testRequestData['rex_code_last4'] ??
-                                        'N/A'}',
-                                    patientName: testRequestData['patient_name'] ??
+                                        'RX...${testRequestData['rex_code_last4'] ?? 'N/A'}',
+                                    patientName:
+                                        testRequestData['patient_name'] ??
                                         'Unknown Patient',
-                                    patientAge: int.tryParse(
-                                        testRequestData['patient_age']
-                                            ?.toString() ??
-                                            '0') ??
+                                    patientAge:
+                                        int.tryParse(
+                                          testRequestData['patient_age']
+                                                  ?.toString() ??
+                                              '0',
+                                        ) ??
                                         0,
                                     patientGender:
-                                    testRequestData['patient_gender'] ?? '',
-                                    patientDob: testRequestData['patient_dob'] ??
-                                        '',
+                                        testRequestData['patient_gender'] ?? '',
+                                    patientDob:
+                                        testRequestData['patient_dob'] ?? '',
                                     doctorName:
-                                    testRequestData['doctor_name'] ??
+                                        testRequestData['doctor_name'] ??
                                         'Dr. Unknown',
                                     doctorSpecialty:
-                                    testRequestData['doctor_specialty'] ?? '',
-                                    dateIssued: DateTime.tryParse(
-                                        testRequestData['created_at']
-                                            ?.toString() ?? '') ??
+                                        testRequestData['doctor_specialty'] ??
+                                        '',
+                                    dateIssued:
+                                        DateTime.tryParse(
+                                          testRequestData['created_at']
+                                                  ?.toString() ??
+                                              '',
+                                        ) ??
                                         DateTime.now(),
                                     status: TestRequestStatus.issued,
                                     labTests: labTests,
@@ -487,12 +490,14 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                                       testRequestData['notes'] ?? '';
                                   request.fulfillmentScore =
                                       testRequestData['fulfillment_score'] ??
-                                          0.0;
+                                      0.0;
 
                                   return Padding(
                                     padding: const EdgeInsets.only(bottom: 2),
                                     child: _buildTestRequestCard(
-                                        request, testRequestData),
+                                      request,
+                                      testRequestData,
+                                    ),
                                   );
                                 }),
                             ],
@@ -517,11 +522,7 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.lock_outline,
-              size: 64,
-              color: Colors.grey[300],
-            ),
+            Icon(Icons.lock_outline, size: 64, color: Colors.grey[300]),
             const SizedBox(height: 20),
             Text(
               'Inventory Not Available',
@@ -534,10 +535,7 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
             const SizedBox(height: 8),
             Text(
               'Your laboratory account must be approved to view Assigned Prescriptions.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
               textAlign: TextAlign.center,
             ),
           ],
@@ -578,10 +576,7 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'Pull down to refresh',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[500],
-                      ),
+                      style: TextStyle(fontSize: 13, color: Colors.grey[500]),
                     ),
                   ],
                 ),
@@ -593,8 +588,10 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
     );
   }
 
-  Widget _buildTestRequestCard(LabTestRequest request,
-      Map<String, dynamic> testRequestData) {
+  Widget _buildTestRequestCard(
+    LabTestRequest request,
+    Map<String, dynamic> testRequestData,
+  ) {
     // Determine status badge
     final isCompleted = request.status == TestRequestStatus.completed;
     String statusText;
@@ -630,126 +627,122 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
           ],
         ),
         child: Column(
-            children: [
+          children: [
             // Row 1: Prescription ID (Title) and Status Badge
             Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-        Text(
-        request.id.toString(),
-        // e.g. A6CC6D56
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Colors.black87,
-        ),
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  request.id.toString(),
+                  // e.g. A6CC6D56
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusBgColor,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    statusText,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: statusTextColor,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
 
+            // Row 2: Person Icon + Patient Name
+            Row(
+              children: [
+                Icon(Icons.person_outline, size: 20, color: Colors.grey[600]),
+                const SizedBox(width: 12),
+                Text(
+                  request.patientName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+
+            // Row 3: Phone Number (Indented)
+            if (request.patientPhone.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(left: 32, top: 4),
+                child: Row(
+                  children: [
+                    Text(
+                      request.patientPhone,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[500],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            const SizedBox(height: 12),
+
+            // Row 4: Availability/Tests Content
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.inventory_2_outlined, // Box icon
+                  size: 20,
+                  color: Colors.grey[600],
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RichText(
+                        text: const TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'N/A ',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            // TextSpan(
+                            //   text: 'FULL',
+                            //   style: TextStyle(
+                            //     fontSize: 14,
+                            //     fontWeight: FontWeight.w600,
+                            //     color: Colors.black87,
+                            //   ),
+                            // ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-      Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: statusBgColor,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          statusText,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            color: statusTextColor,
-            letterSpacing: 0.5,
-          ),
-        ),
-      ),
-      ],
-    ),
-    const SizedBox(height: 12),
-
-    // Row 2: Person Icon + Patient Name
-    Row(
-    children: [
-    Icon(
-    Icons.person_outline,
-    size: 20,
-    color: Colors.grey[600],
-    ),
-    const SizedBox(width: 12),
-    Text(
-    request.patientName,
-    style: const TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w600,
-    color: Colors.black87,
-    ),
-    ),
-    ],
-    ),
-
-    // Row 3: Phone Number (Indented)
-    if (request.patientPhone.isNotEmpty)
-    Padding(
-    padding: const EdgeInsets.only(left: 32, top: 4),
-    child: Row(
-    children: [
-    Text(
-    request.patientPhone,
-    style: TextStyle(
-    fontSize: 14,
-    color: Colors.grey[500],
-    fontWeight: FontWeight.w500,
-    ),
-    ),
-    ],
-    ),
-    ),
-
-    const SizedBox(height: 12),
-
-    // Row 4: Availability/Tests Content
-    Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-    Icon(
-    Icons.inventory_2_outlined, // Box icon
-    size: 20,
-    color: Colors.grey[600],
-    ),
-    const SizedBox(width: 12),
-    Expanded(
-    child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-    RichText(
-    text: const TextSpan(
-    children: [
-    TextSpan(
-    text: 'Availability: ',
-    style: TextStyle(
-    fontSize: 14,
-    color: Colors.black87,
-    ),
-    ),
-    TextSpan(
-    text: 'FULL',
-    style: TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w600,
-    color: Colors.black87,
-    ),
-    ),
-    ],
-    ),
-    ),
-    ],
-    ),
-    ),
-    ],
-    ),
-    ],
-    ),
-    )
-    ,
     );
   }
 
@@ -758,9 +751,7 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
       context,
       MaterialPageRoute(
         builder: (context) =>
-            PrescriptionDetailScreen(
-              prescription: testRequestData,
-            ),
+            PrescriptionDetailScreen(prescription: testRequestData),
       ),
     );
 
@@ -776,19 +767,12 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: Container(
-          height: MediaQuery
-              .of(context)
-              .size
-              .height * 0.5,
+          height: MediaQuery.of(context).size.height * 0.5,
           alignment: Alignment.center,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.search_off,
-                size: 80,
-                color: Colors.grey[400],
-              ),
+              Icon(Icons.search_off, size: 80, color: Colors.grey[400]),
               const SizedBox(height: 16),
               Text(
                 'No Matching Prescriptions',
@@ -801,10 +785,7 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
               const SizedBox(height: 8),
               Text(
                 'No prescriptions found for "${_rxCodeController.text}"',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -816,9 +797,7 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
                 },
                 icon: const Icon(Icons.clear),
                 label: const Text('Clear Search'),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                ),
+                style: TextButton.styleFrom(foregroundColor: AppColors.primary),
               ),
             ],
           ),
