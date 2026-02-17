@@ -76,6 +76,8 @@ class AppointmentModel {
   int remainingSeconds;
   double progress;
 
+  DateTime lastUpdateTime;
+
   AppointmentModel({
     required this.id,
     required this.patient,
@@ -87,8 +89,9 @@ class AppointmentModel {
     required this.createdAt,
     required this.triageData,
     required this.serverRemainingSeconds,
-  }) : remainingSeconds = serverRemainingSeconds,
-       progress = serverRemainingSeconds / 30;
+  })  : remainingSeconds = serverRemainingSeconds,
+        progress = serverRemainingSeconds / 30,
+        lastUpdateTime = DateTime.now();
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
     final int remainingFromServer = json['remaining_seconds'] ?? 30;
@@ -101,24 +104,27 @@ class AppointmentModel {
       severity: json['severity'] ?? '',
       severityColor: json['severity_color'] ?? '',
       status: json['status'] ?? '',
-      createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
       triageData: TriageData.fromJson(json['triage_data'] ?? {}),
-      serverRemainingSeconds: remainingFromServer + 2,
+      serverRemainingSeconds: remainingFromServer,
     );
   }
 
   void resetFromServer(int newRemaining) {
     serverRemainingSeconds = newRemaining;
-    remainingSeconds = serverRemainingSeconds;
-    progress = remainingSeconds / 30;
+    lastUpdateTime = DateTime.now();
   }
 
   void tick() {
-    if (remainingSeconds > 0) {
-      remainingSeconds -= 1;
-    } else {
-      remainingSeconds = serverRemainingSeconds;
-    }
-    progress = remainingSeconds / 30;
+  if (remainingSeconds > 0) {
+    remainingSeconds -= 1;
+  } else {
+    remainingSeconds = serverRemainingSeconds; // restart countdown
   }
+  progress = remainingSeconds / 30;
 }
+
+}
+
+

@@ -233,7 +233,7 @@ class LoginViewModel extends ChangeNotifier {
             await prefs.remove('specialization_$lastDoctorId');
 
             // Clear global profile completion flags
-            // await prefs.remove('is_profile_completed');
+            await prefs.remove('is_profile_completed');
             await prefs.remove('doctor_verification_completed_$lastDoctorId');
 
             debugPrint(

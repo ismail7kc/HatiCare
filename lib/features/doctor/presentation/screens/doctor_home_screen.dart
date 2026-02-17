@@ -433,7 +433,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   await vm.updateOnlineStatus(value);
 
                   if (value) {
-                    await vm.fetchPatientQueue();
+                    // await vm.fetchPatientQueue();
                     await vm.webSocketConnectionApi();
                   } else {
                     await vm.disconnectWebSocket();

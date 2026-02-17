@@ -39,7 +39,7 @@ class DoctorViewModel extends ChangeNotifier {
   init() {
     fetchPatientQueue();
     webSocketConnectionApi();
-    _startQueueTimer();
+    // _startQueueTimer();
   }
 
   Future<bool> isDoctorOnline({required bool isOnline}) async {
@@ -96,6 +96,9 @@ class DoctorViewModel extends ChangeNotifier {
       GlobalAlert.show(_errorMessage);
     } finally {
       _isLoading = false;
+      if (_appointments.isNotEmpty) {
+        _startQueueTimer(); // ✅ ADD THIS
+      }
       notifyListeners();
     }
   }
@@ -115,69 +118,65 @@ class DoctorViewModel extends ChangeNotifier {
     _isQueueLoading = true;
     notifyListeners();
 
+    final doctorId = SaveLoginResponse.loginData?['id'] ?? '';
+    final socketUrl =
+        'wss://api.haticare.com/ws/doctor/queue/?user_id=$doctorId';
+
+    _channel = WebSocketChannel.connect(Uri.parse(socketUrl));
+
+    _channel!.stream.listen(
+      (message) => _handleWebSocketMessage(message),
+      onError: (_) => _reconnect(),
+      onDone: _reconnect,
+    );
+  }
+
+  void _handleWebSocketMessage(String message) {
+    if (_isDisposed) return;
+
     try {
-      final doctorId = SaveLoginResponse.loginData?['id'] ?? '';
-      final socketUrl =
-          'wss://api.haticare.com/ws/doctor/queue/?user_id=$doctorId';
+      final decoded = jsonDecode(message);
+      if (decoded['success'] != true || decoded['data'] == null) return;
 
-      _channel = WebSocketChannel.connect(Uri.parse(socketUrl));
+      final List<dynamic> patients = decoded['data'];
+      final type = decoded['type'] ?? '';
 
-      _channel!.stream.listen(
-        (message) {
-          if (_isDisposed) return;
+      bool listChanged = false;
 
-          try {
-            final decoded = jsonDecode(message);
-            if (decoded['success'] != true || decoded['data'] == null) return;
-
-            final List<dynamic> patients = decoded['data'];
-
-            final type = decoded['type'] ?? '';
-
-            for (final item in patients) {
-              final int visitId = item['id'];
-              final serverRemaining = item['remaining_seconds'] ?? 30;
-
-              final index = _appointments.indexWhere((e) => e.id == visitId);
-
-              switch (type) {
-                case 'initial_queue':
-                case 'new_patient':
-                  {
-                    if (index == -1) {
-                      debugPrint('Inside If Condition');
-                      _appointments.add(AppointmentModel.fromJson(item));
-                      notifyListeners();
-                    }
-                    break;
-                  }
-
-                case 'relisted_patient':
-                  {
-                    debugPrint('Relisted Patient');
-                    _appointments[index].resetFromServer(serverRemaining);
-                    _startQueueTimer();
-                    break;
-                  }
-
-                default:
-                  debugPrint("Unknown queue type: $type");
-              }
-            }
-
-            _isQueueLoading = false;
-            notifyListeners();
-          } catch (e) {
-            debugPrint("WS parse error: $e");
-          }
-        },
-        onError: (_) => _reconnect(),
-        onDone: _reconnect,
+      // Make a copy of current list
+      final List<AppointmentModel> updatedAppointments = List.from(
+        _appointments,
       );
+
+      for (final item in patients) {
+        final int visitId = item['id'];
+        final int serverRemaining = item['remaining_seconds'] ?? 30;
+
+        final index = updatedAppointments.indexWhere((e) => e.id == visitId);
+
+        if (type == 'initial_queue' ||
+            type == 'new_patient' ||
+            type == 'relisted_patient') {
+          if (index == -1) {
+            // Add new patient
+            updatedAppointments.add(AppointmentModel.fromJson(item));
+            listChanged = true;
+          } else {
+            // Reset timer for existing patient
+            updatedAppointments[index].resetFromServer(serverRemaining);
+            listChanged = true;
+          }
+        }
+      }
+
+      if (listChanged) {
+        _appointments = updatedAppointments;
+        notifyListeners(); // ⚡ Trigger UI update
+      }
+
+      if (_appointments.isNotEmpty) _startQueueTimer();
     } catch (e) {
-      debugPrint("WS connect error: $e");
-      GlobalAlert.show("WebSocket connection failed: $e");
-      _reconnect();
+      debugPrint("WS parse error: $e");
     }
   }
 
@@ -191,13 +190,14 @@ class DoctorViewModel extends ChangeNotifier {
   }
 
   void _startQueueTimer() {
-    if (_queueTimer != null && _queueTimer!.isActive) return;
+    if (_queueTimer?.isActive ?? false) return;
 
     _queueTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      print('ticker');
       bool shouldNotify = false;
 
       for (final appt in _appointments) {
-        appt.tick();
+        appt.tick(); // ticks countdown, resets at 0
         shouldNotify = true;
       }
 
