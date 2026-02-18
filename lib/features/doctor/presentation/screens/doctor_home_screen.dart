@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/core/theme/app_colors.dart';
+import 'package:haticare/features/common/global_alert.dart';
 import 'package:haticare/features/common/screens/notifications_screen.dart';
 import 'package:haticare/features/common/shared_prefs_helper.dart';
 import 'package:haticare/features/common/repository_layer.dart';
@@ -112,10 +113,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with RouteAware {
-  bool isOnline = false;
   bool? hasAdminApproval;
-
-  late DoctorViewModel doctorViewModel;
 
   @override
   void initState() {
@@ -130,19 +128,22 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    doctorViewModel = context.read<DoctorViewModel>();
+    // doctorViewModel = context.read<DoctorViewModel>();
   }
 
   Future<void> _onRefresh() async {
-    final provider = context.read<DoctorUserProvider>();
-    await provider.fetchProfile(forceRefresh: true);
-    setState(() {
-      hasAdminApproval = provider.isApproved;
-    });
+    try {
+      final provider = context.read<DoctorUserProvider>();
+      await provider.fetchProfile(forceRefresh: true);
 
-    if (hasAdminApproval == true) {
-      await doctorViewModel.fetchPatientQueue();
-      // await doctorViewModel.webSocketConnectionApi();
+      if (mounted) {
+        setState(() {
+          hasAdminApproval = provider.isApproved;
+        });
+      }
+    } catch (e) {
+      debugPrint("Refresh error: $e");
+      GlobalAlert.show("Failed to refresh data.");
     }
   }
 
@@ -211,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         ),
                       ),
 
-                      handleAppointment(context, vm.appointments),
+                      handleAppointment(context, vm),
                     ],
                   ),
                 ),
@@ -223,10 +224,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
-  Widget handleAppointment(
-    BuildContext context,
-    List<AppointmentModel> appointments,
-  ) {
+  Widget handleAppointment(BuildContext context, DoctorViewModel vm) {
     if (hasAdminApproval == false) {
       return Padding(
         padding: const EdgeInsets.all(16.0),
@@ -249,14 +247,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       );
     }
 
-    if (!doctorViewModel.isOnline) {
+    if (!vm.isOnline) {
       return Padding(
         padding: const EdgeInsets.all(16.0),
-        child: patientQueueView(),
+        child: patientQueueView(vm),
       );
     }
 
-    if (appointments.isEmpty) {
+    if (vm.appointments.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(16.0),
         child: Container(
@@ -281,13 +279,40 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     }
 
     return Column(
-      children: List.generate(appointments.length, (index) {
-        final appt = appointments[index];
+      children: List.generate(vm.appointments.length, (index) {
+        final appt = vm.appointments[index];
         return Padding(
           padding: const EdgeInsets.all(16),
-          child: patientAppointmentView(context, appt),
+          child: patientAppointmentView(context, vm, appt),
         );
       }),
+    );
+  }
+
+  Widget patientAppointmentView(
+    BuildContext context,
+    DoctorViewModel vm,
+    AppointmentModel appointment,
+  ) {
+    return GestureDetector(
+      onTap: () {},
+      child: Container(
+        margin: EdgeInsets.zero,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0x4D3C64ED)),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 6,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: setupPatientCardLive(vm, appointment),
+      ),
     );
   }
 
@@ -431,13 +456,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   final success = await vm.isDoctorOnline(isOnline: value);
                   if (!success) return;
                   await vm.updateOnlineStatus(value);
-
-                  if (value) {
-                    await vm.fetchPatientQueue();
-                    // await vm.webSocketConnectionApi();
-                  } else {
-                    await vm.disconnectWebSocket();
-                  }
                 },
               ),
             ),
@@ -530,25 +548,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
-  Widget patientQueueView() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 25),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Center(
-        child: Text(
-          doctorViewModel.isOnline
-              ? "Waiting for patients..."
-              : "Go online to see patient requests",
-          style: const TextStyle(color: Colors.grey),
-        ),
-      ),
-    );
-  }
-
   Color hexToColor(String hex) {
     hex = hex.replaceAll("#", "");
 
@@ -559,188 +558,179 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return Color(int.parse(hex, radix: 16));
   }
 
-  Widget patientAppointmentView(
-    BuildContext context,
-    AppointmentModel appointment,
-  ) {
-    return GestureDetector(
-      onTap: () {},
-      child: Container(
-        margin: EdgeInsets.zero,
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Color(0x4D3C64ED)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            ),
-          ],
+  Widget patientQueueView(DoctorViewModel vm) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 25),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Text(
+          vm.isOnline
+              ? "Waiting for patients..."
+              : "Go online to see patient requests",
+          style: const TextStyle(color: Colors.grey),
         ),
-        child: setupPatientCardLive(appointment),
       ),
     );
   }
 
-  Widget setupPatientCardLive(AppointmentModel appointment) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    severityCircle(appointment),
-
-                    const SizedBox(width: 10),
-                    Flexible(
-                      child: ShaderMask(
-                        shaderCallback: (bounds) =>
-                            AppColors.primaryGradient.createShader(
-                              Rect.fromLTWH(0, 0, bounds.width, bounds.height),
-                            ),
-                        child: const Text(
-                          "New Appointment Request",
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+  Widget setupPatientCardLive(
+    DoctorViewModel vm,
+    AppointmentModel appointment,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  severityCircle(appointment),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: ShaderMask(
+                      shaderCallback: (bounds) =>
+                          AppColors.primaryGradient.createShader(
+                            Rect.fromLTWH(0, 0, bounds.width, bounds.height),
                           ),
+                      child: const Text(
+                        "New Appointment Request",
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-
-              circularProgressBar(
-                appointment.progress,
-                appointment.remainingSeconds,
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SvgPicture.asset('assets/icons/user-square.svg', height: 24),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("Patient", style: TextStyle(color: Colors.grey)),
-                    const SizedBox(height: 2),
-                    Text(
-                      "${appointment.patientName}, ${appointment.patient.age}",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SvgPicture.asset('assets/icons/sticky-note.svg', height: 24),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Reason for Visit",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      appointment.rawComplaint,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  doctorViewModel.formatAppointmentTime(appointment.createdAt),
-                  style: const TextStyle(color: Colors.grey, fontSize: 13),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      PersistentNavBarNavigator.pushNewScreen(
-                        context,
-                        screen: AppointmentDetailScreen(
-                          appointment: appointment,
-                          isCameFromAccept: true,
-                        ),
-                        withNavBar: false,
-                        pageTransitionAnimation:
-                            PageTransitionAnimation.cupertino,
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: const Text(
-                      "View Details",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
+                ],
+              ),
+            ),
+            circularProgressBar(
+              appointment.progress,
+              appointment.remainingSeconds,
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SvgPicture.asset('assets/icons/user-square.svg', height: 24),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Patient", style: TextStyle(color: Colors.grey)),
+                  const SizedBox(height: 2),
+                  Text(
+                    "${appointment.patientName}, ${appointment.patient.age}",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
                     ),
                   ),
+                ],
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 12),
+
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SvgPicture.asset('assets/icons/sticky-note.svg', height: 24),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Reason for Visit",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    appointment.rawComplaint,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 12),
+
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                vm.formatAppointmentTime(appointment.createdAt),
+                style: const TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    PersistentNavBarNavigator.pushNewScreen(
+                      context,
+                      screen: AppointmentDetailScreen(
+                        appointment: appointment,
+                        isCameFromAccept: true,
+                      ),
+                      withNavBar: false,
+                      pageTransitionAnimation:
+                          PageTransitionAnimation.cupertino,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    "View Details",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
-            ],
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

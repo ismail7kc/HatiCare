@@ -36,10 +36,10 @@ class DoctorViewModel extends ChangeNotifier {
 
   Timer? _queueTimer;
 
-  init() {
+  init() async {
+    await loadOnlineStatus();
     fetchPatientQueue();
     webSocketConnectionApi();
-    // _startQueueTimer();
   }
 
   Future<bool> isDoctorOnline({required bool isOnline}) async {
@@ -97,7 +97,7 @@ class DoctorViewModel extends ChangeNotifier {
     } finally {
       _isLoading = false;
       if (_appointments.isNotEmpty) {
-        _startQueueTimer(); // ✅ ADD THIS
+        _startQueueTimer();
       }
       notifyListeners();
     }
@@ -112,15 +112,14 @@ class DoctorViewModel extends ChangeNotifier {
   }
 
   Future<void> webSocketConnectionApi() async {
-    if (_isConnecting || _isDisposed) return;
+    if (_isConnecting || _isDisposed || !isOnline) return;
     _isConnecting = true;
 
     _isQueueLoading = true;
     notifyListeners();
 
     final doctorId = SaveLoginResponse.loginData?['id'] ?? '';
-    final socketUrl =
-        'wss://api.haticare.com/ws/doctor/queue/?user_id=$doctorId';
+    final socketUrl = 'wss://api.haticare.com/ws/doctor/queue/?user_id=$doctorId';
 
     _channel = WebSocketChannel.connect(Uri.parse(socketUrl));
 
@@ -142,54 +141,31 @@ class DoctorViewModel extends ChangeNotifier {
       final type = decoded['type'] ?? '';
 
       bool listChanged = false;
-
-      final List<AppointmentModel> updatedAppointments = List.from(
-        _appointments,
-      );
-
-      // for (final item in patients) {
-      //   final int visitId = item['id'];
-      //   int serverRemaining = item['remaining_seconds'] ?? 30;
-
-      //   final index = updatedAppointments.indexWhere((e) => e.id == visitId);
-
-      //   if (type == 'initial_queue' || type == 'new_patient') {
-      //     if (index == -1) {
-      //       updatedAppointments.add(AppointmentModel.fromJson(item));
-      //       listChanged = true;
-      //     } else {
-      //       updatedAppointments[index].resetFromServer(serverRemaining);
-      //       listChanged = true;
-      //     }
-      //   } else if (type == 'relisted_patient') {
-      //     if (index == -1) {
-      //       final appt = AppointmentModel.fromJson(item);
-      //       appt.remainingSeconds = 29;
-      //       updatedAppointments.add(appt);
-      //       listChanged = true;
-      //     } else {
-      //       updatedAppointments[index].resetFromServer(29);
-      //       listChanged = true;
-      //     }
-      //   }
-      // }
+      final updatedAppointments = List<AppointmentModel>.from(_appointments);
 
       for (final item in patients) {
         final int visitId = item['id'];
         final int serverRemaining = item['remaining_seconds'] ?? 30;
-
         final index = updatedAppointments.indexWhere((e) => e.id == visitId);
 
-        if (type == 'initial_queue' ||
-            type == 'new_patient' ||
-            type == 'relisted_patient') {
+        if (type == 'initial_queue' || type == 'new_patient') {
           if (index == -1) {
             updatedAppointments.add(AppointmentModel.fromJson(item));
-            listChanged = true;
           } else {
             updatedAppointments[index].resetFromServer(serverRemaining);
-            listChanged = true;
           }
+          listChanged = true;
+        }
+
+        if (type == 'relisted_patient') {
+          if (index == -1) {
+            final appt = AppointmentModel.fromJson(item);
+            appt.resetFromServer(29);
+            updatedAppointments.add(appt);
+          } else {
+            updatedAppointments[index].resetFromServer(29);
+          }
+          listChanged = true;
         }
       }
 
@@ -230,7 +206,7 @@ class DoctorViewModel extends ChangeNotifier {
   }
 
   void _reconnect() {
-    if (_isDisposed) return;
+    if (_isDisposed || !isOnline) return;
 
     _isConnecting = false;
     Future.delayed(const Duration(seconds: 3), () {
