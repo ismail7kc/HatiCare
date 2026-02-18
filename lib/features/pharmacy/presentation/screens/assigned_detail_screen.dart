@@ -36,11 +36,7 @@ class _AssignedDetailScreenState extends State<AssignedDetailScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: SvgPicture.asset(
-            'assets/icons/arrow_back_icon.svg',
-            width: 24,
-            height: 24,
-          ),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text('Assigned Prescription Details'),

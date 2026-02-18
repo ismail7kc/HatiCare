@@ -107,36 +107,7 @@ class HistoryDetail extends StatelessWidget {
             ),
 
             const SizedBox(height: 24),
-
-            // Padding(
-            //   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            //   child: Column(
-            //     crossAxisAlignment: CrossAxisAlignment.start,
-            //     children: [
-            //       const Text(
-            //         'Outcome',
-            //         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            //       ),
-            //       const SizedBox(height: 12),
-            //       Container(
-            //         width: double.infinity,
-            //         padding: const EdgeInsets.symmetric(
-            //           vertical: 24,
-            //           horizontal: 16,
-            //         ),
-            //         decoration: BoxDecoration(
-            //           color: const Color(0xFFF3F4F6),
-            //           borderRadius: BorderRadius.circular(12),
-            //         ),
-            //         child: const Text(
-            //           'No specific outcome recorded.',
-            //           style: TextStyle(fontSize: 15, color: Colors.grey),
-            //           textAlign: TextAlign.center,
-            //         ),
-            //       ),
-            //     ],
-            //   ),
-            // ),
+            
             const Spacer(),
           ],
         ),
