@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:chucker_flutter/chucker_flutter.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:haticare/features/pharmacy/models/assign_prescription.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
