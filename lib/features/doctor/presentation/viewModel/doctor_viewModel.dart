@@ -31,14 +31,19 @@ class DoctorViewModel extends ChangeNotifier {
 
   // socket propetties
   WebSocketChannel? _channel;
-  bool _isConnecting = false;
   bool _isDisposed = false;
 
   Timer? _queueTimer;
 
   init() async {
     await loadOnlineStatus();
-    fetchPatientQueue();
+    if (!isOnline) {
+      await updateOnlineStatus(true);
+      debugPrint("✅ Doctor marked online");
+    }
+
+    debugPrint("IS ONLINE VALUE: $isOnline");
+    await fetchPatientQueue();
     webSocketConnectionApi();
   }
 
@@ -96,9 +101,7 @@ class DoctorViewModel extends ChangeNotifier {
       GlobalAlert.show(_errorMessage);
     } finally {
       _isLoading = false;
-      if (_appointments.isNotEmpty) {
-        _startQueueTimer();
-      }
+      if (_appointments.isNotEmpty) _startQueueTimer();
       notifyListeners();
     }
   }
@@ -112,29 +115,53 @@ class DoctorViewModel extends ChangeNotifier {
   }
 
   Future<void> webSocketConnectionApi() async {
-    if (_isConnecting || _isDisposed || !isOnline) return;
-    _isConnecting = true;
+    if (_isDisposed) return;
+    if (_channel != null) return;
 
     _isQueueLoading = true;
     notifyListeners();
 
-    final doctorId = SaveLoginResponse.loginData?['id'] ?? '';
-    final socketUrl = 'wss://api.haticare.com/ws/doctor/queue/?user_id=$doctorId';
+    final response = await repository.getSingleDoctor();
+    final docID = response['data']['id'];
+    final specializaton = response['data']['specialization'];
+    final socketUrl = 'wss://api.haticare.com/ws/doctor/queue/?user_id=$docID&specialization=$specializaton';
 
-    _channel = WebSocketChannel.connect(Uri.parse(socketUrl));
+    debugPrint('Socket URL is here $socketUrl');
 
-    _channel!.stream.listen(
-      (message) => _handleWebSocketMessage(message),
-      onError: (_) => _reconnect(),
-      onDone: _reconnect,
-    );
+    try {
+      _channel = WebSocketChannel.connect(Uri.parse(socketUrl));
+      debugPrint("✅ SOCKET CONNECTED TO: $socketUrl");
+
+      _isQueueLoading = false;
+      notifyListeners();
+
+      _channel!.stream.listen(
+        (message) {
+          debugPrint("🔥 WS MESSAGE RECEIVED: $message");
+          _handleWebSocketMessage(message);
+        },
+        onError: (error) {
+          debugPrint("❌ WS ERROR: $error");
+          _reconnect();
+        },
+        onDone: () {
+          debugPrint("⚠️ WS CLOSED BY SERVER");
+          _reconnect();
+        },
+      );
+    } catch (e) {
+      debugPrint("❌ WS CONNECTION FAILED: $e");
+      _isQueueLoading = false;
+      notifyListeners();
+    }
   }
 
   void _handleWebSocketMessage(String message) {
     if (_isDisposed) return;
-
     try {
       final decoded = jsonDecode(message);
+      debugPrint("TYPE: ${decoded['type']}");
+
       if (decoded['success'] != true || decoded['data'] == null) return;
 
       final List<dynamic> patients = decoded['data'];
@@ -178,13 +205,12 @@ class DoctorViewModel extends ChangeNotifier {
     } catch (e) {
       debugPrint("WS parse error: $e");
     }
-  }
+  } 
 
   Future<void> disconnectWebSocket() async {
     if (_channel != null) {
       await _channel!.sink.close();
       _channel = null;
-      _isConnecting = false;
       debugPrint("WebSocket Disconnected");
     }
   }
@@ -206,9 +232,7 @@ class DoctorViewModel extends ChangeNotifier {
   }
 
   void _reconnect() {
-    if (_isDisposed || !isOnline) return;
-
-    _isConnecting = false;
+    if (_isDisposed) return;
     Future.delayed(const Duration(seconds: 3), () {
       if (!_isDisposed) webSocketConnectionApi();
     });
