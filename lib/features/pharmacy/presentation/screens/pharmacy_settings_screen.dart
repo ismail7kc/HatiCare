@@ -74,7 +74,6 @@ class _PharmacySettingsScreenState extends State<PharmacySettingsScreen>
     }
   }
 
-  // Add a flag to prevent multiple uploads
   bool _isUploading = false;
 
   Future<void> _updateProfilePicture(File imageFile) async {
@@ -116,19 +115,16 @@ class _PharmacySettingsScreenState extends State<PharmacySettingsScreen>
         final newImageUrl = responseData['profile_picture']?.toString();
 
         if (newImageUrl != null && newImageUrl.isNotEmpty) {
-          // Add cache-busting timestamp
           final timestamp = DateTime.now().millisecondsSinceEpoch;
           final updatedUrl = newImageUrl.contains('?')
               ? '$newImageUrl&t=$timestamp'
               : '$newImageUrl?t=$timestamp';
 
-          // Update provider
           if (mounted) {
             context.read<PharmacyUserProvider>().updateProfilePicture(updatedUrl);
             ProfileNotifier.profileImageUrl.value = updatedUrl;
           }
 
-          // Show success message
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -248,7 +244,7 @@ class _PharmacySettingsScreenState extends State<PharmacySettingsScreen>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    super.build(context);
     
     final pharmacyProvider = context.watch<PharmacyUserProvider>();
     
@@ -302,7 +298,6 @@ class _PharmacySettingsScreenState extends State<PharmacySettingsScreen>
                           prefs.getBool('pharmacy_profile_completed') ?? false;
 
                       if (context.mounted) {
-                        // Navigate to edit profile with openedFromSettings = true
                         await Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -313,7 +308,6 @@ class _PharmacySettingsScreenState extends State<PharmacySettingsScreen>
                             ),
                           ),
                         );
-                        // Refresh provider data after returning
                         if (context.mounted) {
                           context.read<PharmacyUserProvider>().fetchProfile(forceRefresh: true);
                         }

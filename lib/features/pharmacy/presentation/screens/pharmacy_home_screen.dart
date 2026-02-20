@@ -87,7 +87,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     if (_isConnecting || _isDisposed) return;
     _isConnecting = true;
 
-    // Get user ID from provider (which loads it from SharedPreferences)
+
     final provider = context.read<PharmacyUserProvider>();
     final userId = provider.userId.isNotEmpty ? provider.userId : 'userid';
     final socketUrl = 'wss://api.haticare.com/ws/pharmacy/queue/?user_id=$userId';
@@ -106,12 +106,8 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
 
           try {
             final data = jsonDecode(message);
-            // The API returns: {"type": "...", "success": true, "data": [...]}
-            // NOT: {"results": {"success": true, "data": [...]}}
             final isSuccess = data['success'] == true;
             if (isSuccess && data['data'] != null) {
-              // Directly update the provider's list for instant UI update
-              // No need to fetch from API - we already have the data!
               context.read<PharmacyUserProvider>().handleWebSocketUpdate(data);
             }
 

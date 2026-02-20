@@ -46,27 +46,22 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Prescription Info Card
             _buildPrescriptionInfoCard(prescriptionId, pharmacyStatus, createdAt),
             const SizedBox(height: 16),
 
-            // Patient Info Card
             _buildPatientInfoCard(patientName, patientPhone, patientCity),
             const SizedBox(height: 16),
 
-            // Doctor Info Card
             if (doctor.isNotEmpty) ...[
               _buildDoctorInfoCard(doctor),
               const SizedBox(height: 16),
             ],
 
-            // Medications Card
             if (medications.isNotEmpty) ...[
               _buildMedicationsCard(medications),
               const SizedBox(height: 16),
             ],
 
-            // Status Card
             if (lastAction.isNotEmpty) ...[
               _buildStatusCard(lastAction, pharmacyStatus),
             ],

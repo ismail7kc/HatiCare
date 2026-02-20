@@ -110,12 +110,8 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
 
           try {
             final data = jsonDecode(message);
-            // The API returns: {"type": "...", "success": true, "data": [...]}
-            // NOT: {"results": {"success": true, "data": [...]}}
             final isSuccess = data['success'] == true;
             if (isSuccess && data['data'] != null) {
-              // Directly update the provider's list for instant UI update
-              // No need to fetch from API - we already have the data!
               context.read<LaboratoryUserProvider>().handleWebSocketUpdate(
                 data,
               );

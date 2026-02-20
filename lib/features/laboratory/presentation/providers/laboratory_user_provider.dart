@@ -562,8 +562,6 @@ class LaboratoryUserProvider extends ChangeNotifier {
     }
   }
 
-  /// Handle WebSocket updates by directly updating the new requests list
-  /// This avoids unnecessary API calls and provides instant UI updates
   void handleWebSocketUpdate(Map<String, dynamic> wsData) {
     try {
       final type = wsData['type'] as String?;

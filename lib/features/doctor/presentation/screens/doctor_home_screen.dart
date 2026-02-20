@@ -125,12 +125,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     });
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // doctorViewModel = context.read<DoctorViewModel>();
-  }
-
   Future<void> _onRefresh() async {
     try {
       final provider = context.read<DoctorUserProvider>();
@@ -211,7 +205,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                           ],
                         ),
                       ),
-
                       handleAppointment(context, vm),
                     ],
                   ),

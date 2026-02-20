@@ -47,7 +47,6 @@ class PharmacyUserProvider extends ChangeNotifier {
       await SaveLoginResponse.loadLoginModel();
       _pharmacyName = SaveLoginResponse.loginData?['pharmacy_name'] ?? '';
       
-      // Load user ID from SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       _userId = prefs.getString('pharmacy_id') ?? '';
       
@@ -322,8 +321,6 @@ class PharmacyUserProvider extends ChangeNotifier {
     fetchPrescriptions();
   }
 
-  /// Handle WebSocket updates by directly updating the prescription list
-  /// This avoids unnecessary API calls and provides instant UI updates
   void handleWebSocketUpdate(Map<String, dynamic> wsData) {
     try {
       final type = wsData['type'] as String?;
@@ -335,10 +332,8 @@ class PharmacyUserProvider extends ChangeNotifier {
       final statusId = newPrescription['status_id'];
       
       if (type == 'initial_item') {
-        // Initial items are already loaded, skip
         return;
       } else if (type == 'update_request') {
-        // Find and update existing prescription, or add if new
         final index = _prescriptions.indexWhere(
           (p) => p is Map && p['status_id'] == statusId
         );
@@ -346,7 +341,6 @@ class PharmacyUserProvider extends ChangeNotifier {
         if (index != -1) {
           _prescriptions[index] = newPrescription;
         } else {
-          // New prescription, add to the beginning of the list
           _prescriptions.insert(0, newPrescription);
         }
         
