@@ -3,17 +3,14 @@ import 'package:haticare/core/theme/app_colors.dart';
 import 'laboratory_report_upload_screen.dart';
 
 class PrescriptionDetailScreen extends StatelessWidget {
-  const PrescriptionDetailScreen({
-    super.key,
-    required this.prescription,
-  });
+  const PrescriptionDetailScreen({super.key, required this.prescription});
 
   final Map<String, dynamic> prescription;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    
+
     final prescriptionId = prescription['prescription_id']?.toString() ?? '';
     final patientName = prescription['patient_name']?.toString() ?? 'Unknown';
     final patientPhone = prescription['patient_phone']?.toString() ?? '';
@@ -22,11 +19,11 @@ class PrescriptionDetailScreen extends StatelessWidget {
     final rexCode = prescription['rex_code']?.toString() ?? '';
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-         leading: IconButton(
+        leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
@@ -50,15 +47,14 @@ class PrescriptionDetailScreen extends StatelessWidget {
               badge: 'Assigned',
             ),
             const SizedBox(height: 20),
-            
+
             _InfoRow(label: 'Patient:', value: patientName),
             if (patientPhone.isNotEmpty)
               _InfoRow(label: 'Phone:', value: patientPhone),
-            if (rexCode.isNotEmpty)
-              _InfoRow(label: 'RX Code:', value: rexCode),
-            
+            if (rexCode.isNotEmpty) _InfoRow(label: 'RX Code:', value: rexCode),
+
             const SizedBox(height: 24),
-            
+
             // Lab Tests Section
             Row(
               children: [
@@ -73,7 +69,10 @@ class PrescriptionDetailScreen extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -90,7 +89,7 @@ class PrescriptionDetailScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            
+
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -108,7 +107,8 @@ class PrescriptionDetailScreen extends StatelessWidget {
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: labTests.map((test) {
-                        final testName = test['name']?.toString() ?? 'Unknown Test';
+                        final testName =
+                            test['name']?.toString() ?? 'Unknown Test';
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           child: Row(
@@ -136,7 +136,7 @@ class PrescriptionDetailScreen extends StatelessWidget {
                       }).toList(),
                     ),
             ),
-            
+
             // Notes section
             if (notes.isNotEmpty) ...[
               const SizedBox(height: 24),
@@ -163,9 +163,9 @@ class PrescriptionDetailScreen extends StatelessWidget {
                 ),
               ),
             ],
-            
+
             const SizedBox(height: 32),
-            
+
             // Upload Report Button
             SizedBox(
               width: double.infinity,
@@ -183,8 +183,8 @@ class PrescriptionDetailScreen extends StatelessWidget {
                   ],
                 ),
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: () async {
+                    final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => LaboratoryReportUploadScreen(
@@ -192,7 +192,15 @@ class PrescriptionDetailScreen extends StatelessWidget {
                         ),
                       ),
                     );
+
+                    if (result == true && context.mounted) {
+                      Navigator.pop(
+                        context,
+                        true,
+                      );
+                    }
                   },
+
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
@@ -239,17 +247,17 @@ class _InfoSection extends StatelessWidget {
           children: [
             Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 4),
             Text(
               value,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
             ),
           ],
         ),
@@ -262,9 +270,9 @@ class _InfoSection extends StatelessWidget {
           child: Text(
             badge,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF1976D2),
-                ),
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1976D2),
+            ),
           ),
         ),
       ],
@@ -273,10 +281,7 @@ class _InfoSection extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-  });
+  const _InfoRow({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -290,17 +295,17 @@ class _InfoRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           ),
           Expanded(
             child: Text(
               value,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
-                  ),
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
               textAlign: TextAlign.right,
             ),
           ),

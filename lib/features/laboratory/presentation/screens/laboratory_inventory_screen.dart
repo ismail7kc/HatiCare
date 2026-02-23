@@ -107,10 +107,9 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final provider = context.read<LaboratoryUserProvider>();
-    if (provider.consumeInventoryDirty()) {
-      Future.microtask(() => _onRefresh());
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _onRefresh();
+    });
   }
 
   @override
@@ -167,7 +166,7 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -754,7 +753,6 @@ class _LaboratoryInventoryScreenState extends State<LaboratoryInventoryScreen> {
       ),
     );
 
-    // Refresh test requests if returned true (data was updated)
     if (result == true && mounted) {
       await _loadInventory();
     }

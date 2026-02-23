@@ -51,7 +51,7 @@ class _LaboratoryHistoryScreenState extends State<LaboratoryHistoryScreen>
     final laboratoryProvider = context.watch<LaboratoryUserProvider>();
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9FAFB),
 
       body: SafeArea(
         child: Padding(

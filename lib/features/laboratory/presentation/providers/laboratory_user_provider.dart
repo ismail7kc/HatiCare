@@ -16,20 +16,17 @@ class LaboratoryUserProvider extends ChangeNotifier {
   bool _isLoading = true;
   String? _errorMessage;
 
-  // Separate lists for different screens
-  List<dynamic> _newRequests = []; // For Laboratory Home Screen (list endpoint)
-  List<dynamic> _assignedRequests =
-      []; // For Laboratory Inventory Screen (assigned endpoint)
-  final List<dynamic> _testRequests = []; // Backward compatibility
-  List<dynamic> _completedTestRequests = []; // For History Screen
+  List<dynamic> _newRequests = [];
+  List<dynamic> _assignedRequests = []; 
+  final List<dynamic> _testRequests = [];
+  List<dynamic> _completedTestRequests = [];
 
-  // Separate loading states
   bool _newRequestsLoading = false;
   bool _assignedRequestsLoading = false;
   final bool _testRequestsLoading = false;
 
-  bool _isVerifying = false; // Backward compatibility
-  final String _verifiedRxCode = ''; // Backward compatibility
+  bool _isVerifying = false; 
+  final String _verifiedRxCode = '';
   bool _isApproved = false;
   String _approvalMessage = '';
 
@@ -41,40 +38,23 @@ class LaboratoryUserProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  // New getters for separate lists
   List<dynamic> get newRequests => _newRequests;
   List<dynamic> get assignedRequests => _assignedRequests;
   bool get newRequestsLoading => _newRequestsLoading;
   bool get assignedRequestsLoading => _assignedRequestsLoading;
 
-  // Backward compatibility getters
   List<dynamic> get testRequests => _testRequests;
-  List<dynamic> get prescriptions =>
-      _newRequests; // Point to new requests for home screen
+  List<dynamic> get prescriptions => _newRequests;
   List<dynamic> get completedTestRequests => _completedTestRequests;
   bool get testRequestsLoading => _testRequestsLoading;
-  bool get prescriptionsLoading =>
-      _newRequestsLoading; // Point to new requests loading
+  bool get prescriptionsLoading => _newRequestsLoading; 
   bool get isVerifying => _isVerifying;
   String get verifiedRxCode => _verifiedRxCode;
   bool get isApproved => _isApproved;
   String get approvalMessage => _approvalMessage;
 
-  bool _inventoryDirty = false;
-
   LaboratoryUserProvider() {
     _loadInitialData();
-  }
-
-  void markInventoryDirty() {
-    _inventoryDirty = true;
-    notifyListeners();
-  }
-
-  bool consumeInventoryDirty() {
-    final val = _inventoryDirty;
-    _inventoryDirty = false;
-    return val;
   }
 
   Future<void> _loadInitialData() async {

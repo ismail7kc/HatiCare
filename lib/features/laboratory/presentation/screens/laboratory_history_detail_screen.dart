@@ -21,7 +21,7 @@ class LaboratoryHistoryDetailScreen extends StatelessWidget {
     final createdAt = prescription['created_at']?.toString() ?? '';
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,

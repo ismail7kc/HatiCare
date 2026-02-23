@@ -31,12 +31,10 @@ class _LaboratoryReportUploadScreenState
         widget.prescription['patient_name']?.toString() ?? 'Unknown';
     final labTests = widget.prescription['lab_tests'] as List<dynamic>? ?? [];
 
-    final hasData =
-        _testResults.values.any((r) => r.value.isNotEmpty) ||
-        _uploadedFiles.isNotEmpty;
+    final hasData = _testResults.values.any((r) => r.value.isNotEmpty);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -875,8 +873,8 @@ class _LaboratoryReportUploadScreenState
       labResultsPayload = {"tests": filledResults};
     }
 
-    if (filledResults.isEmpty && _uploadedFiles.isEmpty) {
-      _showError('Please add at least one test result or file');
+    if (filledResults.isEmpty) {
+      _showError('Lab test details are mandatory');
       return;
     }
 
@@ -903,10 +901,10 @@ class _LaboratoryReportUploadScreenState
         ),
       );
 
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      // Navigator.of(context).popUntil((route) => route.isFirst);
+      Navigator.pop(context, true);
 
-      final provider = context.read<LaboratoryUserProvider>();
-      provider.markInventoryDirty();
+
     } else {
       _showError(provider.errorMessage ?? 'Failed to submit reports');
     }

@@ -181,8 +181,8 @@ class LoginViewModel extends ChangeNotifier {
             final verificationCompleted =
                 prefs.getBool('doctor_verification_completed_$doctorId') ??
                 false;
-            if (verificationCompleted && !isProfileCompleted) {
-              // Local verification flag exists but server hasn't updated yet
+            if (verificationCompleted && isProfileCompleted) {
+              debugPrint('user profile completed && verified');
               isProfileCompleted = true;
             }
           }
@@ -199,7 +199,6 @@ class LoginViewModel extends ChangeNotifier {
           // Save Access Toekn
           final accessToken = response['data']['access_token'];
           await prefs.setString('access_token', accessToken);
-
         } else if (role == 'pharmacy') {
           await prefs.setBool('pharmacy_profile_completed', isProfileCompleted);
         }
@@ -233,8 +232,8 @@ class LoginViewModel extends ChangeNotifier {
             await prefs.remove('specialization_$lastDoctorId');
 
             // Clear global profile completion flags
-            await prefs.remove('is_profile_completed');
-            await prefs.remove('doctor_verification_completed_$lastDoctorId');
+            // await prefs.remove('is_profile_completed');
+            // await prefs.remove('doctor_verification_completed_$lastDoctorId');
 
             debugPrint(
               'Cleared previous doctor data including profile completion flags',
