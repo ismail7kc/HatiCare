@@ -15,7 +15,7 @@ import '../providers/pharmacy_user_provider.dart';
 import '../../presentation/utils/profile_notifier.dart';
 import 'prescription_details_screen.dart';
 
-class PharmacyHomeScreen extends StatefulWidget  {
+class PharmacyHomeScreen extends StatefulWidget {
   const PharmacyHomeScreen({super.key});
 
   @override
@@ -36,7 +36,10 @@ class _PharmacyHomeScreenState extends State<PharmacyHomeScreen> {
         ],
         tabs: const [
           TabItemData(title: "Home", iconPath: 'assets/icons/home.svg'),
-          TabItemData(title: "Assigned", iconPath: 'assets/icons/inventory.svg',),
+          TabItemData(
+            title: "Assigned",
+            iconPath: 'assets/icons/inventory.svg',
+          ),
           TabItemData(title: "History", iconPath: 'assets/icons/history.svg'),
           TabItemData(title: "Settings", iconPath: 'assets/icons/setting.svg'),
         ],
@@ -65,7 +68,6 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
   @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = context.read<PharmacyUserProvider>();
       await provider.fetchProfile(forceRefresh: true);
@@ -87,10 +89,10 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
     if (_isConnecting || _isDisposed) return;
     _isConnecting = true;
 
-
     final provider = context.read<PharmacyUserProvider>();
     final userId = provider.userId.isNotEmpty ? provider.userId : 'userid';
-    final socketUrl = 'wss://api.haticare.com/ws/pharmacy/queue/?user_id=$userId';
+    final socketUrl =
+        'wss://api.haticare.com/ws/pharmacy/queue/?user_id=$userId';
 
     debugPrint("WebSocket URL: $socketUrl");
     debugPrint("Pharmacy User ID: $userId");
@@ -402,7 +404,7 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                                   color: Colors.white,
                                 ),
                               ),
-                                const Text(
+                              const Text(
                                 'Assigned Prescriptions',
                                 style: TextStyle(
                                   fontSize: 13,
@@ -477,8 +479,10 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                                   height: constraints.maxHeight,
                                   child: Center(
                                     child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
                                       children: [
                                         Icon(
                                           Icons.local_pharmacy_outlined,
@@ -541,7 +545,8 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
                                         .toList(),
                                   },
                                   itemType: ItemType.prescription,
-                                  onTap: () => _openPrescriptionDetails(request),
+                                  onTap: () =>
+                                      _openPrescriptionDetails(request),
                                 ),
                               );
                             },
@@ -616,7 +621,8 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
       patientAge: int.tryParse(data['patient_age']?.toString() ?? '0') ?? 0,
       patientGender: data['patient_gender']?.toString() ?? 'Male',
       patientDob: data['patient_dob']?.toString() ?? '1992-11-15',
-      doctorName: data['doctor']?.toString() ??
+      doctorName:
+          data['doctor']?.toString() ??
           data['doctor_name']?.toString() ??
           data['doctorName']?.toString() ??
           'Dr. Unknown',

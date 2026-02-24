@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
@@ -14,24 +13,21 @@ import 'package:haticare/features/pharmacy/presentation/viewmodels/pharmacy_prof
 import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
 import 'package:haticare/features/common/screens/upload_document_screen.dart';
 
-// Custom formatter to prevent double spaces
 class SingleSpaceFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    // Replace multiple consecutive spaces with a single space
     final newText = newValue.text.replaceAll(RegExp(r'\s{2,}'), ' ');
-    
-    // If the text was changed (spaces were reduced), return the new value
+
     if (newText != newValue.text) {
       return TextEditingValue(
         text: newText,
         selection: TextSelection.collapsed(offset: newText.length),
       );
     }
-    
+
     return newValue;
   }
 }
@@ -82,13 +78,11 @@ class _EditPharmacyProfileView extends StatelessWidget {
           viewModel.resetNavigation();
 
           if (openedFromSettings) {
-            // Return to settings screen
             Navigator.of(context).pop();
           } else {
-            // Navigate to home screen
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const PharmacyHomeScreen()),
-                  (route) => false,
+              (route) => false,
             );
           }
         }
@@ -135,128 +129,138 @@ class _EditPharmacyProfileView extends StatelessWidget {
           automaticallyImplyLeading: false,
           leading: (openedFromSettings || viewModel.currentStep == 2)
               ? IconButton(
-            icon: SvgPicture.asset(
-              'assets/icons/arrow_back_icon.svg',
-              width: 24,
-              height: 24,
-            ),
-            onPressed: () async {
-              if (viewModel.currentStep == 2) {
-                viewModel.moveBackToPreviousPage();
-              } else if (openedFromSettings) {
-                // Show confirmation dialog only if changes were made
-                if (viewModel.hasChanges) {
-                  final shouldExit = await _showExitConfirmationDialog(context) ?? false;
-                  if (shouldExit && context.mounted) {
-                    Navigator.of(context).pop();
-                  }
-                } else {
-                  // No changes, just exit
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                  }
-                }
-              } else {
-                Navigator.of(context).pop();
-              }
-            },
-          )
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new,
+                    color: Colors.black,
+                  ),
+                  onPressed: () async {
+                    if (viewModel.currentStep == 2) {
+                      viewModel.moveBackToPreviousPage();
+                    } else if (openedFromSettings) {
+                      if (viewModel.hasChanges) {
+                        final shouldExit =
+                            await _showExitConfirmationDialog(context) ?? false;
+                        if (shouldExit && context.mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      } else {
+                        // No changes, just exit
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      }
+                    } else {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                )
               : null,
         ),
         body: viewModel.isLoading
-            ? const Center(
-          child: CircularProgressIndicator(),
-        )
+            ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
-          child: Column(
-            children: [
-              // Show "Complete your profile" banner only for first-time users
-              if (isForceComplete && !openedFromSettings)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  margin: const EdgeInsets.only(top: 16, left: 16, right: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryDark.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.primaryDark.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: AppColors.primaryDark, size: 24),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Complete your profile to continue using the app',
-                          style: TextStyle(
-                            color: AppColors.primaryDark,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
                   children: [
-                    // Progress indicator
-                    _buildProgressIndicator(viewModel.currentStep),
-                    const SizedBox(height: 24),
-
-                    // Page content
-                    if (viewModel.currentStep == 1)
-                      _buildPage1(context, viewModel)
-                    else
-                      _buildPage2(context, viewModel),
-
-                    const SizedBox(height: 24),
-
-                    // Error message
-                    if (viewModel.errorMessage != null)
+                    if (isForceComplete && !openedFromSettings)
                       Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.only(
+                          top: 16,
+                          left: 16,
+                          right: 16,
                         ),
-                        child: Text(
-                          viewModel.errorMessage!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 14,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryDark.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.primaryDark.withValues(alpha: 0.3),
                           ),
                         ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: AppColors.primaryDark,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Complete your profile to continue using the app',
+                                style: TextStyle(
+                                  color: AppColors.primaryDark,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-
                     const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Column(
+                        children: [
+                          // Progress indicator
+                          _buildProgressIndicator(viewModel.currentStep),
+                          const SizedBox(height: 24),
 
-                    // Action buttons
-                    if (viewModel.currentStep == 1)
-                      AppPrimaryButton(
-                        label: 'Next',
-                        onPressed: viewModel.isSubmitting
-                            ? null
-                            : () => viewModel.moveToNextPage(),
-                      )
-                    else
-                      AppPrimaryButton(
-                        label: viewModel.isSubmitting ? 'Submitting...' : 'Submit',
-                        onPressed: viewModel.isSubmitting
-                            ? null
-                            : () => viewModel.submitProfile(),
+                          // Page content
+                          if (viewModel.currentStep == 1)
+                            _buildPage1(context, viewModel)
+                          else
+                            _buildPage2(context, viewModel),
+
+                          const SizedBox(height: 24),
+
+                          // Error message
+                          if (viewModel.errorMessage != null)
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.red.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Text(
+                                viewModel.errorMessage!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+
+                          const SizedBox(height: 24),
+
+                          // Action buttons
+                          if (viewModel.currentStep == 1)
+                            AppPrimaryButton(
+                              label: 'Next',
+                              onPressed: viewModel.isSubmitting
+                                  ? null
+                                  : () => viewModel.moveToNextPage(),
+                            )
+                          else
+                            AppPrimaryButton(
+                              label: viewModel.isSubmitting
+                                  ? 'Submitting...'
+                                  : 'Submit',
+                              onPressed: viewModel.isSubmitting
+                                  ? null
+                                  : () => viewModel.submitProfile(),
+                            ),
+                          const SizedBox(height: 24),
+                        ],
                       ),
-                    const SizedBox(height: 24),
+                    ),
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -333,7 +337,9 @@ class _EditPharmacyProfileView extends StatelessWidget {
           _buildEditableField(
             label: 'Contact Person',
             controller: viewModel.contactPersonController,
-            validator: (_) => viewModel.validateContactPerson(viewModel.contactPersonController.text),
+            validator: (_) => viewModel.validateContactPerson(
+              viewModel.contactPersonController.text,
+            ),
             hintText: 'Enter contact person name',
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
@@ -353,7 +359,11 @@ class _EditPharmacyProfileView extends StatelessWidget {
           _buildEditableField(
             label: 'Pharmacy Name',
             controller: viewModel.pharmacyNameController,
-            validator: (_) => viewModel.getValidationError('pharmacyName') ?? viewModel.validatePharmacyName(viewModel.pharmacyNameController.text),
+            validator: (_) =>
+                viewModel.getValidationError('pharmacyName') ??
+                viewModel.validatePharmacyName(
+                  viewModel.pharmacyNameController.text,
+                ),
             hintText: 'Enter pharmacy name',
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
@@ -392,13 +402,19 @@ class _EditPharmacyProfileView extends StatelessWidget {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
                   ),
                   errorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: Colors.red, width: 1.5),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
                 ),
@@ -428,7 +444,11 @@ class _EditPharmacyProfileView extends StatelessWidget {
           _buildEditableField(
             label: 'Address Line 1',
             controller: viewModel.addressLine1Controller,
-            validator: (_) => viewModel.getValidationError('address') ?? viewModel.validateAddress(viewModel.addressLine1Controller.text),
+            validator: (_) =>
+                viewModel.getValidationError('address') ??
+                viewModel.validateAddress(
+                  viewModel.addressLine1Controller.text,
+                ),
             hintText: 'Enter street address',
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s,.-]')),
@@ -455,7 +475,9 @@ class _EditPharmacyProfileView extends StatelessWidget {
           _buildEditableField(
             label: 'Zip Code',
             controller: viewModel.zipCodeController,
-            validator: (_) => viewModel.getValidationError('zipCode') ?? viewModel.validateZipCode(viewModel.zipCodeController.text),
+            validator: (_) =>
+                viewModel.getValidationError('zipCode') ??
+                viewModel.validateZipCode(viewModel.zipCodeController.text),
             hintText: 'Enter zip code',
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
@@ -498,37 +520,35 @@ class _EditPharmacyProfileView extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.primaryDark,
-                      width: 2,
-                    ),
+                    border: Border.all(color: AppColors.primaryDark, width: 2),
                   ),
                   child: viewModel.profilePicture != null
                       ? ClipOval(
-                    child: Image.file(
-                      viewModel.profilePicture!,
-                      fit: BoxFit.cover,
-                    ),
-                  )
-                      : viewModel.profilePictureUrl != null && viewModel.profilePictureUrl!.isNotEmpty
+                          child: Image.file(
+                            viewModel.profilePicture!,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : viewModel.profilePictureUrl != null &&
+                            viewModel.profilePictureUrl!.isNotEmpty
                       ? ClipOval(
-                    child: Image.network(
-                      viewModel.profilePictureUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
+                          child: Image.network(
+                            viewModel.profilePictureUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(
+                                Icons.camera_alt,
+                                size: 40,
+                                color: AppColors.primaryDark,
+                              );
+                            },
+                          ),
+                        )
+                      : const Icon(
                           Icons.camera_alt,
                           size: 40,
                           color: AppColors.primaryDark,
-                        );
-                      },
-                    ),
-                  )
-                      : const Icon(
-                    Icons.camera_alt,
-                    size: 40,
-                    color: AppColors.primaryDark,
-                  ),
+                        ),
                 ),
               ),
             ),
@@ -537,16 +557,18 @@ class _EditPharmacyProfileView extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    viewModel.profilePicture != null || (viewModel.profilePictureUrl != null && viewModel.profilePictureUrl!.isNotEmpty)
+                    viewModel.profilePicture != null ||
+                            (viewModel.profilePictureUrl != null &&
+                                viewModel.profilePictureUrl!.isNotEmpty)
                         ? 'Tap to change'
                         : 'Tap to add photo',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   const SizedBox(height: 4),
-                  if (viewModel.attemptedSubmit && viewModel.profilePicture == null && (viewModel.profilePictureUrl == null || viewModel.profilePictureUrl!.isEmpty))
+                  if (viewModel.attemptedSubmit &&
+                      viewModel.profilePicture == null &&
+                      (viewModel.profilePictureUrl == null ||
+                          viewModel.profilePictureUrl!.isEmpty))
                     const Text(
                       'Profile picture required',
                       style: TextStyle(
@@ -601,7 +623,10 @@ class _EditPharmacyProfileView extends StatelessWidget {
           _buildFileUploadButton(
             label: _getLicenseDocumentLabel(viewModel),
             onPressed: () => _navigateToUploadDocument(context, viewModel, 1),
-            isSelected: viewModel.licenseDocument1 != null || (viewModel.licenseDocument1Url != null && viewModel.licenseDocument1Url!.isNotEmpty),
+            isSelected:
+                viewModel.licenseDocument1 != null ||
+                (viewModel.licenseDocument1Url != null &&
+                    viewModel.licenseDocument1Url!.isNotEmpty),
           ),
         ],
       ),
@@ -614,7 +639,9 @@ class _EditPharmacyProfileView extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Discard Changes?'),
-          content: const Text('Are you sure you want to exit? Any unsaved changes will be lost.'),
+          content: const Text(
+            'Are you sure you want to exit? Any unsaved changes will be lost.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -631,7 +658,10 @@ class _EditPharmacyProfileView extends StatelessWidget {
     );
   }
 
-  Widget _buildCountryDropdown(BuildContext context, PharmacyProfileViewModel viewModel) {
+  Widget _buildCountryDropdown(
+    BuildContext context,
+    PharmacyProfileViewModel viewModel,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -661,7 +691,10 @@ class _EditPharmacyProfileView extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+              borderSide: const BorderSide(
+                color: AppColors.primaryDark,
+                width: 2,
+              ),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
@@ -687,8 +720,13 @@ class _EditPharmacyProfileView extends StatelessWidget {
     );
   }
 
-  Widget _buildStateDropdown(BuildContext context, PharmacyProfileViewModel viewModel) {
-    final isEnabled = viewModel.selectedCountry != null && viewModel.selectedCountry!.isNotEmpty;
+  Widget _buildStateDropdown(
+    BuildContext context,
+    PharmacyProfileViewModel viewModel,
+  ) {
+    final isEnabled =
+        viewModel.selectedCountry != null &&
+        viewModel.selectedCountry!.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -719,7 +757,10 @@ class _EditPharmacyProfileView extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+              borderSide: const BorderSide(
+                color: AppColors.primaryDark,
+                width: 2,
+              ),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
@@ -750,8 +791,12 @@ class _EditPharmacyProfileView extends StatelessWidget {
     );
   }
 
-  Widget _buildCityDropdown(BuildContext context, PharmacyProfileViewModel viewModel) {
-    final isEnabled = viewModel.selectedState != null && viewModel.selectedState!.isNotEmpty;
+  Widget _buildCityDropdown(
+    BuildContext context,
+    PharmacyProfileViewModel viewModel,
+  ) {
+    final isEnabled =
+        viewModel.selectedState != null && viewModel.selectedState!.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -782,7 +827,10 @@ class _EditPharmacyProfileView extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+              borderSide: const BorderSide(
+                color: AppColors.primaryDark,
+                width: 2,
+              ),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
@@ -852,10 +900,7 @@ class _EditPharmacyProfileView extends StatelessWidget {
               vertical: 12,
             ),
           ),
-          style: const TextStyle(
-            color: Colors.grey,
-            fontSize: 14,
-          ),
+          style: const TextStyle(color: Colors.grey, fontSize: 14),
         ),
       ],
     );
@@ -917,7 +962,10 @@ class _EditPharmacyProfileView extends StatelessWidget {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+                    borderSide: const BorderSide(
+                      color: AppColors.primaryDark,
+                      width: 2,
+                    ),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -949,7 +997,10 @@ class _EditPharmacyProfileView extends StatelessWidget {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+                borderSide: const BorderSide(
+                  color: AppColors.primaryDark,
+                  width: 2,
+                ),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 12,
@@ -975,14 +1026,10 @@ class _EditPharmacyProfileView extends StatelessWidget {
       ),
       label: Text(label),
       style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected
-            ? Colors.green
-            : AppColors.primaryDark,
+        backgroundColor: isSelected ? Colors.green : AppColors.primaryDark,
         foregroundColor: Colors.white,
         minimumSize: const Size(double.infinity, 48),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -1025,9 +1072,9 @@ class _EditPharmacyProfileView extends StatelessWidget {
   }
 
   void _showImagePickerBottomSheet(
-      BuildContext context,
-      PharmacyProfileViewModel viewModel,
-      ) {
+    BuildContext context,
+    PharmacyProfileViewModel viewModel,
+  ) {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -1039,10 +1086,7 @@ class _EditPharmacyProfileView extends StatelessWidget {
               children: [
                 const Text(
                   'Select Profile Picture',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 16),
                 ListTile(
@@ -1050,7 +1094,12 @@ class _EditPharmacyProfileView extends StatelessWidget {
                   title: const Text('Take Picture'),
                   onTap: () async {
                     Navigator.pop(context);
-                    _handleImagePick(context, ImageSource.camera, viewModel, isProfilePicture: true);
+                    _handleImagePick(
+                      context,
+                      ImageSource.camera,
+                      viewModel,
+                      isProfilePicture: true,
+                    );
                   },
                 ),
                 ListTile(
@@ -1058,12 +1107,16 @@ class _EditPharmacyProfileView extends StatelessWidget {
                   title: const Text('Select From Gallery'),
                   onTap: () async {
                     Navigator.pop(context);
-                    _handleImagePick(context, ImageSource.gallery, viewModel, isProfilePicture: true);
+                    _handleImagePick(
+                      context,
+                      ImageSource.gallery,
+                      viewModel,
+                      isProfilePicture: true,
+                    );
                   },
                 ),
               ],
             ),
-
           ),
         );
       },
@@ -1071,11 +1124,12 @@ class _EditPharmacyProfileView extends StatelessWidget {
   }
 
   Future<void> _handleImagePick(
-      BuildContext context,
-      ImageSource source,
-      PharmacyProfileViewModel viewModel,
-      {bool isProfilePicture = false, int? documentNumber}
-      ) async {
+    BuildContext context,
+    ImageSource source,
+    PharmacyProfileViewModel viewModel, {
+    bool isProfilePicture = false,
+    int? documentNumber,
+  }) async {
     try {
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(
@@ -1111,7 +1165,8 @@ class _EditPharmacyProfileView extends StatelessWidget {
     }
 
     // If there's an existing document URL from API
-    if (viewModel.licenseDocument1Url != null && viewModel.licenseDocument1Url!.isNotEmpty) {
+    if (viewModel.licenseDocument1Url != null &&
+        viewModel.licenseDocument1Url!.isNotEmpty) {
       try {
         // Extract filename from URL
         final uri = Uri.parse(viewModel.licenseDocument1Url!);
@@ -1130,18 +1185,19 @@ class _EditPharmacyProfileView extends StatelessWidget {
   }
 
   Future<void> _navigateToUploadDocument(
-      BuildContext context,
-      PharmacyProfileViewModel viewModel,
-      int documentNumber,
-      ) async {
-    final result = await Navigator.of(context, rootNavigator: true).push<Map<String, dynamic>>(
-      MaterialPageRoute(
-        builder: (_) => const UploadDocumentScreen(
-          title: 'Upload License Document',
-          subtitle: 'Please capture or upload your license document',
-        ),
-      ),
-    );
+    BuildContext context,
+    PharmacyProfileViewModel viewModel,
+    int documentNumber,
+  ) async {
+    final result = await Navigator.of(context, rootNavigator: true)
+        .push<Map<String, dynamic>>(
+          MaterialPageRoute(
+            builder: (_) => const UploadDocumentScreen(
+              title: 'Upload License Document',
+              subtitle: 'Please capture or upload your license document',
+            ),
+          ),
+        );
 
     if (result != null && result['file'] != null) {
       final file = result['file'] as File;

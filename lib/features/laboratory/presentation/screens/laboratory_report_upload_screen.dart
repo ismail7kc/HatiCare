@@ -5,6 +5,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:provider/provider.dart';
 import '../providers/laboratory_user_provider.dart';
+import 'package:flutter/services.dart';
+
 
 class LaboratoryReportUploadScreen extends StatefulWidget {
   const LaboratoryReportUploadScreen({super.key, required this.prescription});
@@ -410,6 +412,11 @@ class _LaboratoryReportUploadScreenState
                       ..selection = TextSelection.fromPosition(
                         TextPosition(offset: result.unit.length),
                       ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^[a-zA-Z/]*$'),
+                      ),
+                    ],
                     decoration: InputDecoration(
                       labelText: 'Unit *',
                       hintText: 'e.g., g/dL, mg/L',
@@ -429,6 +436,7 @@ class _LaboratoryReportUploadScreenState
                       });
                     },
                   ),
+
                   const SizedBox(height: 12),
 
                   // Reference Range Input
@@ -473,7 +481,7 @@ class _LaboratoryReportUploadScreenState
                             context: context,
                             position: RelativeRect.fromLTRB(
                               offset.dx,
-                              offset.dy + size.height, // Right below the field
+                              offset.dy + size.height,
                               MediaQuery.of(context).size.width -
                                   offset.dx -
                                   size.width,
@@ -903,8 +911,6 @@ class _LaboratoryReportUploadScreenState
 
       // Navigator.of(context).popUntil((route) => route.isFirst);
       Navigator.pop(context, true);
-
-
     } else {
       _showError(provider.errorMessage ?? 'Failed to submit reports');
     }
