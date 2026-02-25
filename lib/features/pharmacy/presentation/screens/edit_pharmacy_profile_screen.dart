@@ -583,7 +583,6 @@ class _EditPharmacyProfileView extends StatelessWidget {
             const SizedBox(height: 24),
           ],
 
-          // Tax Identification Number
           _buildEditableField(
             label: 'Tax Identification Number',
             controller: viewModel.taxIdController,
@@ -596,7 +595,6 @@ class _EditPharmacyProfileView extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // License Number
           _buildEditableField(
             label: 'License Number',
             controller: viewModel.licenseNumberController,
@@ -609,7 +607,6 @@ class _EditPharmacyProfileView extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // License Document
           const Text(
             'License Document',
             style: TextStyle(

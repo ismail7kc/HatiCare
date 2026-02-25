@@ -50,7 +50,9 @@ class _PharmacyAssignedScreenState extends State<PharmacyAssignedScreen> {
       }
 
       final response = await http.get(
-        Uri.parse('${AppConfig.baseUrl}prescriptions/pharmacy/assigned/?status=assigned'),
+        Uri.parse(
+          '${AppConfig.baseUrl}prescriptions/pharmacy/assigned/?status=assigned',
+        ),
         headers: {
           'Authorization': 'Bearer $accessToken',
           'Content-Type': 'application/json',
@@ -165,8 +167,7 @@ class _PharmacyAssignedScreenState extends State<PharmacyAssignedScreen> {
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: Column(
-          children: [
-            // Search Card
+          children: [ 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: Container(
@@ -208,14 +209,15 @@ class _PharmacyAssignedScreenState extends State<PharmacyAssignedScreen> {
                                 _rxCodeController.text = value.toUpperCase();
                                 _rxCodeController.selection =
                                     TextSelection.fromPosition(
-                                  TextPosition(offset: value.length),
-                                );
+                                      TextPosition(offset: value.length),
+                                    );
                               }
                               // Trigger filtering
                               _filterPrescriptions(_rxCodeController.text);
                             },
                             decoration: InputDecoration(
-                              hintText: 'Enter Rx Code (8 chars, e.g., 599147EF)',
+                              hintText:
+                                  'Enter Rx Code (8 chars, e.g., 599147EF)',
                               hintStyle: const TextStyle(
                                 color: Color(0xFF858585),
                                 fontSize: 14,
@@ -333,99 +335,101 @@ class _PharmacyAssignedScreenState extends State<PharmacyAssignedScreen> {
               child: isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : errorMessage != null
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  size: 48,
-                                  color: Colors.grey[400],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  errorMessage!,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      fontSize: 16, color: Colors.grey[600]),
-                                ),
-                                const SizedBox(height: 16),
-                                ElevatedButton(
-                                  onPressed: _fetchAssigned,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  child: const Text('Retry'),
-                                ),
-                              ],
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 48,
+                              color: Colors.grey[400],
                             ),
-                          ),
-                        )
-                      : filteredItems.isEmpty
-                          ? RefreshIndicator(
-                              onRefresh: _fetchAssigned,
-                              color: AppColors.primary,
-                              child: SingleChildScrollView(
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                child: SizedBox(
-                                  height: MediaQuery.of(context).size.height - 300,
-                                  child: Center(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.inventory_2_outlined,
-                                            size: 64,
-                                            color: Colors.grey[300],
-                                          ),
-                                          const SizedBox(height: 12),
-                                          Text(
-                                            _rxCodeController.text.isNotEmpty
-                                                ? 'No matching prescriptions'
-                                                : 'No Assigned Items',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.grey[400],
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            _rxCodeController.text.isNotEmpty
-                                                ? 'Try a different RX code'
-                                                : 'Pull down to refresh',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.grey[500],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                            const SizedBox(height: 16),
+                            Text(
+                              errorMessage!,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _fetchAssigned,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : filteredItems.isEmpty
+                  ? RefreshIndicator(
+                      onRefresh: _fetchAssigned,
+                      color: AppColors.primary,
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height - 300,
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.inventory_2_outlined,
+                                    size: 64,
+                                    color: Colors.grey[300],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    _rxCodeController.text.isNotEmpty
+                                        ? 'No matching prescriptions'
+                                        : 'No Assigned Items',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey[400],
                                     ),
                                   ),
-                                ),
-                              ),
-                            )
-                          : RefreshIndicator(
-                              onRefresh: _fetchAssigned,
-                              color: AppColors.primary,
-                              child: ListView.builder(
-                                padding: const EdgeInsets.all(16),
-                                itemCount: filteredItems.length,
-                                itemBuilder: (_, index) {
-                                  final item = filteredItems[index];
-                                  return AssignedPrescriptionCard(
-                                    item: item,
-                                    onVerify: verifyPrescription,
-                                  );
-                                },
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _rxCodeController.text.isNotEmpty
+                                        ? 'Try a different RX code'
+                                        : 'Pull down to refresh',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey[500],
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
+                          ),
+                        ),
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _fetchAssigned,
+                      color: AppColors.primary,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filteredItems.length,
+                        itemBuilder: (_, index) {
+                          final item = filteredItems[index];
+                          return AssignedPrescriptionCard(
+                            item: item,
+                            onVerify: verifyPrescription,
+                          );
+                        },
+                      ),
+                    ),
             ),
           ],
         ),
@@ -463,11 +467,10 @@ class AssignedPrescriptionCard extends StatelessWidget {
               builder: (context) => AssignedDetailScreen(request: item),
             ),
           );
-          
-          // Refresh the list if prescription was completed
+
           if (result == true && context.mounted) {
-            // Find the parent state and refresh
-            final parentState = context.findAncestorStateOfType<_PharmacyAssignedScreenState>();
+            final parentState = context
+                .findAncestorStateOfType<_PharmacyAssignedScreenState>();
             parentState?._fetchAssigned();
           }
         }
@@ -553,10 +556,16 @@ class AssignedPrescriptionCard extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                Icon(Icons.medical_services_outlined, color: Colors.grey[600], size: 20),
+                Icon(
+                  Icons.medical_services_outlined,
+                  color: Colors.grey[600],
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Text(
-                  item.doctor.startsWith('Dr.') ? item.doctor : 'Dr. ${item.doctor}',
+                  item.doctor.startsWith('Dr.')
+                      ? item.doctor
+                      : 'Dr. ${item.doctor}',
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,

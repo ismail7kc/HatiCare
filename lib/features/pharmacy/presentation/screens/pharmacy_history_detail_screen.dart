@@ -5,15 +5,13 @@ import 'package:haticare/core/theme/app_colors.dart';
 class PharmacyHistoryDetailScreen extends StatelessWidget {
   final Map<String, dynamic> prescription;
 
-  const PharmacyHistoryDetailScreen({
-    super.key,
-    required this.prescription,
-  });
+  const PharmacyHistoryDetailScreen({super.key, required this.prescription});
 
   @override
   Widget build(BuildContext context) {
     final prescriptionId = prescription['prescription_id']?.toString() ?? '';
-    final patientName = prescription['patient_name']?.toString() ?? 'Unknown Patient';
+    final patientName =
+        prescription['patient_name']?.toString() ?? 'Unknown Patient';
     final patientPhone = prescription['patient_phone']?.toString() ?? '';
     final patientCity = prescription['patient_city']?.toString() ?? '';
     final doctor = prescription['doctor']?.toString() ?? '';
@@ -46,7 +44,11 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildPrescriptionInfoCard(prescriptionId, pharmacyStatus, createdAt),
+            _buildPrescriptionInfoCard(
+              prescriptionId,
+              pharmacyStatus,
+              createdAt,
+            ),
             const SizedBox(height: 16),
 
             _buildPatientInfoCard(patientName, patientPhone, patientCity),
@@ -71,7 +73,11 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPrescriptionInfoCard(String prescriptionId, String status, String createdAt) {
+  Widget _buildPrescriptionInfoCard(
+    String prescriptionId,
+    String status,
+    String createdAt,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -123,10 +129,7 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       'ID: #$prescriptionId',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
                     ),
                   ],
                 ),
@@ -146,10 +149,7 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   _formatDate(createdAt),
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.grey[700], fontSize: 14),
                 ),
               ],
             ),
@@ -159,7 +159,11 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPatientInfoCard(String patientName, String patientPhone, String patientCity) {
+  Widget _buildPatientInfoCard(
+    String patientName,
+    String patientPhone,
+    String patientCity,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -189,18 +193,11 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(
-                Icons.person_outline,
-                size: 20,
-                color: Colors.grey[600],
-              ),
+              Icon(Icons.person_outline, size: 20, color: Colors.grey[600]),
               const SizedBox(width: 8),
               Text(
                 patientName,
-                style: TextStyle(
-                  color: Colors.grey[700],
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey[700], fontSize: 14),
               ),
             ],
           ),
@@ -208,18 +205,11 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(
-                  Icons.phone_outlined,
-                  size: 20,
-                  color: Colors.grey[600],
-                ),
+                Icon(Icons.phone_outlined, size: 20, color: Colors.grey[600]),
                 const SizedBox(width: 8),
                 Text(
                   patientPhone,
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.grey[700], fontSize: 14),
                 ),
               ],
             ),
@@ -236,10 +226,7 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   patientCity,
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.grey[700], fontSize: 14),
                 ),
               ],
             ),
@@ -287,10 +274,7 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'Dr. $doctor',
-                style: TextStyle(
-                  color: Colors.grey[700],
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey[700], fontSize: 14),
               ),
             ],
           ),
@@ -358,7 +342,9 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
             final notes = med['notes']?.toString() ?? '';
 
             return Padding(
-              padding: EdgeInsets.only(bottom: index < medications.length - 1 ? 12 : 0),
+              padding: EdgeInsets.only(
+                bottom: index < medications.length - 1 ? 12 : 0,
+              ),
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -391,10 +377,12 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    if (dose.isNotEmpty || frequency.isNotEmpty || duration.isNotEmpty || quantity != '0') ...[
+                    if (dose.isNotEmpty ||
+                        frequency.isNotEmpty ||
+                        duration.isNotEmpty ||
+                        quantity != '0') ...[
                       const SizedBox(height: 8),
-                      if (dose.isNotEmpty)
-                        _buildMedicationDetail('Dose', dose),
+                      if (dose.isNotEmpty) _buildMedicationDetail('Dose', dose),
                       if (frequency.isNotEmpty)
                         _buildMedicationDetail('Frequency', frequency),
                       if (duration.isNotEmpty)
@@ -460,10 +448,7 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: TextStyle(
-                color: Colors.grey[700],
-                fontSize: 12,
-              ),
+              style: TextStyle(color: Colors.grey[700], fontSize: 12),
             ),
           ),
         ],
@@ -509,11 +494,7 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 20,
-                      color: Colors.grey[600],
-                    ),
+                    Icon(Icons.info_outline, size: 20, color: Colors.grey[600]),
                     const SizedBox(width: 8),
                     Text(
                       'Last Action: ',
@@ -525,10 +506,7 @@ class PharmacyHistoryDetailScreen extends StatelessWidget {
                     ),
                     Text(
                       lastAction,
-                      style: TextStyle(
-                        color: Colors.grey[700],
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: Colors.grey[700], fontSize: 13),
                     ),
                   ],
                 ),
