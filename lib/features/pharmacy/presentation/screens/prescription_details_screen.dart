@@ -1,5 +1,6 @@
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/pharmacy/models/prescription_request.dart';
+import 'package:haticare/features/pharmacy/presentation/screens/pharmacy_home_screen.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,9 +20,6 @@ class PrescriptionDetailsScreen extends StatefulWidget {
 }
 
 class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
-
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -252,7 +250,9 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                         children: [
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () => _showAvailabilityBottomSheet(isFullyAvailable: true),
+                              onPressed: () => _showAvailabilityBottomSheet(
+                                isFullyAvailable: true,
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Color(0xFF4CA054),
                                 foregroundColor: Colors.white,
@@ -276,7 +276,9 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () => _showAvailabilityBottomSheet(isFullyAvailable: false),
+                              onPressed: () => _showAvailabilityBottomSheet(
+                                isFullyAvailable: false,
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Color(0xFFFF9800),
                                 foregroundColor: Colors.white,
@@ -437,8 +439,9 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
     );
   }
 
-  Future<void> _showAvailabilityBottomSheet({required bool isFullyAvailable}) async {
-
+  Future<void> _showAvailabilityBottomSheet({
+    required bool isFullyAvailable,
+  }) async {
     Map<int, Map<String, dynamic>> medicationAvailability = {};
     for (int i = 0; i < widget.request.medications.length; i++) {
       final instructions = widget.request.medications[i].instructions;
@@ -486,7 +489,9 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          isFullyAvailable ? 'Fully Available Medicines' : 'Partially Available Medicines',
+                          isFullyAvailable
+                              ? 'Fully Available Medicines'
+                              : 'Partially Available Medicines',
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -495,7 +500,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          isFullyAvailable 
+                          isFullyAvailable
                               ? 'Select which medicines are fully available'
                               : 'Set available quantities for each medicine',
                           style: TextStyle(
@@ -566,7 +571,8 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                                   ),
                                 ],
                               ),
-                              if (availability['isAvailable'] && !isFullyAvailable)
+                              if (availability['isAvailable'] &&
+                                  !isFullyAvailable)
                                 Padding(
                                   padding: const EdgeInsets.only(
                                     left: 40,
@@ -633,7 +639,9 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                                               ),
                                             ),
                                             InkWell(
-                                              onTap: availability['availableQty'] < availability['requiredQty']
+                                              onTap:
+                                                  availability['availableQty'] <
+                                                      availability['requiredQty']
                                                   ? () {
                                                       debugPrint(
                                                         'Increase quantity for item $index',
@@ -650,7 +658,9 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                                                 child: Icon(
                                                   Icons.add,
                                                   size: 18,
-                                                  color: availability['availableQty'] < availability['requiredQty']
+                                                  color:
+                                                      availability['availableQty'] <
+                                                          availability['requiredQty']
                                                       ? Colors.black
                                                       : Colors.grey,
                                                 ),
@@ -700,7 +710,9 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
                           child: ElevatedButton(
                             onPressed: () {
                               Navigator.pop(context);
-                              _submitAvailabilityFromBottomSheet(medicationAvailability);
+                              _submitAvailabilityFromBottomSheet(
+                                medicationAvailability,
+                              );
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
@@ -762,9 +774,11 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
         'strength': medication.dosage,
         'required_qty': requiredQty, // Send as int
         'available_qty': availableQty, // Send as int
-        'notes': !isAvailable 
-            ? 'Out of stock' 
-            : (availableQty >= requiredQty ? 'In stock' : 'Only $availableQty available'),
+        'notes': !isAvailable
+            ? 'Out of stock'
+            : (availableQty >= requiredQty
+                  ? 'In stock'
+                  : 'Only $availableQty available'),
       });
     }
 
@@ -823,7 +837,7 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
       if (!mounted) {
         // If unmounted, we can't pop the dialog via context easily if we lost it,
         // but checking mounted before operations is good practice.
-        return; 
+        return;
       }
 
       final accessToken = prefs.getString('access_token') ?? '';
@@ -831,6 +845,8 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
       final statusId = widget.request.id.isNotEmpty
           ? widget.request.id
           : widget.request.rxCode;
+
+      debugPrint('Status Id is here $statusId');
 
       final body = {
         'availability': availability,
@@ -853,8 +869,8 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
       );
 
       if (!mounted) return;
-      
-      // Pop the loading dialog using rootNavigator to ensure we close the dialog 
+
+      // Pop the loading dialog using rootNavigator to ensure we close the dialog
       // and not the screen or bottom sheet prematurely
       Navigator.of(context, rootNavigator: true).pop();
 
@@ -878,21 +894,20 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
 
         // Pop the screen and return true to indicate refresh needed
         if (mounted) {
-          Navigator.pop(context, true); 
+          Navigator.pop(context, true);
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Failed to update availability: ${response.statusCode}',
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+
+        final String responseMessage =
+            responseData['message'] ??
+            responseData['detail'] ??
+            'Something went wrong';
+        _showAlreadyConfirmedDialog(responseMessage);
       }
     } catch (e) {
       if (!mounted) return;
-      
+
       // Pop the loading dialog on error
       Navigator.of(context, rootNavigator: true).pop();
 
@@ -903,6 +918,31 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
         ),
       );
     }
+  }
+
+  void _showAlreadyConfirmedDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text('Already Confirmed'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const PharmacyHomeScreen()),
+                (route) => false,
+              );
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   String _buildPartialAvailabilityComment(List<Map<String, dynamic>> items) {
