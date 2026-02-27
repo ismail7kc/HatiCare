@@ -135,12 +135,35 @@ class _IssueRxScreenState extends State<CreatePrescriptionScreen> {
                     const SizedBox(height: 18),
 
                     for (int i = 0; i < medicines.length; i++) ...[
-                      Text(
-                        "Med ${i + 1}:",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            "Med ${i + 1}:",
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+
+                          const Spacer(),
+
+                          if (medicines.length >1)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 20),
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    medicines.removeAt(i);
+                                  });
+                                },
+                                child: const Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.red,
+                                  size: 22,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       Row(
