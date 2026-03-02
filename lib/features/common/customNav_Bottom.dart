@@ -128,7 +128,7 @@ class _CustomBottomNavState extends State<CustomBottomNav> {
       margin: EdgeInsets.zero,
       padding: EdgeInsets.zero,
       confineToSafeArea: true,
-      navBarStyle: NavBarStyle.style6,
+      navBarStyle: NavBarStyle.simple,
     );
   }
 }

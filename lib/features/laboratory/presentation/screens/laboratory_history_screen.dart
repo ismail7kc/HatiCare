@@ -20,7 +20,6 @@ class _LaboratoryHistoryScreenState extends State<LaboratoryHistoryScreen>
   @override
   void initState() {
     super.initState();
-    // Fetch history when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<LaboratoryUserProvider>();
       provider.fetchHistory();
@@ -29,7 +28,6 @@ class _LaboratoryHistoryScreenState extends State<LaboratoryHistoryScreen>
 
   Future<void> _onRefresh() async {
     final provider = context.read<LaboratoryUserProvider>();
-    // Fetch history to refresh data
     await provider.fetchHistory();
 
     if (mounted) {
@@ -54,8 +52,9 @@ class _LaboratoryHistoryScreenState extends State<LaboratoryHistoryScreen>
       backgroundColor: const Color(0xFFF9FAFB),
 
       body: SafeArea(
+        bottom: false,
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.only(left: 20, right: 20, top: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [

@@ -53,7 +53,9 @@ class _EditLaboratoryProfileView extends StatelessWidget {
   Widget build(BuildContext context) {
     final viewModel = context.watch<LaboratoryProfileViewModel>();
 
-    if (viewModel.errorMessage != null && viewModel.hasInitialized && !viewModel.isInitializationError) {
+    if (viewModel.errorMessage != null &&
+        viewModel.hasInitialized &&
+        !viewModel.isInitializationError) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -68,8 +70,8 @@ class _EditLaboratoryProfileView extends StatelessWidget {
       });
     }
 
-    // Show page 2 validation error toast
-    if (viewModel.getPage2ValidationError() != null && viewModel.hasInitialized) {
+    if (viewModel.getPage2ValidationError() != null &&
+        viewModel.hasInitialized) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -84,7 +86,6 @@ class _EditLaboratoryProfileView extends StatelessWidget {
       });
     }
 
-    // Show success toast
     if (viewModel.successMessage != null && viewModel.hasInitialized) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
@@ -121,25 +122,22 @@ class _EditLaboratoryProfileView extends StatelessWidget {
 
     return WillPopScope(
       onWillPop: () async {
-        // Allow navigating back to step 1 from step 2
         if (viewModel.currentStep == 2) {
           viewModel.moveBackToPreviousPage();
           return false;
         }
 
-        // If force complete mode, prevent leaving the screen
         if (isForceComplete) {
           return false;
         }
 
-        // If opened from settings on step 1, show confirmation dialog only if changes were made
         if (openedFromSettings && viewModel.currentStep == 1) {
           if (viewModel.hasChanges) {
             return await _showExitConfirmationDialog(context) ?? false;
           }
           return true;
         }
-        
+
         return true;
       },
       child: Scaffold(
@@ -164,14 +162,13 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                     if (viewModel.currentStep == 2) {
                       viewModel.moveBackToPreviousPage();
                     } else if (openedFromSettings) {
-                      // Show confirmation dialog only if changes were made
                       if (viewModel.hasChanges) {
-                        final shouldExit = await _showExitConfirmationDialog(context) ?? false;
+                        final shouldExit =
+                            await _showExitConfirmationDialog(context) ?? false;
                         if (shouldExit && context.mounted) {
                           Navigator.of(context).pop();
                         }
                       } else {
-                        // No changes, just exit
                         if (context.mounted) {
                           Navigator.of(context).pop();
                         }
@@ -184,79 +181,85 @@ class _EditLaboratoryProfileView extends StatelessWidget {
               : null,
         ),
         body: viewModel.isLoading
-            ? const Center(
-                child: CircularProgressIndicator(),
-              )
+            ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
-          child: Column(
-            children: [
-              // Show "Complete your profile" banner only for first-time users
-              if (isForceComplete && !openedFromSettings)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  margin: const EdgeInsets.only(top: 16, left: 16, right: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryDark.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.primaryDark.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: AppColors.primaryDark, size: 24),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Complete your profile to continue using the app',
-                          style: TextStyle(
-                            color: AppColors.primaryDark,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
                   children: [
-                    // Progress indicator
-                    _buildProgressIndicator(viewModel.currentStep),
+                    if (isForceComplete && !openedFromSettings)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.only(
+                          top: 16,
+                          left: 16,
+                          right: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryDark.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.primaryDark.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: AppColors.primaryDark,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Complete your profile to continue using the app',
+                                style: TextStyle(
+                                  color: AppColors.primaryDark,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Column(
+                        children: [
+                          _buildProgressIndicator(viewModel.currentStep),
+                          const SizedBox(height: 24),
 
-                // Page content
-                if (viewModel.currentStep == 1)
-                  _buildPage1(context, viewModel)
-                else
-                  _buildPage2(context, viewModel, openedFromSettings),
+                          if (viewModel.currentStep == 1)
+                            _buildPage1(context, viewModel)
+                          else
+                            _buildPage2(context, viewModel, openedFromSettings),
 
-                const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
-                // Action buttons
-                if (viewModel.currentStep == 1)
-                  AppPrimaryButton(
-                    label: 'Next',
-                    onPressed: viewModel.isSubmitting
-                        ? null
-                        : () => viewModel.moveToNextPage(),
-                  )
-                else
-                  AppPrimaryButton(
-                    label: viewModel.isSubmitting ? 'Submitting...' : 'Submit',
-                    onPressed: viewModel.isSubmitting
-                        ? null
-                        : () => viewModel.submitProfile(),
-                  ),
-                const SizedBox(height: 24),
-              ],
-            ),
-          ),
-          ],
-        ),
-      ),
+                          if (viewModel.currentStep == 1)
+                            AppPrimaryButton(
+                              label: 'Next',
+                              onPressed: viewModel.isSubmitting
+                                  ? null
+                                  : () => viewModel.moveToNextPage(),
+                            )
+                          else
+                            AppPrimaryButton(
+                              label: viewModel.isSubmitting
+                                  ? 'Submitting...'
+                                  : 'Submit',
+                              onPressed: viewModel.isSubmitting
+                                  ? null
+                                  : () => viewModel.submitProfile(),
+                            ),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
       ),
     );
   }
@@ -267,7 +270,9 @@ class _EditLaboratoryProfileView extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Discard Changes?'),
-          content: const Text('Are you sure you want to exit? Any unsaved changes will be lost.'),
+          content: const Text(
+            'Are you sure you want to exit? Any unsaved changes will be lost.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -287,7 +292,6 @@ class _EditLaboratoryProfileView extends StatelessWidget {
   static Widget _buildProgressIndicator(int currentStep) {
     return Row(
       children: [
-        // Step 1
         Container(
           width: 40,
           height: 40,
@@ -305,7 +309,6 @@ class _EditLaboratoryProfileView extends StatelessWidget {
             ),
           ),
         ),
-        // Connector
         Expanded(
           child: Container(
             height: 2,
@@ -313,7 +316,6 @@ class _EditLaboratoryProfileView extends StatelessWidget {
             margin: const EdgeInsets.symmetric(horizontal: 8),
           ),
         ),
-        // Step 2
         Container(
           width: 40,
           height: 40,
@@ -335,7 +337,10 @@ class _EditLaboratoryProfileView extends StatelessWidget {
     );
   }
 
-  static Widget _buildPage1(BuildContext context, LaboratoryProfileViewModel viewModel) {
+  static Widget _buildPage1(
+    BuildContext context,
+    LaboratoryProfileViewModel viewModel,
+  ) {
     return Form(
       key: viewModel.formKeyPage1,
       autovalidateMode: AutovalidateMode.disabled,
@@ -352,11 +357,12 @@ class _EditLaboratoryProfileView extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Editable fields
           _buildEditableField(
             label: 'Contact Person',
             controller: viewModel.contactPersonController,
-            validator: (_) => viewModel.validateContactPerson(viewModel.contactPersonController.text),
+            validator: (_) => viewModel.validateContactPerson(
+              viewModel.contactPersonController.text,
+            ),
             hintText: 'Enter contact person name',
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
@@ -371,11 +377,14 @@ class _EditLaboratoryProfileView extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Editable fields
           _buildEditableField(
             label: 'Laboratory Name',
             controller: viewModel.laboratoryNameController,
-            validator: (_) => viewModel.getValidationError('laboratoryName') ?? viewModel.validateLaboratoryName(viewModel.laboratoryNameController.text),
+            validator: (_) =>
+                viewModel.getValidationError('laboratoryName') ??
+                viewModel.validateLaboratoryName(
+                  viewModel.laboratoryNameController.text,
+                ),
             hintText: 'Enter laboratory name',
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
@@ -413,13 +422,19 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
                   ),
                   errorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: Colors.red, width: 1.5),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
                 ),
@@ -449,17 +464,22 @@ class _EditLaboratoryProfileView extends StatelessWidget {
           _buildEditableField(
             label: 'Address Line 1',
             controller: viewModel.addressLine1Controller,
-            validator: (_) => viewModel.getValidationError('address') ?? viewModel.validateAddress(viewModel.addressLine1Controller.text),
+            validator: (_) =>
+                viewModel.getValidationError('address') ??
+                viewModel.validateAddress(
+                  viewModel.addressLine1Controller.text,
+                ),
             hintText: 'Enter street address',
             inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s,.\-#/&]')),
+              FilteringTextInputFormatter.allow(
+                RegExp(r'[a-zA-Z0-9\s,.\-#/&]'),
+              ),
             ],
             onChanged: () => viewModel.clearValidationError('address'),
             viewModel: viewModel,
           ),
           const SizedBox(height: 16),
 
-          // Country dropdown
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -489,7 +509,10 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+                    borderSide: const BorderSide(
+                      color: AppColors.primaryDark,
+                      width: 2,
+                    ),
                   ),
                   errorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -503,7 +526,10 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                     horizontal: 12,
                     vertical: 12,
                   ),
-                  suffixIcon: Icon(Icons.arrow_drop_down, color: Colors.grey[400]),
+                  suffixIcon: Icon(
+                    Icons.arrow_drop_down,
+                    color: Colors.grey[400],
+                  ),
                 ),
                 onTap: () async {
                   final selected = await showCustomDropdownDialog(
@@ -534,7 +560,6 @@ class _EditLaboratoryProfileView extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // State dropdown
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -553,7 +578,9 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: 'Select state',
                   filled: true,
-                  fillColor: (viewModel.selectedCountry != null && viewModel.selectedCountry!.isNotEmpty)
+                  fillColor:
+                      (viewModel.selectedCountry != null &&
+                          viewModel.selectedCountry!.isNotEmpty)
                       ? Colors.white
                       : Colors.grey[100],
                   border: OutlineInputBorder(
@@ -566,7 +593,10 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+                    borderSide: const BorderSide(
+                      color: AppColors.primaryDark,
+                      width: 2,
+                    ),
                   ),
                   errorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -582,12 +612,16 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                   ),
                   suffixIcon: Icon(
                     Icons.arrow_drop_down,
-                    color: (viewModel.selectedCountry != null && viewModel.selectedCountry!.isNotEmpty)
+                    color:
+                        (viewModel.selectedCountry != null &&
+                            viewModel.selectedCountry!.isNotEmpty)
                         ? Colors.grey[400]
                         : Colors.grey[300],
                   ),
                 ),
-                onTap: (viewModel.selectedCountry != null && viewModel.selectedCountry!.isNotEmpty)
+                onTap:
+                    (viewModel.selectedCountry != null &&
+                        viewModel.selectedCountry!.isNotEmpty)
                     ? () async {
                         final selected = await showCustomDropdownDialog(
                           context: context,
@@ -637,7 +671,9 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: 'Select city',
                   filled: true,
-                  fillColor: (viewModel.selectedState != null && viewModel.selectedState!.isNotEmpty)
+                  fillColor:
+                      (viewModel.selectedState != null &&
+                          viewModel.selectedState!.isNotEmpty)
                       ? Colors.white
                       : Colors.grey[100],
                   border: OutlineInputBorder(
@@ -650,7 +686,10 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+                    borderSide: const BorderSide(
+                      color: AppColors.primaryDark,
+                      width: 2,
+                    ),
                   ),
                   errorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -666,12 +705,16 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                   ),
                   suffixIcon: Icon(
                     Icons.arrow_drop_down,
-                    color: (viewModel.selectedState != null && viewModel.selectedState!.isNotEmpty)
+                    color:
+                        (viewModel.selectedState != null &&
+                            viewModel.selectedState!.isNotEmpty)
                         ? Colors.grey[400]
                         : Colors.grey[300],
                   ),
                 ),
-                onTap: (viewModel.selectedState != null && viewModel.selectedState!.isNotEmpty)
+                onTap:
+                    (viewModel.selectedState != null &&
+                        viewModel.selectedState!.isNotEmpty)
                     ? () async {
                         final selected = await showCustomDropdownDialog(
                           context: context,
@@ -706,7 +749,9 @@ class _EditLaboratoryProfileView extends StatelessWidget {
           _buildEditableField(
             label: 'Zip Code',
             controller: viewModel.zipCodeController,
-            validator: (_) => viewModel.getValidationError('zipCode') ?? viewModel.validateZipCode(viewModel.zipCodeController.text),
+            validator: (_) =>
+                viewModel.getValidationError('zipCode') ??
+                viewModel.validateZipCode(viewModel.zipCodeController.text),
             hintText: 'Enter zip code',
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
@@ -720,16 +765,18 @@ class _EditLaboratoryProfileView extends StatelessWidget {
     );
   }
 
-  static Widget _buildPage2(BuildContext context, LaboratoryProfileViewModel viewModel, bool openedFromSettings) {
+  static Widget _buildPage2(
+    BuildContext context,
+    LaboratoryProfileViewModel viewModel,
+    bool openedFromSettings,
+  ) {
     return Form(
       key: viewModel.formKeyPage2,
       autovalidateMode: AutovalidateMode.disabled,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Only show profile picture if not opened from settings
           if (!openedFromSettings) ...[
-            // Profile Picture
             const Text(
               'Profile Picture',
               style: TextStyle(
@@ -749,10 +796,7 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.primaryDark,
-                      width: 2,
-                    ),
+                    border: Border.all(color: AppColors.primaryDark, width: 2),
                   ),
                   child: viewModel.profilePicture != null
                       ? ClipOval(
@@ -761,25 +805,26 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                             fit: BoxFit.cover,
                           ),
                         )
-                      : viewModel.profilePictureUrl != null && viewModel.profilePictureUrl!.isNotEmpty
-                          ? ClipOval(
-                              child: Image.network(
-                                viewModel.profilePictureUrl!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return const Icon(
-                                    Icons.camera_alt,
-                                    size: 40,
-                                    color: AppColors.primaryDark,
-                                  );
-                                },
-                              ),
-                            )
-                          : const Icon(
-                              Icons.camera_alt,
-                              size: 40,
-                              color: AppColors.primaryDark,
-                            ),
+                      : viewModel.profilePictureUrl != null &&
+                            viewModel.profilePictureUrl!.isNotEmpty
+                      ? ClipOval(
+                          child: Image.network(
+                            viewModel.profilePictureUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(
+                                Icons.camera_alt,
+                                size: 40,
+                                color: AppColors.primaryDark,
+                              );
+                            },
+                          ),
+                        )
+                      : const Icon(
+                          Icons.camera_alt,
+                          size: 40,
+                          color: AppColors.primaryDark,
+                        ),
                 ),
               ),
             ),
@@ -788,16 +833,18 @@ class _EditLaboratoryProfileView extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    viewModel.profilePicture != null || (viewModel.profilePictureUrl != null && viewModel.profilePictureUrl!.isNotEmpty)
+                    viewModel.profilePicture != null ||
+                            (viewModel.profilePictureUrl != null &&
+                                viewModel.profilePictureUrl!.isNotEmpty)
                         ? 'Tap to change'
                         : 'Tap to add photo',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   const SizedBox(height: 4),
-                  if (viewModel.attemptedSubmitPage2 && viewModel.profilePicture == null && (viewModel.profilePictureUrl == null || viewModel.profilePictureUrl!.isEmpty))
+                  if (viewModel.attemptedSubmitPage2 &&
+                      viewModel.profilePicture == null &&
+                      (viewModel.profilePictureUrl == null ||
+                          viewModel.profilePictureUrl!.isEmpty))
                     const Text(
                       'Profile picture required',
                       style: TextStyle(
@@ -812,7 +859,6 @@ class _EditLaboratoryProfileView extends StatelessWidget {
             const SizedBox(height: 24),
           ],
 
-          // Tax Identification Number
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -841,7 +887,10 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+                    borderSide: const BorderSide(
+                      color: AppColors.primaryDark,
+                      width: 2,
+                    ),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -854,7 +903,8 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              if (viewModel.attemptedSubmitPage2 && viewModel.taxIdentificationNumberController.text.isEmpty)
+              if (viewModel.attemptedSubmitPage2 &&
+                  viewModel.taxIdentificationNumberController.text.isEmpty)
                 const Text(
                   'Tax identification number is required',
                   style: TextStyle(
@@ -867,7 +917,6 @@ class _EditLaboratoryProfileView extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // License Number
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -896,7 +945,10 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+                    borderSide: const BorderSide(
+                      color: AppColors.primaryDark,
+                      width: 2,
+                    ),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -909,7 +961,8 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              if (viewModel.attemptedSubmitPage2 && viewModel.licenseNumberController.text.isEmpty)
+              if (viewModel.attemptedSubmitPage2 &&
+                  viewModel.licenseNumberController.text.isEmpty)
                 const Text(
                   'License number is required',
                   style: TextStyle(
@@ -922,7 +975,6 @@ class _EditLaboratoryProfileView extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // License Document
           const Text(
             'License Document',
             style: TextStyle(
@@ -936,7 +988,10 @@ class _EditLaboratoryProfileView extends StatelessWidget {
           _buildFileUploadButton(
             label: _getLicenseDocumentLabel(viewModel),
             onPressed: () => _navigateToUploadDocument(context, viewModel, 1),
-            isSelected: viewModel.licenseDocument1 != null || (viewModel.licenseDocument1Url != null && viewModel.licenseDocument1Url!.isNotEmpty),
+            isSelected:
+                viewModel.licenseDocument1 != null ||
+                (viewModel.licenseDocument1Url != null &&
+                    viewModel.licenseDocument1Url!.isNotEmpty),
           ),
         ],
       ),
@@ -982,10 +1037,7 @@ class _EditLaboratoryProfileView extends StatelessWidget {
               vertical: 12,
             ),
           ),
-          style: const TextStyle(
-            color: Colors.grey,
-            fontSize: 14,
-          ),
+          style: const TextStyle(color: Colors.grey, fontSize: 14),
         ),
       ],
     );
@@ -1001,8 +1053,9 @@ class _EditLaboratoryProfileView extends StatelessWidget {
     VoidCallback? onChanged,
     LaboratoryProfileViewModel? viewModel,
   }) {
-    // Only get validation error if user has attempted to submit/next
-    final validationError = (viewModel?.attemptedSubmit == true) ? validator(controller.text) : null;
+    final validationError = (viewModel?.attemptedSubmit == true)
+        ? validator(controller.text)
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1025,15 +1078,13 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                 initialCountryCode: viewModel.countryCode,
                 initialValue: viewModel.initialPhoneNumber,
                 onCountryChanged: (country) {
-                  // Update the country code in the view model
-                  viewModel.updatePhoneNumber(null); // Clear to reset
+                  viewModel.updatePhoneNumber(null);
                 },
                 onChanged: (phone) {
                   viewModel.updatePhoneNumber(phone);
                   if (onChanged != null) onChanged();
                 },
                 validator: (phone) {
-                  // Return null for phone validation as it's handled differently
                   return null;
                 },
                 decoration: InputDecoration(
@@ -1050,7 +1101,10 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+                    borderSide: const BorderSide(
+                      color: AppColors.primaryDark,
+                      width: 2,
+                    ),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -1082,14 +1136,18 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(
-                      color: validationError != null ? Colors.red : Colors.grey[300]!,
+                      color: validationError != null
+                          ? Colors.red
+                          : Colors.grey[300]!,
                       width: validationError != null ? 1.5 : 1.0,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(
-                      color: validationError != null ? Colors.red : AppColors.primaryDark,
+                      color: validationError != null
+                          ? Colors.red
+                          : AppColors.primaryDark,
                       width: 2,
                     ),
                   ),
@@ -1138,14 +1196,10 @@ class _EditLaboratoryProfileView extends StatelessWidget {
       ),
       label: Text(label),
       style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected
-            ? Colors.green
-            : AppColors.primaryDark,
+        backgroundColor: isSelected ? Colors.green : AppColors.primaryDark,
         foregroundColor: Colors.white,
         minimumSize: const Size(double.infinity, 48),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -1188,9 +1242,9 @@ class _EditLaboratoryProfileView extends StatelessWidget {
   }
 
   static void _showImagePickerBottomSheet(
-      BuildContext context,
-      LaboratoryProfileViewModel viewModel,
-      ) {
+    BuildContext context,
+    LaboratoryProfileViewModel viewModel,
+  ) {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -1202,10 +1256,7 @@ class _EditLaboratoryProfileView extends StatelessWidget {
               children: [
                 const Text(
                   'Select Profile Picture',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 16),
                 ListTile(
@@ -1213,7 +1264,12 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                   title: const Text('Take Picture'),
                   onTap: () async {
                     Navigator.pop(context);
-                    _handleImagePick(context, ImageSource.camera, viewModel, isProfilePicture: true);
+                    _handleImagePick(
+                      context,
+                      ImageSource.camera,
+                      viewModel,
+                      isProfilePicture: true,
+                    );
                   },
                 ),
                 ListTile(
@@ -1221,7 +1277,12 @@ class _EditLaboratoryProfileView extends StatelessWidget {
                   title: const Text('Select From Gallery'),
                   onTap: () async {
                     Navigator.pop(context);
-                    _handleImagePick(context, ImageSource.gallery, viewModel, isProfilePicture: true);
+                    _handleImagePick(
+                      context,
+                      ImageSource.gallery,
+                      viewModel,
+                      isProfilePicture: true,
+                    );
                   },
                 ),
               ],
@@ -1233,11 +1294,12 @@ class _EditLaboratoryProfileView extends StatelessWidget {
   }
 
   static Future<void> _handleImagePick(
-      BuildContext context,
-      ImageSource source,
-      LaboratoryProfileViewModel viewModel,
-      {bool isProfilePicture = false, int? documentNumber}
-      ) async {
+    BuildContext context,
+    ImageSource source,
+    LaboratoryProfileViewModel viewModel, {
+    bool isProfilePicture = false,
+    int? documentNumber,
+  }) async {
     try {
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(
@@ -1266,7 +1328,6 @@ class _EditLaboratoryProfileView extends StatelessWidget {
     }
   }
 
-
   static String _getLicenseDocumentLabel(LaboratoryProfileViewModel viewModel) {
     // If a new file is selected
     if (viewModel.licenseDocument1 != null) {
@@ -1274,7 +1335,8 @@ class _EditLaboratoryProfileView extends StatelessWidget {
     }
 
     // If there's an existing document URL from API
-    if (viewModel.licenseDocument1Url != null && viewModel.licenseDocument1Url!.isNotEmpty) {
+    if (viewModel.licenseDocument1Url != null &&
+        viewModel.licenseDocument1Url!.isNotEmpty) {
       try {
         // Extract filename from URL
         final uri = Uri.parse(viewModel.licenseDocument1Url!);
@@ -1293,18 +1355,19 @@ class _EditLaboratoryProfileView extends StatelessWidget {
   }
 
   static Future<void> _navigateToUploadDocument(
-      BuildContext context,
-      LaboratoryProfileViewModel viewModel,
-      int documentNumber,
-      ) async {
-    final result = await Navigator.of(context, rootNavigator: true).push<Map<String, dynamic>>(
-      MaterialPageRoute(
-        builder: (_) => const UploadDocumentScreen(
-          title: 'Upload License Document',
-          subtitle: 'Please capture or upload your license document',
-        ),
-      ),
-    );
+    BuildContext context,
+    LaboratoryProfileViewModel viewModel,
+    int documentNumber,
+  ) async {
+    final result = await Navigator.of(context, rootNavigator: true)
+        .push<Map<String, dynamic>>(
+          MaterialPageRoute(
+            builder: (_) => const UploadDocumentScreen(
+              title: 'Upload License Document',
+              subtitle: 'Please capture or upload your license document',
+            ),
+          ),
+        );
 
     if (result != null && result['file'] != null) {
       final file = result['file'] as File;

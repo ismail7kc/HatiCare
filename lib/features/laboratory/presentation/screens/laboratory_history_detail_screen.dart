@@ -5,15 +5,13 @@ import 'package:haticare/core/theme/app_colors.dart';
 class LaboratoryHistoryDetailScreen extends StatelessWidget {
   final Map<String, dynamic> prescription;
 
-  const LaboratoryHistoryDetailScreen({
-    super.key,
-    required this.prescription,
-  });
+  const LaboratoryHistoryDetailScreen({super.key, required this.prescription});
 
   @override
   Widget build(BuildContext context) {
     final prescriptionId = prescription['prescription_id']?.toString() ?? '';
-    final patientName = prescription['patient_name']?.toString() ?? 'Unknown Patient';
+    final patientName =
+        prescription['patient_name']?.toString() ?? 'Unknown Patient';
     final patientPhone = prescription['patient_phone']?.toString() ?? '';
     final labTests = prescription['lab_tests'] as List<dynamic>? ?? [];
     final notes = prescription['notes']?.toString() ?? '';
@@ -44,31 +42,29 @@ class LaboratoryHistoryDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Prescription Info Card
             _buildPrescriptionInfoCard(rexCode, prescriptionId, createdAt),
             const SizedBox(height: 16),
 
-            // Patient Info Card
             _buildPatientInfoCard(patientName, patientPhone),
             const SizedBox(height: 16),
 
-            // Lab Tests Card
             if (labTests.isNotEmpty) ...[
               _buildLabTestsCard(labTests),
               const SizedBox(height: 16),
             ],
 
-            // Notes Card
-            if (notes.isNotEmpty) ...[
-              _buildNotesCard(notes),
-            ],
+            if (notes.isNotEmpty) ...[_buildNotesCard(notes)],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPrescriptionInfoCard(String rexCode, String prescriptionId, String createdAt) {
+  Widget _buildPrescriptionInfoCard(
+    String rexCode,
+    String prescriptionId,
+    String createdAt,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -121,24 +117,21 @@ class LaboratoryHistoryDetailScreen extends StatelessWidget {
                     if (rexCode.isNotEmpty)
                       Text(
                         'RX: $rexCode',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 13,
-                        ),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
                       )
                     else
                       Text(
                         'ID: #$prescriptionId',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 13,
-                        ),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
                       ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(25),
@@ -166,10 +159,7 @@ class LaboratoryHistoryDetailScreen extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   _formatDate(createdAt),
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.grey[700], fontSize: 14),
                 ),
               ],
             ),
@@ -209,18 +199,11 @@ class LaboratoryHistoryDetailScreen extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(
-                Icons.person_outline,
-                size: 20,
-                color: Colors.grey[600],
-              ),
+              Icon(Icons.person_outline, size: 20, color: Colors.grey[600]),
               const SizedBox(width: 8),
               Text(
                 patientName,
-                style: TextStyle(
-                  color: Colors.grey[700],
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey[700], fontSize: 14),
               ),
             ],
           ),
@@ -228,18 +211,11 @@ class LaboratoryHistoryDetailScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(
-                  Icons.phone_outlined,
-                  size: 20,
-                  color: Colors.grey[600],
-                ),
+                Icon(Icons.phone_outlined, size: 20, color: Colors.grey[600]),
                 const SizedBox(width: 8),
                 Text(
                   patientPhone,
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.grey[700], fontSize: 14),
                 ),
               ],
             ),
@@ -304,7 +280,9 @@ class LaboratoryHistoryDetailScreen extends StatelessWidget {
             final testId = test['id']?.toString() ?? '';
 
             return Padding(
-              padding: EdgeInsets.only(bottom: index < labTests.length - 1 ? 12 : 0),
+              padding: EdgeInsets.only(
+                bottom: index < labTests.length - 1 ? 12 : 0,
+              ),
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -394,19 +372,12 @@ class LaboratoryHistoryDetailScreen extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.note_outlined,
-                  size: 20,
-                  color: Colors.grey[600],
-                ),
+                Icon(Icons.note_outlined, size: 20, color: Colors.grey[600]),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     notes,
-                    style: TextStyle(
-                      color: Colors.grey[700],
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.grey[700], fontSize: 14),
                   ),
                 ),
               ],
