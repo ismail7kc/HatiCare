@@ -466,8 +466,7 @@ class _LaboratoryReportUploadScreenState
                     },
                   ),
                   const SizedBox(height: 16),
-
-                  // Indicator Dropdown (Custom with proper anchoring)
+                  
                   Builder(
                     builder: (BuildContext dropdownContext) {
                       return GestureDetector(

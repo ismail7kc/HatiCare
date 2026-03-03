@@ -29,7 +29,8 @@ class LaboratorySettingsScreen extends StatefulWidget {
   const LaboratorySettingsScreen({super.key, this.onProfileUpdated});
 
   @override
-  State<LaboratorySettingsScreen> createState() => _LaboratorySettingsScreenState();
+  State<LaboratorySettingsScreen> createState() =>
+      _LaboratorySettingsScreenState();
 }
 
 class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
@@ -38,7 +39,6 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
 
   @override
   bool get wantKeepAlive => true;
-
 
   Future<File?> _cropImage(File imageFile) async {
     try {
@@ -61,13 +61,14 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
             aspectRatioLockEnabled: true,
           ),
         ],
-      );
+      );  
+
       if (croppedFile != null) {
         return File(croppedFile.path);
       }
 
       return null;
-    } catch (e) {
+    } catch (e) { 
       debugPrint('Error cropping image: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -78,13 +79,12 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
     }
   }
 
-  // Add a flag to prevent multiple uploads
   bool _isUploading = false;
 
-  Future<void> _updateProfilePicture(File imageFile) async {
+  Future<void> _updateProfilePicture(File imageFile) async {  
     if (!mounted || _isUploading) return;
 
-    setState(() {
+    setState(() {   
       _isUpdating = true;
       _isUploading = true;
     });
@@ -98,13 +98,14 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
         throw Exception('Laboratory ID not found');
       }
 
-      final uri = Uri.parse('${AppConfig.baseUrl}lab/laboratories/$laboratoryId/');
+      final uri = Uri.parse(
+        '${AppConfig.baseUrl}lab/laboratories/$laboratoryId/',
+      );
       final request = http.MultipartRequest('PATCH', uri);
       request.headers['Authorization'] = 'Bearer $accessToken';
-      request.files.add(await http.MultipartFile.fromPath(
-        'profile_picture',
-        imageFile.path,
-      ));
+      request.files.add(
+        await http.MultipartFile.fromPath('profile_picture', imageFile.path),
+      );
 
       final client = ChuckerHttpClient(http.Client());
       final response = await client.send(request);
@@ -120,19 +121,18 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
         final newImageUrl = responseData['profile_picture']?.toString();
 
         if (newImageUrl != null && newImageUrl.isNotEmpty) {
-          // Add cache-busting timestamp
           final timestamp = DateTime.now().millisecondsSinceEpoch;
           final updatedUrl = newImageUrl.contains('?')
               ? '$newImageUrl&t=$timestamp'
               : '$newImageUrl?t=$timestamp';
 
-          // Update provider
           if (mounted) {
-            context.read<LaboratoryUserProvider>().updateProfilePicture(updatedUrl);
+            context.read<LaboratoryUserProvider>().updateProfilePicture(
+              updatedUrl,
+            );
             ProfileNotifier.profileImageUrl.value = updatedUrl;
           }
 
-          // Show success message
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -144,7 +144,9 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
           }
         }
       } else {
-        throw Exception('Failed to update profile picture: ${response.statusCode}');
+        throw Exception(
+          'Failed to update profile picture: ${response.statusCode}',
+        );
       }
     } catch (e) {
       debugPrint('Error updating profile picture: $e');
@@ -229,7 +231,7 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
         imageQuality: 85,
         maxWidth: 800,
       );
-      
+
       if (pickedFile != null && mounted) {
         final croppedFile = await _cropImage(File(pickedFile.path));
         if (croppedFile != null && mounted) {
@@ -253,10 +255,10 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
-    
+    super.build(context);
+
     final laboratoryProvider = context.watch<LaboratoryUserProvider>();
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
@@ -277,11 +279,8 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 24),
-            // Profile Section
             _buildProfileSection(context, laboratoryProvider),
             const SizedBox(height: 32),
-
-            // Account Section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
@@ -302,12 +301,13 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
                     title: 'Edit Profile',
                     onTap: () async {
                       final prefs = await SharedPreferences.getInstance();
-                      final laboratoryId = prefs.getString('laboratory_id') ?? '';
+                      final laboratoryId =
+                          prefs.getString('laboratory_id') ?? '';
                       final profileCompleted =
-                          prefs.getBool('laboratory_profile_completed') ?? false;
+                          prefs.getBool('laboratory_profile_completed') ??
+                          false;
 
                       if (context.mounted) {
-                        // Navigate to edit profile with openedFromSettings = true
                         await Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -318,9 +318,11 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
                             ),
                           ),
                         );
-                        // Refresh provider data after returning
+
                         if (context.mounted) {
-                          context.read<LaboratoryUserProvider>().fetchProfile(forceRefresh: true);
+                          context.read<LaboratoryUserProvider>().fetchProfile(
+                            forceRefresh: true,
+                          );
                         }
                       }
                     },
@@ -334,8 +336,7 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              const NotificationsScreen(),
+                          builder: (context) => const NotificationsScreen(),
                         ),
                       );
                     },
@@ -349,8 +350,7 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              const PrivacyPolicyScreen(),
+                          builder: (context) => const PrivacyPolicyScreen(),
                         ),
                       );
                     },
@@ -360,7 +360,6 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
             ),
             const SizedBox(height: 24),
 
-            // Support Section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
@@ -383,8 +382,7 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              const HelpCenterScreen(),
+                          builder: (context) => const HelpCenterScreen(),
                         ),
                       );
                     },
@@ -398,8 +396,7 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              const ContactSupportScreen(),
+                          builder: (context) => const ContactSupportScreen(),
                         ),
                       );
                     },
@@ -421,7 +418,10 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
     );
   }
 
-  Widget _buildProfileSection(BuildContext context, LaboratoryUserProvider provider) {
+  Widget _buildProfileSection(
+    BuildContext context,
+    LaboratoryUserProvider provider,
+  ) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -516,7 +516,6 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
                       ),
                     ),
 
-              /// Edit Button
               Positioned(
                 right: 0,
                 bottom: 0,
@@ -556,7 +555,9 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
                   child: LinearProgressIndicator(),
                 )
               : Text(
-                  provider.laboratoryName.isNotEmpty ? provider.laboratoryName : 'User',
+                  provider.laboratoryName.isNotEmpty
+                      ? provider.laboratoryName
+                      : 'User',
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -573,7 +574,9 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
                   child: LinearProgressIndicator(),
                 )
               : Text(
-                  provider.contactPerson.isNotEmpty ? provider.contactPerson : 'Contact Person',
+                  provider.contactPerson.isNotEmpty
+                      ? provider.contactPerson
+                      : 'Contact Person',
                   style: const TextStyle(fontSize: 14, color: Colors.grey),
                 ),
 
@@ -692,10 +695,7 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
               SizedBox(width: 12),
               Text(
                 'Logout',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -736,10 +736,8 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
   }
 
   Future<void> _handleLogout(BuildContext context) async {
-    // Get repository before showing dialog
     final authRepository = context.read<AuthRepository>();
 
-    // Show loading indicator
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -755,13 +753,11 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
       final deviceId = await DeviceIdProvider().getDeviceId();
       final refreshToken = prefs.getString('refresh_token') ?? '';
 
-      // Call logout API
       await authRepository.logout(
         deviceId: deviceId,
         refreshToken: refreshToken,
       );
 
-      // Clear all login data
       SharedPrefsHelper.clearRefreshToken();
       await prefs.remove('access_token');
       await prefs.remove('device_id');
@@ -771,32 +767,23 @@ class _LaboratorySettingsScreenState extends State<LaboratorySettingsScreen>
       await prefs.remove('user_last_name');
       await prefs.setBool('is_logged_in', false);
 
-      // Close loading dialog
       if (context.mounted) {
         Navigator.of(context, rootNavigator: true).pop();
-
-        // Small delay to ensure dialog is closed
         await Future.delayed(const Duration(milliseconds: 100));
-
         if (!context.mounted) return;
-
-        // Navigate to login screen and clear all previous routes using root navigator
         Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const LoginScreen()),
           (route) => false,
         );
       }
     } catch (e) {
-      // Close loading dialog
       if (context.mounted) {
         Navigator.of(context, rootNavigator: true).pop();
 
-        // Small delay to ensure dialog is closed
         await Future.delayed(const Duration(milliseconds: 100));
 
         if (!context.mounted) return;
 
-        // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Logout failed: ${e.toString()}'),

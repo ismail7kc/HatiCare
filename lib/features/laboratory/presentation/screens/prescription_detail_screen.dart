@@ -55,7 +55,6 @@ class PrescriptionDetailScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            // Lab Tests Section
             Row(
               children: [
                 const Icon(Icons.science_outlined, color: AppColors.primary),
@@ -137,7 +136,6 @@ class PrescriptionDetailScreen extends StatelessWidget {
                     ),
             ),
 
-            // Notes section
             if (notes.isNotEmpty) ...[
               const SizedBox(height: 24),
               Text(
@@ -166,7 +164,6 @@ class PrescriptionDetailScreen extends StatelessWidget {
 
             const SizedBox(height: 32),
 
-            // Upload Report Button
             SizedBox(
               width: double.infinity,
               height: 54,
