@@ -39,6 +39,12 @@ class _MainScreenState extends State<DoctorHomeScreen> {
     _loadLoginData();
   }
 
+  // Stream: starts when listened to, can emit multiple values over time, and completes when closed. 😅😅😅😅
+  Stream<void> multipleAsyncDataMultipleValues() async* {
+    debugPrint('this is Steam method');
+  }
+
+  //// Future: executes once, emits one value (or error), and completes once 😅😅😅😅
   Future<void> _loadLoginData() async {
     await SaveLoginResponse.loadLoginModel();
     if (mounted) {

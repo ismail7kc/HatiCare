@@ -126,7 +126,6 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
 
-                /// ───────── ACTION BUTTONS ─────────
                 const Spacer(),
 
                 Padding(
@@ -150,7 +149,6 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                   ),
                 ),
 
-                /// ───────── CALL CONTROLS ─────────
                 const Spacer(),
 
                 Padding(
@@ -179,7 +177,6 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                   ),
                 ),
 
-                /// ───────── END CALL ─────────
                 const Spacer(),
 
                 GestureDetector(

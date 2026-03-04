@@ -22,7 +22,6 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
   final String laboratoryId;
   final bool openedFromSettings;
 
-  // Form controllers
   final contactPersonController = TextEditingController();
   final emailController = TextEditingController();
   final laboratoryNameController = TextEditingController();
@@ -35,23 +34,19 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
   final taxIdentificationNumberController = TextEditingController();
   final licenseNumberController = TextEditingController();
 
-  // Phone number handling
   String? _phoneNumber;
   String _countryCode = 'US';
   String? _initialPhoneNumber;
 
-  // Profile picture and documents
   File? profilePictureFile;
   File? licenseDocumentFile;
   String? profilePictureUrl;
   String? licenseDocumentUrl;
-  
-  // Aliases for compatibility with pharmacy profile screen
+
   File? get profilePicture => profilePictureFile;
   File? get licenseDocument1 => licenseDocumentFile;
   String? get licenseDocument1Url => licenseDocumentUrl;
 
-  // State variables
   bool isLoading = true;
   bool isSubmitting = false;
   String? errorMessage;
@@ -59,22 +54,18 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
   bool _shouldNavigateToHome = false;
   int _currentStep = 1;
   bool _attemptedSubmit = false;
-  bool _hasInitialized = false; // Add this flag
-  bool _isInitializationError = false; // Track initialization errors
-  bool _attemptedSubmitPage2 = false; // Separate flag for page 2
+  bool _hasInitialized = false;
+  bool _isInitializationError = false;
+  bool _attemptedSubmitPage2 = false;
 
-  // Change tracking
   late Map<String, String> _initialValues;
   bool _hasChanges = false;
-  
-  // Form keys
+
   final formKeyPage1 = GlobalKey<FormState>();
   final formKeyPage2 = GlobalKey<FormState>();
-  
-  // Validation errors
+
   final Map<String, String> _validationErrors = {};
-  
-  // Country/State/City selection
+
   String? selectedCountry;
   String? selectedState;
   String? selectedCity;
@@ -86,10 +77,10 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
   bool get shouldNavigateToHome => _shouldNavigateToHome;
   int get currentStep => _currentStep;
   bool get attemptedSubmit => _attemptedSubmit;
-  bool get hasInitialized => _hasInitialized; // Add getter
-  bool get isInitializationError => _isInitializationError; // Add getter
-  bool get attemptedSubmitPage2 => _attemptedSubmitPage2; // Add getter
-  
+  bool get hasInitialized => _hasInitialized;
+  bool get isInitializationError => _isInitializationError;
+  bool get attemptedSubmitPage2 => _attemptedSubmitPage2;
+
   String? get taxIdController => taxIdentificationNumberController.text;
   set taxIdController(String? value) {
     if (value != null) {
@@ -109,36 +100,37 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
   }
 
   Future<void> _initialize() async {
-    // Clear any existing error messages at start
     errorMessage = null;
     successMessage = null;
     _validationErrors.clear();
-    
+
     await _loadCountriesData();
     await _loadCachedData();
-    // Always fetch profile from API if laboratoryId exists to get latest data
     if (laboratoryId.isNotEmpty || openedFromSettings) {
       await fetchLaboratoryProfile();
     } else {
       isLoading = false;
       notifyListeners();
     }
-    _hasInitialized = true; // Set flag after initialization
+    _hasInitialized = true;
   }
 
-  // Cache for all countries data
   late List<dynamic> _countriesJsonData;
   bool _jsonDataLoaded = false;
 
   Future<void> _loadCountriesData() async {
     try {
-      final jsonString = await rootBundle.loadString('assets/json/countries.json');
+      final jsonString = await rootBundle.loadString(
+        'assets/json/countries.json',
+      );
       final List<dynamic> jsonData = jsonDecode(jsonString);
-      
+
       _countriesJsonData = jsonData;
       _jsonDataLoaded = true;
-      countries = jsonData.map((item) => item['Country_name'] as String).toList();
-      
+      countries = jsonData
+          .map((item) => item['Country_name'] as String)
+          .toList();
+
       debugPrint('Loaded ${countries.length} countries');
       notifyListeners();
     } catch (e) {
@@ -154,13 +146,13 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       contactPersonController.text = prefs.getString('user_first_name') ?? '';
       emailController.text = prefs.getString('user_email') ?? '';
-      
+
       final phoneNumber = prefs.getString('user_phone_number') ?? '';
       if (phoneNumber.isNotEmpty) {
         final parsedPhone = _parsePhoneNumber(phoneNumber);
         final countryCode = parsedPhone['countryCode'] ?? 'US';
         final numberOnly = parsedPhone['number'] ?? '';
-        
+
         _initialPhoneNumber = numberOnly;
         _phoneNumber = phoneNumber;
         _countryCode = countryCode;
@@ -175,21 +167,21 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
 
   Map<String, String> _parsePhoneNumber(String phoneNumber) {
     const countryCodeMap = {
-      '+1': 'US',   
-      '+44': 'GB',  
-      '+92': 'PK',  
-      '+91': 'IN',  
-      '+86': 'CN',  
-      '+81': 'JP',  
-      '+33': 'FR',  
-      '+49': 'DE',  
-      '+39': 'IT',  
-      '+34': 'ES',  
-      '+61': 'AU',  
-      '+64': 'NZ',  
-      '+27': 'ZA',  
-      '+55': 'BR',   
-      '+52': 'MX',   
+      '+1': 'US',
+      '+44': 'GB',
+      '+92': 'PK',
+      '+91': 'IN',
+      '+86': 'CN',
+      '+81': 'JP',
+      '+33': 'FR',
+      '+49': 'DE',
+      '+39': 'IT',
+      '+34': 'ES',
+      '+61': 'AU',
+      '+64': 'NZ',
+      '+27': 'ZA',
+      '+55': 'BR',
+      '+52': 'MX',
     };
 
     String countryCode = 'US';
@@ -205,10 +197,7 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
       }
     }
 
-    return {
-      'countryCode': countryCode,
-      'number': numberOnly,
-    };
+    return {'countryCode': countryCode, 'number': numberOnly};
   }
 
   void _initializeChangeTracking() {
@@ -251,7 +240,7 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
     try {
       isLoading = true;
       errorMessage = null;
-      _isInitializationError = false; // Reset initialization error flag
+      _isInitializationError = false;
       notifyListeners();
 
       final prefs = await SharedPreferences.getInstance();
@@ -259,7 +248,7 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
 
       if (accessToken.isEmpty) {
         errorMessage = 'No authentication token found';
-        _isInitializationError = true; // Mark as initialization error
+        _isInitializationError = true;
         isLoading = false;
         notifyListeners();
         return;
@@ -272,21 +261,25 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
 
       if (finalLaboratoryId.isEmpty) {
         errorMessage = 'Laboratory ID not found. Please login again.';
-        _isInitializationError = true; // Mark as initialization error
+        _isInitializationError = true;
         isLoading = false;
         notifyListeners();
         return;
       }
 
-      final uri = Uri.parse('${AppConfig.baseUrl}lab/laboratories/$finalLaboratoryId/');
+      final uri = Uri.parse(
+        '${AppConfig.baseUrl}lab/laboratories/$finalLaboratoryId/',
+      );
       final client = ChuckerHttpClient(http.Client());
-      final response = await client.get(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 30));
+      final response = await client
+          .get(
+            uri,
+            headers: {
+              'Authorization': 'Bearer $accessToken',
+              'Content-Type': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 30));
 
       debugPrint('Fetch Profile Response Status: ${response.statusCode}');
       debugPrint('Fetch Profile Response Body: ${response.body}');
@@ -296,7 +289,8 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
         debugPrint('Full API Response: $jsonResponse');
 
         dynamic data;
-        if (jsonResponse is Map<String, dynamic> && jsonResponse.containsKey('data')) {
+        if (jsonResponse is Map<String, dynamic> &&
+            jsonResponse.containsKey('data')) {
           data = jsonResponse['data'];
         } else {
           data = jsonResponse;
@@ -306,32 +300,32 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
         _populateFormFields(data);
         successMessage = null;
       } else if (response.statusCode == 404) {
-        // Handle 404 silently - profile doesn't exist yet, user can create it
-        debugPrint('Profile not found (404) - allowing user to create new profile');
+        debugPrint(
+          'Profile not found (404) - allowing user to create new profile',
+        );
       } else {
         final responseBody = response.body;
         errorMessage = 'Failed to load profile: ${response.statusCode}';
-        _isInitializationError = true; // Mark as initialization error
+        _isInitializationError = true;
         debugPrint('Error response: $responseBody');
       }
     } on SocketException catch (e) {
       errorMessage = 'Network error. Please check your internet connection.';
-      _isInitializationError = true; // Mark as initialization error
+      _isInitializationError = true;
       debugPrint('SocketException: $e');
     } on TimeoutException catch (e) {
       errorMessage = 'Request timed out. Please try again.';
-      _isInitializationError = true; // Mark as initialization error
+      _isInitializationError = true;
       debugPrint('TimeoutException: $e');
     } catch (e) {
       errorMessage = 'Error loading profile: ${e.toString()}';
-      _isInitializationError = true; // Mark as initialization error
+      _isInitializationError = true;
       debugPrint('Exception: $e');
     } finally {
       isLoading = false;
       notifyListeners();
     }
   }
-
 
   void _populateFormFields(dynamic data) {
     try {
@@ -349,22 +343,19 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
         final country = data['country'] ?? '';
         final state = data['state'] ?? '';
         final city = data['city'] ?? '';
-        
+
         if (country.isNotEmpty) {
-          // Check if country exists in the list
           final countryExists = countries.any((c) => c == country);
           if (countryExists) {
             selectCountry(country);
             debugPrint('Country selected: $country');
-            
-            // Wait for states to load, then set state and city
+
             if (state.isNotEmpty || city.isNotEmpty) {
               Future.delayed(const Duration(milliseconds: 100), () {
                 if (state.isNotEmpty) {
                   selectState(state);
                   debugPrint('State selected after delay: $state');
-                  
-                  // Wait for cities to load, then set city
+
                   if (city.isNotEmpty) {
                     Future.delayed(const Duration(milliseconds: 100), () {
                       selectCity(city);
@@ -375,7 +366,6 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
               });
             }
           } else {
-            // If country doesn't exist in list, just set the text
             countryController.text = country;
             selectedCountry = country;
             stateController.text = state;
@@ -404,17 +394,17 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
           emailController.text = email;
           debugPrint('email: $email');
         }
-        
+
         final phoneNumber = data['phone_number'] ?? '';
         if (phoneNumber.isNotEmpty) {
           final parsedPhone = _parsePhoneNumber(phoneNumber);
           final countryCode = parsedPhone['countryCode'] ?? 'US';
           final numberOnly = parsedPhone['number'] ?? '';
-          
+
           _initialPhoneNumber = numberOnly;
           _phoneNumber = phoneNumber;
           _countryCode = countryCode;
-          
+
           debugPrint('phone_number: $phoneNumber');
           debugPrint('Parsed - Country: $countryCode, Number: $numberOnly');
         }
@@ -428,19 +418,21 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
         debugPrint('license_number: $licenseNumber');
 
         final profilePictureUrlValue = data['profile_picture'];
-        if (profilePictureUrlValue != null && profilePictureUrlValue.toString().isNotEmpty) {
+        if (profilePictureUrlValue != null &&
+            profilePictureUrlValue.toString().isNotEmpty) {
           profilePictureUrl = profilePictureUrlValue.toString();
           debugPrint('profile_picture URL: $profilePictureUrl');
         }
 
         final licenseDocUrlValue = data['license_document'];
-        if (licenseDocUrlValue != null && licenseDocUrlValue.toString().isNotEmpty) {
+        if (licenseDocUrlValue != null &&
+            licenseDocUrlValue.toString().isNotEmpty) {
           licenseDocumentUrl = licenseDocUrlValue.toString();
           debugPrint('license_document URL: $licenseDocumentUrl');
         }
 
         debugPrint('Form fields populated successfully');
-        
+
         _initializeChangeTracking();
         notifyListeners();
       } else {
@@ -545,33 +537,31 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
     bool isValid = true;
     String? validationError;
 
-    // Validate Tax ID
     if (taxIdentificationNumberController.text.isEmpty) {
       validationError = 'Tax identification number is required';
       isValid = false;
     }
 
-    // Validate License Number
     if (licenseNumberController.text.isEmpty && validationError == null) {
       validationError = 'License number is required';
       isValid = false;
     }
 
-    // Validate Profile Picture (only if not opened from settings)
-    if (profilePictureFile == null && (profilePictureUrl == null || profilePictureUrl!.isEmpty) && validationError == null) {
+    if (profilePictureFile == null &&
+        (profilePictureUrl == null || profilePictureUrl!.isEmpty) &&
+        validationError == null) {
       validationError = 'Profile picture is required';
       isValid = false;
     }
 
-    // Validate License Document
-    if (licenseDocumentFile == null && (licenseDocumentUrl == null || licenseDocumentUrl!.isEmpty) && validationError == null) {
+    if (licenseDocumentFile == null &&
+        (licenseDocumentUrl == null || licenseDocumentUrl!.isEmpty) &&
+        validationError == null) {
       validationError = 'License document is required';
       isValid = false;
     }
 
-    // Show validation error as toast only (don't use errorMessage)
     if (!isValid && validationError != null) {
-      // Set a temporary validation message that will be shown as toast
       _validationErrors['page2'] = validationError;
       notifyListeners();
     }
@@ -588,12 +578,11 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
   }
 
   Future<void> submitProfile() async {
-    _attemptedSubmitPage2 = true; // Use page 2 flag
+    _attemptedSubmitPage2 = true;
     errorMessage = null;
     successMessage = null;
     notifyListeners();
 
-    // Validate page 2 fields
     if (!validatePage2()) {
       return;
     }
@@ -622,9 +611,7 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
         Uri.parse('${AppConfig.baseUrl}lab/laboratories/$finalLaboratoryId/'),
       );
 
-      request.headers.addAll({
-        'Authorization': 'Bearer $accessToken',
-      });
+      request.headers.addAll({'Authorization': 'Bearer $accessToken'});
 
       request.fields['contact_person'] = contactPersonController.text;
       request.fields['laboratory_name'] = laboratoryNameController.text;
@@ -634,7 +621,8 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
       request.fields['zip_code'] = zipCodeController.text;
       request.fields['country'] = selectedCountry ?? countryController.text;
       request.fields['phone_number'] = _phoneNumber ?? '';
-      request.fields['tax_identification_number'] = taxIdentificationNumberController.text;
+      request.fields['tax_identification_number'] =
+          taxIdentificationNumberController.text;
       request.fields['license_number'] = licenseNumberController.text;
       request.fields['is_profile_complete'] = 'true';
       request.fields['profile_completed'] = 'true';
@@ -661,13 +649,16 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
       debugPrint('Fields: ${request.fields}');
 
       final client = ChuckerHttpClient(http.Client());
-      final streamedResponse = await client.send(request).timeout(const Duration(seconds: 30));
+      final streamedResponse = await client
+          .send(request)
+          .timeout(const Duration(seconds: 30));
       final responseBody = await streamedResponse.stream.bytesToString();
 
       debugPrint('LAB PATCH status: ${streamedResponse.statusCode}');
       debugPrint('LAB PATCH body: $responseBody');
 
-      if (streamedResponse.statusCode >= 200 && streamedResponse.statusCode < 300) {
+      if (streamedResponse.statusCode >= 200 &&
+          streamedResponse.statusCode < 300) {
         successMessage = 'Laboratory profile updated successfully!';
         await prefs.setBool('laboratory_profile_completed', true);
         _shouldNavigateToHome = true;
@@ -682,7 +673,9 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
         final msg = (decoded is Map<String, dynamic>)
             ? (decoded['message']?.toString() ?? decoded['detail']?.toString())
             : null;
-        throw Exception(msg ?? 'Failed to update profile: ${streamedResponse.statusCode}');
+        throw Exception(
+          msg ?? 'Failed to update profile: ${streamedResponse.statusCode}',
+        );
       }
     } catch (e) {
       errorMessage = 'Error updating profile: $e';
@@ -798,12 +791,12 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
     if (_currentStep == 1) {
       // Set attemptedSubmit flag to show validation errors
       _attemptedSubmit = true;
-      
+
       // Validate page 1 before moving to page 2
       if (!validatePage1()) {
         return;
       }
-      
+
       // Reset attemptedSubmit flag when moving to page 2
       _attemptedSubmit = false;
     }
@@ -923,11 +916,13 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
       for (var country in _countriesJsonData) {
         if (country['Country_name'] == countryName) {
           final countryStates = country['states'] as List<dynamic>;
-          loadedStates = countryStates.map((s) => s['state_name'] as String).toList();
+          loadedStates = countryStates
+              .map((s) => s['state_name'] as String)
+              .toList();
           break;
         }
       }
-      
+
       states = loadedStates;
       notifyListeners();
     } catch (e) {
@@ -960,7 +955,7 @@ class LaboratoryProfileViewModel extends ChangeNotifier {
           break;
         }
       }
-      
+
       cities = loadedCities;
       notifyListeners();
     } catch (e) {
