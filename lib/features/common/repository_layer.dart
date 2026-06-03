@@ -41,10 +41,11 @@ class RepositoryLayer {
   ) async {
     final prefs = await SharedPreferences.getInstance();
     final dynamic rawDocId = SaveLoginResponse.loginData?['id'];
-    final String docID = rawDocId?.toString() ?? prefs.getString('doctor_id') ?? '';
+    final String docID =
+        rawDocId?.toString() ?? prefs.getString('doctor_id') ?? '';
     try {
       final url = '${AppConfig.baseUrl}doc/doctors/$docID/';
-      
+
       final response = await _apiClient.updateDocRequest(url, body: body);
       debugPrint('Repository response: $response');
       return response;
@@ -122,13 +123,15 @@ class RepositoryLayer {
     return PatientResponse.fromJson(response);
   }
 
-  Future<Map<String, dynamic>> futureVisitCompleted(int id, String notes) async {
-  final uri = '${AppConfig.baseUrl}patient/visits/$id/complete/';
+  Future<Map<String, dynamic>> futureVisitCompleted(
+    int id,
+    String notes,
+  ) async {
+    final uri = '${AppConfig.baseUrl}patient/visits/$id/complete/';
 
-  final body = { "doctor_notes": notes };
+    final body = {"doctor_notes": notes};
 
-  final response = await _apiClient.doctorVisitComplete(uri, body);
-  return response;
-}
-
+    final response = await _apiClient.doctorVisitComplete(uri, body);
+    return response;
+  }
 }
