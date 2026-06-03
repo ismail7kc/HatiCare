@@ -14,9 +14,7 @@ class TwilioCallService {
   }
 
   static Future<void> setMuted(bool muted) async {
-    await _channel.invokeMethod("setMuted", {
-      "muted": muted,
-    });
+    await _channel.invokeMethod("setMuted", { "muted": muted, });
   }
 
   static Future<void> endCall() async {

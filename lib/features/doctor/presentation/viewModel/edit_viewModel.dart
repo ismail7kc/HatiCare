@@ -27,8 +27,7 @@ class EditViewmodel extends ChangeNotifier {
             .map((item) => item['name'] as String)
             .toList();
 
-        debugPrint(
-            'Loaded ${specializationNames.length} specializations: $specializationNames');
+        debugPrint('Loaded ${specializationNames.length} specializations: $specializationNames');
       } else {
         GlobalAlert.show(response['message'] ?? "Failed to fetch specializations");
       }
@@ -36,7 +35,7 @@ class EditViewmodel extends ChangeNotifier {
       notifyListeners();
     } catch (error) {
       debugPrint('Error Fetching Specialization: $error');
-      specializationNames = []; // Ensure it's empty on error
+      specializationNames = [];
       notifyListeners();
     }
   }
@@ -86,10 +85,7 @@ class EditViewmodel extends ChangeNotifier {
     addIfValid('license_type', doctorInstance?.licenseType);
     addIfValid('specialization', doctorInstance?.specialization);
     addIfValid('years_of_experience', doctorInstance?.yearsOfExperience);
-    addIfValid(
-      'license_issuing_authority',
-      doctorInstance?.licenseIssuingAuthority,
-    );
+    addIfValid('license_issuing_authority', doctorInstance?.licenseIssuingAuthority);
 
     if (doctorInstance?.gender != null) {
       body['gender'] = doctorInstance!.gender == "Male"
