@@ -30,7 +30,7 @@ class AppointmentDetailScreen extends StatefulWidget {
 
 class _AppointmentDetailState extends State<AppointmentDetailScreen> {
   late AppointmentDetailvm appointmentDetailvm;
-  final symptoms = ["Fever", "Headache", "Cough"];
+  final symptoms = ["Fever", "Headache", "Cough", "flu"];
   bool _accepting = false;
 
   final TextEditingController notesController = TextEditingController();
@@ -206,17 +206,51 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "Reason for Visit",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                          ),
+                        _buildInfoRow(
+                          title: 'Primary Concern',
+                          value: widget.appointment.primaryConcern,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.appointment.rawComplaint,
-                          style: const TextStyle(color: Colors.grey),
+
+                        const SizedBox(height: 10),
+
+                        _buildInfoRow(
+                          title: 'Risk Level',
+                          value: widget.appointment.riskLevelText,
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        _buildInfoRow(
+                          title: 'Specialization',
+                          value:
+                              widget
+                                  .appointment
+                                  .triageData
+                                  .primarySpecializationName
+                                  .isNotEmpty
+                              ? widget
+                                    .appointment
+                                    .triageData
+                                    .primarySpecializationName
+                              : 'Not Available',
+                        ),
+
+                        if (widget.appointment.winningScore != null) ...[
+                          const SizedBox(height: 10),
+
+                          _buildInfoRow(
+                            title: 'Risk Score',
+                            value: '${widget.appointment.winningScore}',
+                          ),
+                        ],
+
+                        const SizedBox(height: 10),
+
+                        _buildInfoRow(
+                          title: 'Patient Status',
+                          value: widget.appointment.status.isNotEmpty
+                              ? widget.appointment.status
+                              : 'Pending',
                         ),
                       ],
                     ),
@@ -255,7 +289,7 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: symptoms.map((symptom) {
+                    children: widget.appointment.reportedSymptoms.map((symptom) {
                       return Chip(
                         label: Text(
                           symptom,
@@ -447,6 +481,52 @@ class _AppointmentDetailState extends State<AppointmentDetailScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildInfoRow({
+    required String title,
+    required String value,
+    Color? valueColor,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Text(
+            title,
+            style: const TextStyle(color: Colors.grey, fontSize: 13),
+          ),
+        ),
+        Expanded(
+          child: Row(
+            children: [
+              if (valueColor != null) ...[
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: valueColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: valueColor ?? Colors.black87,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

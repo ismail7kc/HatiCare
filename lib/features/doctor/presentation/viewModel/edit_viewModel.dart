@@ -111,7 +111,7 @@ class EditViewmodel extends ChangeNotifier {
           doctorInstance = Doctor.fromJson(response['data']);
           debugPrint('Doctor instance created successfully');
           notifyListeners();
-        } catch (e) {
+        } catch (e) { 
           debugPrint('Error creating Doctor from JSON: $e');
           GlobalAlert.show('Failed to parse doctor data');
           rethrow;

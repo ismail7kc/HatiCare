@@ -91,9 +91,8 @@ class _PharmacyHomeTabScreenState extends State<PharmacyHomeTabScreen>
 
     final provider = context.read<PharmacyUserProvider>();
     final userId = provider.userId.isNotEmpty ? provider.userId : 'userid';
-    final socketUrl =
-        'wss://api.haticare.com/ws/pharmacy/queue/?user_id=$userId';
-
+    final socketUrl = 'wss://api.dev.haticare.7kctech.com/ws/pharmacy/queue/?user_id=$userId';
+    // final socketUrl = 'wss://6c75-103-217-179-73.ngrok-free.app/ws/pharmacy/queue/?user_id=$userId';
     debugPrint("WebSocket URL: $socketUrl");
     debugPrint("Pharmacy User ID: $userId");
 

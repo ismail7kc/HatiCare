@@ -93,8 +93,8 @@ class _LaboratoryHomeTabScreenState extends State<LaboratoryHomeTabScreen>
     final provider = context.read<LaboratoryUserProvider>();
     final userId = provider.userId.isNotEmpty ? provider.userId : 'userid';
     // Fixed: Use 'queue' endpoint like Postman, not 'list'
-    final socketUrl =
-        'wss://api.haticare.com/ws/laboratory/queue/?user_id=$userId';
+    final socketUrl = 'wss://api.dev.haticare.7kctech.com/ws/laboratory/queue/?user_id=$userId';
+    // final socketUrl = 'wss://6c75-103-217-179-73.ngrok-free.app/ws/laboratory/queue/?user_id=$userId';
 
     debugPrint("WebSocket URL: $socketUrl");
     debugPrint("Laboratory User ID: $userId");

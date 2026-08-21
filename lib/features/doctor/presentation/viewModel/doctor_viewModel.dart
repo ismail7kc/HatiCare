@@ -123,8 +123,10 @@ class DoctorViewModel extends ChangeNotifier {
 
     final response = await repository.getSingleDoctor();
     final docID = response['data']['id'];
-    final specializaton = response['data']['specialization'];
-    final socketUrl = 'wss://api.haticare.com/ws/doctor/queue/?user_id=$docID&specialization=$specializaton';
+    // final specializaton = response['data']['specialization'];
+    final socketUrl =
+        'wss://api.dev.haticare.7kctech.com/ws/doctor/queue/?user_id=$docID'; //&specialization=$specializaton
+    // final socketUrl = 'wss://6c75-103-217-179-73.ngrok-free.app/ws/doctor/queue/?user_id=$docID&specialization=$specializaton';
 
     debugPrint('Socket URL is here $socketUrl');
 
@@ -205,7 +207,7 @@ class DoctorViewModel extends ChangeNotifier {
     } catch (e) {
       debugPrint("WS parse error: $e");
     }
-  } 
+  }
 
   Future<void> disconnectWebSocket() async {
     if (_channel != null) {
