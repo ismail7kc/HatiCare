@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:haticare/features/auth/data/services/remote_auth_api_service.dart';
 import 'package:haticare/features/auth/presentation/screens/login_screen.dart';
 import 'package:haticare/features/auth/presentation/screens/splash_screen.dart';
+import 'package:haticare/features/doctor/presentation/screens/dummy_call_screen.dart';
+import 'package:haticare/features/doctor/presentation/viewModel/dummy_call_vm.dart';
 import 'package:provider/provider.dart';
 import 'package:haticare/core/theme/app_colors.dart';
 import 'package:haticare/features/auth/data/repositories/auth_repository_impl.dart';
@@ -50,6 +52,10 @@ class MyApp extends StatelessWidget {
         routes: {
           '/': (context) => SplashScreen(),
           '/login': (context) => LoginScreen(),
+          '/dummy-call': (context) => ChangeNotifierProvider(
+                create: (_) => DummyCallVM(),
+                child: const DummyCallScreen(),
+              ),
         },
         debugShowCheckedModeBanner: false,
         theme: ThemeData(

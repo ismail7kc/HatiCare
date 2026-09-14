@@ -1,0 +1,134 @@
+import 'dart:async';
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import '../../../../core/config/app_config.dart';
+import 'twilio_call_service.dart';
+
+class DummyCallVM extends ChangeNotifier {
+  bool isCalling = false;
+  bool isConnected = false;
+  bool speakerOn = false;
+  bool micMuted = false;
+
+  String callStatus = "Idle";
+  String duration = "00:00";
+  String dialedNumber = "";
+
+  Timer? _timer;
+  int seconds = 0;
+
+  Future<void> toggleSpeaker() async {
+    speakerOn = !speakerOn;
+    await AudioRouteService.setSpeaker(speakerOn);
+    notifyListeners();
+  }
+
+  Future<void> toggleMute() async {
+    micMuted = !micMuted;
+    await TwilioCallService.setMuted(micMuted);
+    notifyListeners();
+  }
+
+  Future<void> startCall({
+    required String number,
+    String? token,
+    int? visitId,
+    required String authToken,
+  }) async {
+    try {
+      isCalling = true;
+      isConnected = false;
+      callStatus = "Requesting token...";
+      dialedNumber = number;
+      notifyListeners();
+
+      String twilioToken;
+
+      if (token == null || token.isEmpty) {
+        if (visitId == null || visitId == 0) {
+          throw Exception("Provide visit_id or paste a Twilio token");
+        }
+
+        final response = await http.get(
+          Uri.parse("${AppConfig.baseUrl}calls/token/?visit_id=$visitId"),
+          headers: {"Authorization": "Bearer $authToken"},
+        );
+
+        debugPrint("DUMMY TOKEN API RESPONSE: ${response.body}");
+
+        if (response.statusCode != 200) {
+          throw Exception("Token API Failed: ${response.statusCode}");
+        }
+
+        final data = jsonDecode(response.body);
+        twilioToken = data["token"] as String? ?? '';
+      } else {
+        twilioToken = token.trim();
+      }
+
+      if (twilioToken.isEmpty) {
+        throw Exception("Twilio Token missing");
+      }
+
+      callStatus = "Connecting...";
+      notifyListeners();
+
+      await TwilioCallService.startCall(
+        token: twilioToken,
+        patientNumber: number,
+      );
+
+      callStatus = "Connected";
+      isConnected = true;
+
+      _startTimer();
+
+      notifyListeners();
+    } catch (e) {
+      callStatus = "Call Failed: $e";
+      isCalling = false;
+      isConnected = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> endCall() async {
+    await TwilioCallService.endCall();
+
+    callStatus = "Call Ended";
+    isCalling = false;
+    isConnected = false;
+
+    _stopTimer();
+    notifyListeners();
+  }
+
+  void _startTimer() {
+    if (_timer != null) return;
+
+    seconds = 0;
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      seconds++;
+
+      final minutes = (seconds ~/ 60).toString().padLeft(2, '0');
+      final secs = (seconds % 60).toString().padLeft(2, '0');
+
+      duration = "$minutes:$secs";
+      notifyListeners();
+    });
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+    seconds = 0;
+    duration = "00:00";
+  }
+
+  @override
+  void dispose() {
+    _stopTimer();
+    super.dispose();
+  }
+}
