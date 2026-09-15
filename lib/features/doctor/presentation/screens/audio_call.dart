@@ -31,24 +31,39 @@ class AudioCallScreen extends StatefulWidget {
 }
 
 class _AudioCallScreenState extends State<AudioCallScreen> {
-  bool speakerOn = false;
+  late final AudioCallVM _vm;
+
+  /// Set as soon as this screen starts leaving, so the call events that arrive
+  /// while closing don't trigger a second navigation.
+  bool _closing = false;
 
   @override
   void initState() {
     super.initState();
+    _vm = context.read<AudioCallVM>();
+    _vm.addListener(_onCallStateChanged);
     _startCallOnce();
+  }
+
+  @override
+  void dispose() {
+    _vm.removeListener(_onCallStateChanged);
+    super.dispose();
   }
 
   void _startCallOnce() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final micGranted = await requestMicPermission();
+      if (!mounted) return;
+
       if (!micGranted) {
-        if (!mounted) return;
-        GlobalAlert.show("Please turn on microphone permission");
+        GlobalAlert.show(
+          "Please turn on microphone permission to start the call",
+          title: 'Microphone permission',
+          onOk: _leaveCall,
+        );
         return;
       }
-
-      final vm = context.read<AudioCallVM>();
 
       final prefs = await SharedPreferences.getInstance();
       final accessToken =
@@ -56,8 +71,61 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
           prefs.getString('access_token') ??
           '';
 
-      vm.startCall(visitId: widget.visitId, authToken: accessToken);
+      if (!mounted) return;
+
+      _vm.startCall(visitId: widget.visitId, authToken: accessToken);
     });
+  }
+
+  /// Reacts to call failures and to the patient hanging up.
+  void _onCallStateChanged() {
+    if (!mounted || _closing) return;
+
+    if (_vm.callFailed) {
+      _closing = true;
+      GlobalAlert.show(
+        _vm.errorMessage ?? 'The call could not be completed.',
+        title: 'Call Failed',
+        onOk: _leaveCall,
+      );
+      return;
+    }
+
+    if (_vm.callEnded) {
+      _closing = true;
+
+      final message = _vm.errorMessage;
+      if (message != null && message.isNotEmpty) {
+        GlobalAlert.show(message, title: 'Call Ended', onOk: _leaveCall);
+      } else {
+        _leaveCall();
+      }
+    }
+  }
+
+  void _leaveCall() {
+    if (!mounted) return;
+    Navigator.of(context).pop();
+  }
+
+  /// Hangs up, then returns to the appointment the call was started from.
+  Future<void> _endCallAndOpenAppointment() async {
+    if (_closing) return;
+    _closing = true;
+
+    await _vm.endCall();
+
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AppointmentDetailScreen(
+          appointment: widget.appointments,
+          visitId: widget.visitId,
+        ),
+      ),
+    );
   }
 
   @override
@@ -66,7 +134,10 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
 
     return WillPopScope(
       onWillPop: () async {
-        await vm.endCall();
+        if (!_closing) {
+          _closing = true;
+          await vm.endCall();
+        }
         return true;
       },
       child: Scaffold(
@@ -77,8 +148,12 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
             onPressed: () async {
+              if (_closing) return;
+              _closing = true;
+
+              final navigator = Navigator.of(context);
               await vm.endCall();
-              Navigator.pop(context);
+              navigator.pop();
             },
           ),
           title: const Text(
@@ -121,10 +196,38 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
 
                 const SizedBox(height: 8),
 
-                Text(
-                  vm.isConnected ? vm.duration : vm.callStatus,
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
-                ),
+                if (vm.isConnected)
+                  Text(
+                    vm.duration,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  )
+                else
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (vm.isCalling) ...[
+                        const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white70,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                      Text(
+                        vm.callStatus,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
 
                 const Spacer(),
 
@@ -180,18 +283,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                 const Spacer(),
 
                 GestureDetector(
-                  onTap: () async {
-                    await vm.endCall();
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AppointmentDetailScreen(
-                          appointment: widget.appointments,
-                          visitId: widget.visitId,
-                        ),
-                      ),
-                    );
-                  },
+                  onTap: _endCallAndOpenAppointment,
                   child: const CircleAvatar(
                     radius: 30,
                     backgroundColor: Color(0xFFE53935),
